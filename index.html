@@ -937,10 +937,19 @@ function clrD(dk) {
   saveD(); renderCal(); renderEnt();
 }
 
-// ── MOUSE (desktop) ──
+// ── MOUSE (desktop only — blocked if touch was used) ──
 let _ms0 = 0, _msLpt = null;
 let _mLastTap = 0, _mLastDk = null, _mDtTimer = null;
+let _recentTouch = false; // set true after any touch, blocks mouse handlers
+
+document.addEventListener('touchstart', () => {
+  _recentTouch = true;
+  clearTimeout(window._rtTimer);
+  window._rtTimer = setTimeout(() => { _recentTouch = false; }, 1000);
+}, { passive: true });
+
 function ms(e, dk) {
+  if (_recentTouch) return;
   if (e.button !== 0) return;
   _ms0 = Date.now();
   const el = e.currentTarget;
@@ -951,12 +960,12 @@ function ms(e, dk) {
   }, 500);
 }
 function mu(e, dk) {
+  if (_recentTouch) return;
   clearTimeout(_msLpt);
   e.currentTarget.classList.remove('press');
-  if (Date.now() - _ms0 >= 500) return; // long press already handled
+  if (Date.now() - _ms0 >= 500) return;
   const now = Date.now();
   if (_mLastDk === dk && now - _mLastTap < 350) {
-    // double click → clear
     clearTimeout(_mDtTimer);
     _mLastTap = 0; _mLastDk = null;
     clrD(dk);
