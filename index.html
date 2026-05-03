@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" id="vp"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="theme-color" content="#f5f0e8"/>
@@ -109,55 +109,26 @@ button { font-family: inherit; cursor: pointer; }
 .chdr .we { color: var(--accent); }
 .cgrid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; }
 @media (hover: hover) and (pointer: fine) {
-  /* Wider shell */
-  #app { max-width: 1100px; margin: 0 auto; }
+  /* Centered column, comfortable reading width */
+  #app { max-width: 680px; margin: 0 auto; }
+  .scr { padding: calc(var(--st) + 26px) 36px 88px; }
 
-  /* Cursor hint */
-  #wrap { cursor: grab; }
-  #wrap:active { cursor: grabbing; }
+  /* Big date */
+  .big { font-size: clamp(88px, 16vw, 130px); }
+  .bigrow { margin: 10px 0 26px; }
 
-  /* Screens side-by-side panel layout */
-  .scr { padding: calc(var(--st) + 32px) 48px 96px; }
-
-  /* ── MAIN SCREEN: two-column layout ── */
-  #sMain {
-    display: grid;
-    grid-template-columns: minmax(0,1fr) minmax(0,1fr);
-    column-gap: 40px;
-    align-items: start;
-  }
-  /* All left-column items */
-  #sMain .big,
-  #sMain .bigrow,
-  #sMain .mnav,
-  #sMain .chdr,
-  #sMain .cgrid   { grid-column: 1; }
-  /* Right column items stacked naturally */
-  #sMain #entWrap { grid-column: 2; grid-row: 1 / 8; }
-  #sMain #totWrap { grid-column: 2; grid-row: 8; }
-
-  /* Calendar dots larger on desktop */
-  .cgrid { gap: 8px; }
-  .dot { max-width: 70px; max-height: 70px; justify-self: center; width: 100%; }
+  /* Calendar dots */
+  .cgrid { gap: 6px; }
+  .dot { max-width: 62px; max-height: 62px; justify-self: center; width: 100%; }
 
   /* Cards */
-  .ecard { padding: 16px 20px; }
-  .enum  { font-size: 28px; }
-  .tamt  { font-size: 44px; }
+  .ecard { padding: 14px 17px; }
+  .enum  { font-size: 26px; }
+  .tamt  { font-size: 40px; }
 
-  /* Settings screen: two-column grid for setting sections */
-  #sSett {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    column-gap: 40px;
-    align-items: start;
-  }
-  #sSett .stitle { grid-column: 1 / -1; }
-  #sSett .ssec   { /* natural flow fills two columns */ }
-
-  /* Tab bar bigger on desktop */
-  #bar { height: 64px; gap: 80px; }
-  .tbtn { font-size: 30px; }
+  /* Cursor hint on wrap so user knows it's swipeable */
+  #wrap { cursor: grab; }
+  #wrap:active { cursor: grabbing; }
 }
 
 .dot {
@@ -871,6 +842,38 @@ renderBig();
 renderCal();
 renderEnt();
 
+// ── ORIENTATION FIX ──
+// iOS иногда автозумит при повороте экрана, игнорируя maximum-scale.
+// Сбрасываем масштаб принудительно через viewport meta trick.
+(function() {
+  function resetViewport() {
+    const vp = document.getElementById('vp');
+    if (!vp) return;
+    // Временно снимаем ограничение — это заставляет браузер пересчитать
+    vp.setAttribute('content', 'width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover');
+    requestAnimationFrame(() => {
+      vp.setAttribute('content', 'width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
+    });
+  }
+  // screen.orientation API (современные браузеры)
+  if (screen.orientation) {
+    screen.orientation.addEventListener('change', resetViewport);
+  }
+  // orientationchange для iOS Safari
+  window.addEventListener('orientationchange', () => {
+    // Небольшая задержка — iOS применяет поворот не сразу
+    setTimeout(resetViewport, 300);
+  });
+  // resize как страховка — срабатывает после поворота на всех платформах
+  let _lastW = window.innerWidth;
+  window.addEventListener('resize', () => {
+    if (window.innerWidth !== _lastW) {
+      _lastW = window.innerWidth;
+      resetViewport();
+    }
+  });
+})();
+
 // ── BIG DATE ──
 function renderBig() {
   const t = new Date();
@@ -1339,37 +1342,20 @@ function goTab(tab, fromSwipe = false) {
   });
 
   // ── WHEEL (Mac trackpad two-finger horizontal swipe) ──
-  // No setTimeout — fires the moment cumulative deltaX crosses threshold.
-  // Uses a rAF loop to consume queued wheel events instantly.
-  let _wAcc = 0, _wLocked = false, _wRafId = null, _wLastDX = 0;
-  const W_THRESHOLD = 40; // px to trigger switch
-
-  function _wFlush() {
-    _wRafId = null;
-    if (_wLocked) { _wAcc = 0; return; }
-    if      (curTab_ref.v === 'main' && _wAcc >  W_THRESHOLD) { _wLocked = true; goTab('sett'); _wAcc = 0; }
-    else if (curTab_ref.v === 'sett' && _wAcc < -W_THRESHOLD) { _wLocked = true; goTab('main'); _wAcc = 0; }
-    // Decay accumulator slowly so a resting finger doesn't carry momentum
-    if (Math.abs(_wAcc) > 2) {
-      _wAcc *= 0.6;
-      _wRafId = requestAnimationFrame(_wFlush);
-    } else {
-      _wAcc = 0;
-    }
-  }
-
+  let _wAcc = 0, _wTimer = null, _wLocked = false;
   wrap.addEventListener('wheel', e => {
     if (document.getElementById('modal').classList.contains('on')) return;
-    // Ignore mostly-vertical scrolls (allow some diagonal tolerance for lazy fingers)
-    if (Math.abs(e.deltaY) > Math.abs(e.deltaX) * 2.5) return;
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX) * 1.5) return;
     e.preventDefault();
-    if (_wLocked) {
-      // Release lock once fingers stop (deltaX near zero)
-      if (Math.abs(e.deltaX) < 3) { _wLocked = false; _wAcc = 0; }
-      return;
-    }
+    if (_wLocked) return;
     _wAcc += e.deltaX;
-    if (!_wRafId) _wRafId = requestAnimationFrame(_wFlush);
+    clearTimeout(_wTimer);
+    _wTimer = setTimeout(() => {
+      if      (curTab_ref.v === 'main' && _wAcc > 60) { _wLocked = true; goTab('sett'); }
+      else if (curTab_ref.v === 'sett' && _wAcc < -60) { _wLocked = true; goTab('main'); }
+      _wAcc = 0;
+      setTimeout(() => { _wLocked = false; }, 500);
+    }, 60);
   }, { passive: false });
 })();
 
@@ -1532,10 +1518,22 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 let _fbUid = null, _fbUnsub = null, _fbSaving = false;
+let _fbPatched = false, _fbApplying = false;
+let _fbSaveTimer = null, _fbStatusTimer = null;
 
+// Показываем статус и автоскрываем через 2 сек
 function fbStatus(msg) {
   const el = document.getElementById('fbSyncStatus');
-  if (el) el.textContent = msg;
+  if (!el) return;
+  el.textContent = msg;
+  clearTimeout(_fbStatusTimer);
+  _fbStatusTimer = setTimeout(() => { el.textContent = ''; }, 2000);
+}
+
+// Дебаунс — сохраняем не чаще раза в 1.5 сек
+function fbSaveDebounced() {
+  clearTimeout(_fbSaveTimer);
+  _fbSaveTimer = setTimeout(fbSave, 1500);
 }
 
 async function fbSave() {
@@ -1544,11 +1542,11 @@ async function fbSave() {
   try {
     await setDoc(doc(db, 'users', _fbUid, 'data', 'main'), {
       days: JSON.stringify(window.days),
-      cfg: JSON.stringify(window.cfg),
-      ts: Date.now()
+      cfg:  JSON.stringify(window.cfg),
+      ts:   Date.now()
     });
-    fbStatus('✓ Сохранено в облако');
-  } catch(e) { fbStatus('⚠ Ошибка сохранения'); }
+    fbStatus('✓ Сохранено');
+  } catch(e) { fbStatus('⚠ Ошибка'); }
   _fbSaving = false;
 }
 
@@ -1557,17 +1555,23 @@ function fbListen() {
   _fbUnsub = onSnapshot(doc(db, 'users', _fbUid, 'data', 'main'), snap => {
     if (!snap.exists()) { fbSave(); return; }
     const d = snap.data();
+    // Пропускаем если это наше только что записанное (меньше 2 сек назад)
+    if (d.ts && Date.now() - d.ts < 2000) return;
     try {
+      _fbApplying = true;
       const remoteDays = JSON.parse(d.days || '{}');
       const remoteCfg  = JSON.parse(d.cfg  || '{}');
       window.days = remoteDays;
       Object.assign(window.cfg, remoteCfg);
-      window.saveD(); window.saveC();
+      // Вызываем оригинальные saveD/saveC (только localStorage, без облака)
+      if (window._origSaveD) window._origSaveD();
+      if (window._origSaveC) window._origSaveC();
       window.applyCfg();
       window.renderCal();
       window.renderEnt();
       fbStatus('✓ Синхронизировано');
-    } catch(e) {}
+    } catch(e) { console.error('fbListen:', e); }
+    finally { _fbApplying = false; }
   });
 }
 
@@ -1577,13 +1581,13 @@ function fbUpdateUI(user) {
   if (!signInBtn || !userInfo) return;
   if (user) {
     signInBtn.style.display = 'none';
-    userInfo.style.display = 'block';
-    document.getElementById('fbAvatar').src = user.photoURL || '';
-    document.getElementById('fbName').textContent = user.displayName || '';
-    document.getElementById('fbEmail').textContent = user.email || '';
+    userInfo.style.display  = 'block';
+    document.getElementById('fbAvatar').src        = user.photoURL    || '';
+    document.getElementById('fbName').textContent  = user.displayName || '';
+    document.getElementById('fbEmail').textContent = user.email       || '';
   } else {
     signInBtn.style.display = '';
-    userInfo.style.display = 'none';
+    userInfo.style.display  = 'none';
   }
 }
 
@@ -1592,22 +1596,39 @@ onAuthStateChanged(auth, user => {
     _fbUid = user.uid;
     fbUpdateUI(user);
     fbListen();
-    // Перехватываем saveD и saveC для автосинхронизации
-    const _origSaveD = window.saveD;
-    const _origSaveC = window.saveC;
-    window.saveD = function() { _origSaveD.call(this); fbSave(); };
-    window.saveC = function() { _origSaveC.call(this); fbSave(); };
+    // Патчим saveD/saveC только один раз
+    if (!_fbPatched) {
+      _fbPatched = true;
+      const origD = window.saveD;
+      const origC = window.saveC;
+      window._origSaveD = origD;
+      window._origSaveC = origC;
+      window.saveD = function() {
+        origD.call(this);
+        if (!_fbApplying) fbSaveDebounced();
+      };
+      window.saveC = function() {
+        origC.call(this);
+        if (!_fbApplying) fbSaveDebounced();
+      };
+    }
   } else {
     _fbUid = null;
     if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
     fbUpdateUI(null);
+    // Восстанавливаем оригинальные при выходе
+    if (_fbPatched) {
+      if (window._origSaveD) window.saveD = window._origSaveD;
+      if (window._origSaveC) window.saveC = window._origSaveC;
+      _fbPatched = false;
+    }
   }
 });
 
 window.fbSignIn = async function() {
   try {
     await signInWithPopup(auth, new GoogleAuthProvider());
-  } catch(e) { console.error(e); }
+  } catch(e) { console.error('Sign in error:', e); }
 };
 window.fbSignOut = async function() {
   if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
@@ -1616,109 +1637,3 @@ window.fbSignOut = async function() {
 </script>
 </body>
 </html>
-<script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, doc, setDoc, getDoc, onSnapshot }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-
-const firebaseConfig = {
-  apiKey: "AIzaSyAhu9apuPi0o7Zwi_YbPikO3f5vKetNvi8",
-  authDomain: "freelancers-time-calendar.firebaseapp.com",
-  projectId: "freelancers-time-calendar",
-  storageBucket: "freelancers-time-calendar.firebasestorage.app",
-  messagingSenderId: "270890748637",
-  appId: "1:270890748637:web:e58fa74466758043c2e934"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-let _fbUid = null, _fbUnsub = null, _fbSaving = false;
-
-function fbStatus(msg) {
-  const el = document.getElementById('fbSyncStatus');
-  if (el) el.textContent = msg;
-}
-
-async function fbSave() {
-  if (!_fbUid || _fbSaving) return;
-  _fbSaving = true;
-  try {
-    await setDoc(doc(db, 'users', _fbUid, 'data', 'main'), {
-      days: JSON.stringify(days),
-      cfg: JSON.stringify(cfg),
-      ts: Date.now()
-    });
-    fbStatus('✓ Сохранено в облако');
-  } catch(e) { fbStatus('⚠ Ошибка сохранения'); }
-  _fbSaving = false;
-}
-
-function fbListen() {
-  if (_fbUnsub) _fbUnsub();
-  _fbUnsub = onSnapshot(doc(db, 'users', _fbUid, 'data', 'main'), snap => {
-    if (!snap.exists()) return;
-    const d = snap.data();
-    const remoteDays = JSON.parse(d.days || '{}');
-    const remoteCfg  = JSON.parse(d.cfg  || '{}');
-    // Мёржим — берём более свежие данные
-    days = remoteDays;
-    Object.assign(cfg, remoteCfg);
-    saveD(); saveC();
-    applyCfg();
-    renderCal();
-    renderEnt();
-    fbStatus('✓ Данные синхронизированы');
-  });
-}
-
-function fbUpdateUI(user) {
-  const signInBtn  = document.getElementById('fbSignInBtn');
-  const userInfo   = document.getElementById('fbUserInfo');
-  if (!signInBtn || !userInfo) return;
-  if (user) {
-    signInBtn.style.display = 'none';
-    userInfo.style.display = 'block';
-    document.getElementById('fbAvatar').src = user.photoURL || '';
-    document.getElementById('fbName').textContent = user.displayName || '';
-    document.getElementById('fbEmail').textContent = user.email || '';
-  } else {
-    signInBtn.style.display = '';
-    userInfo.style.display = 'none';
-  }
-}
-
-onAuthStateChanged(auth, user => {
-  if (user) {
-    _fbUid = user.uid;
-    fbUpdateUI(user);
-    fbListen();
-    // Патчим saveD и saveC чтобы автосохранять в облако
-    const _origSaveD = window.saveD;
-    const _origSaveC = window.saveC;
-    window.saveD = function() { _origSaveD(); fbSave(); };
-    window.saveC = function() { _origSaveC(); fbSave(); };
-  } else {
-    _fbUid = null;
-    if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
-    fbUpdateUI(null);
-  }
-});
-
-window.fbInit = function() {}; // уже инициализировано через onAuthStateChanged
-
-window.fbSignIn = async function() {
-  try {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
-  } catch(e) { console.error('Sign in error', e); }
-};
-
-window.fbSignOut = async function() {
-  if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
-  await signOut(auth);
-};
-</script>
