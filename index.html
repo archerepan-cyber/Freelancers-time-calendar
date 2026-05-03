@@ -64,6 +64,19 @@ button { font-family: inherit; cursor: pointer; }
 #sMain { transform: translateX(0); }
 #sSett { transform: translateX(100%); }
 
+/* ── EXTRA CURRENCIES ── */
+.xcur-wrap { margin-top: 10px; }
+.xcur-row { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+.xcur-row input { background: var(--bg); border: none; border-radius: 8px; padding: 4px 8px; font-size: 13px; color: var(--text); text-align: center; }
+.xcur-sym { width: 44px !important; }
+.xcur-rate { width: 76px !important; }
+.xcur-add { background: none; border: 1.5px dashed var(--sep); border-radius: 10px; padding: 7px 14px; font-size: 13px; color: var(--text3); margin-top: 4px; width: 100%; touch-action: manipulation; }
+.xcur-del { background: none; border: none; font-size: 20px; color: var(--text3); padding: 0 2px; touch-action: manipulation; }
+.xcur-toggle { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--sep); background: none; touch-action: manipulation; flex-shrink: 0; cursor: pointer; }
+.xcur-toggle.on { background: var(--accent); border-color: var(--accent); }
+.xcur-disp { display: flex; justify-content: space-between; font-size: 13px; color: var(--text3); padding: 3px 0; }
+.xcur-disp .xamt { color: var(--text2); }
+
 /* ── TABBAR ── */
 #bar {
   flex-shrink: 0;
@@ -326,6 +339,9 @@ button { font-family: inherit; cursor: pointer; }
           <button class="curbtn" onclick="setCur('€',this)">€ Евро</button>
           <button class="curbtn" onclick="setCur('₸',this)">₸ Тенге</button>
           <button class="curbtn" onclick="setCur('₴',this)">₴ Гривна</button>
+          <div class="curbtn" id="cusCurBtn" onclick="focusCusCur()">
+            <input id="cusCurIn" maxlength="4" placeholder="Своя" style="width:52px;background:none;border:none;outline:none;font:inherit;color:inherit;text-align:center;cursor:text;" oninput="onCusCur(this)" onfocus="onCusCurFocus()"/>
+          </div>
         </div>
       </div>
 
@@ -734,7 +750,7 @@ function toHex(val) {
 
 // ── STORAGE ──
 const SK = 'ftc_d1', SS = 'ftc_s1';
-let days = {}, cfg = { cur:'₽', theme:'default', thcls:'', acc:'#D0391B', ov:45, bg:'' };
+let days = {}, cfg = { cur:'₽', theme:'default', thcls:'', acc:'#D0391B', ov:45, bg:'', xcurs:[] };
 
 function load() {
   try { days = JSON.parse(localStorage.getItem(SK) || '{}'); } catch { days = {}; }
@@ -979,14 +995,58 @@ function renderEnt() {
       <span style="color:var(--accent);">−${cur}${total.toLocaleString()}</span>
     </div>`;
   });
+  const xcDisp = (cfg.xcurs || []).map(x => {
+    if (x.on === false) return '';
+    const rate = parseFloat(x.rate) || 1;
+    const sym = x.sym || '?';
+    const conv = net / rate;
+    return `<div class="xcur-disp">
+      <span>${sym} <span style="font-size:10px;opacity:.6;">1${cur}=${rate}${sym}</span></span>
+      <span class="xamt" style="color:${conv>=0?'var(--text2)':'#c0392b'};">${conv>=0?'+':''}${sym}${Math.abs(conv).toLocaleString(undefined,{maximumFractionDigits:2})}</span>
+    </div>`;
+  }).join('');
+
   th += `<div class="trow">
     <div class="tlbl">Итого</div>
     <div class="tamt" style="color:${net >= 0 ? 'var(--accent)' : '#c0392b'};">
       ${net >= 0 ? '+' : ''}${cur}${Math.abs(net).toLocaleString()}
     </div>
-  </div>`;
+  </div>
+  ${xcDisp}
+  <div class="xcur-wrap" id="xcurEdit"></div>`;
   tw.innerHTML = `<div class="tcard">${th}</div>`;
+  renderXcurEdit();
 }
+
+// ── EXTRA CURRENCIES ──
+function renderXcurEdit() {
+  const el = document.getElementById('xcurEdit');
+  if (!el) return;
+  if (!cfg.xcurs) cfg.xcurs = [];
+  const xc = cfg.xcurs;
+  const canAdd = xc.length < 2;
+  let h = '';
+  xc.forEach((x, i) => {
+    h += `<div class="xcur-row">
+      <button class="xcur-toggle ${x.on===false?'':'on'}" onclick="xcToggle(${i})"></button>
+      <input class="xcur-sym" placeholder="₿" maxlength="5" value="${x.sym||''}" oninput="xcSet(${i},'sym',this.value)"/>
+      <span style="font-size:11px;color:var(--text3);">1${cfg.cur}=</span>
+      <input class="xcur-rate" type="number" placeholder="курс" value="${x.rate||''}" oninput="xcSet(${i},'rate',this.value)"/>
+      <button class="xcur-del" onclick="xcDel(${i})">×</button>
+    </div>`;
+  });
+  if (canAdd) h += `<button class="xcur-add" onclick="xcAdd()">+ Добавить валюту</button>`;
+  el.innerHTML = h;
+}
+function xcAdd() {
+  if (!cfg.xcurs) cfg.xcurs = [];
+  if (cfg.xcurs.length >= 2) return;
+  cfg.xcurs.push({ sym:'', rate:'', on:true });
+  saveC(); renderEnt();
+}
+function xcDel(i) { cfg.xcurs.splice(i,1); saveC(); renderEnt(); }
+function xcToggle(i) { cfg.xcurs[i].on = cfg.xcurs[i].on === false ? true : false; saveC(); renderEnt(); }
+function xcSet(i, key, val) { cfg.xcurs[i][key] = val; saveC(); renderEnt(); }
 
 // ── TABS ──
 function goTab(tab, fromSwipe = false) {
@@ -1186,9 +1246,15 @@ function applyCfg() {
   // BG
   applyBg();
   // Currency buttons
+  const _stdC = ['₽','$','€','₸','₴'];
+  const _isStd = _stdC.includes(cfg.cur);
   document.querySelectorAll('.curbtn').forEach(b => {
-    b.classList.toggle('on', b.textContent.startsWith(cfg.cur));
+    b.classList.toggle('on', _isStd && b.textContent.startsWith(cfg.cur));
   });
+  if (!_isStd && cfg.cur) {
+    const _ci = document.getElementById('cusCurIn');
+    if (_ci) { _ci.value = cfg.cur; document.getElementById('cusCurBtn').classList.add('on'); }
+  }
   // Theme cards
   document.querySelectorAll('.tcrd').forEach(c => {
     c.classList.toggle('on', c.dataset.t === cfg.theme);
