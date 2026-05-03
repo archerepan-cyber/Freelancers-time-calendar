@@ -859,6 +859,9 @@ function renderCal() {
       ontouchstart="ts(event,'${dk}')"
       ontouchmove="tm()"
       ontouchend="te(event,'${dk}')"
+      onmousedown="ms(event,'${dk}')"
+      onmouseup="mu(event,'${dk}')"
+      ondblclick="clrD('${dk}')"
 >
       <div class="pip"></div>
     </div>`;
@@ -910,6 +913,25 @@ function clrD(dk) {
   navigator.vibrate && navigator.vibrate([20, 30, 20]);
   delete days[dk];
   saveD(); renderCal(); renderEnt();
+}
+
+// ── MOUSE (desktop) ──
+let _ms0 = 0, _msLpt = null;
+function ms(e, dk) {
+  if (e.button !== 0) return;
+  _ms0 = Date.now();
+  const el = e.currentTarget;
+  el.classList.add('press');
+  _msLpt = setTimeout(() => {
+    el.classList.remove('press');
+    openModal(dk);
+  }, 500);
+}
+function mu(e, dk) {
+  clearTimeout(_msLpt);
+  e.currentTarget.classList.remove('press');
+  if (Date.now() - _ms0 >= 500) return; // was long press, already opened
+  openModal(dk);
 }
 
 // ── MODAL ──
