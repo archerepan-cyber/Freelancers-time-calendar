@@ -108,6 +108,21 @@ button { font-family: inherit; cursor: pointer; }
 .chdr span { text-align: center; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text3); }
 .chdr .we { color: var(--accent); }
 .cgrid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; }
+@media (hover: hover) and (pointer: fine) {
+  .cgrid { gap: 4px; }
+  .dot { max-width: 44px; max-height: 44px; justify-self: center; width: 100%; }
+  /* Scale down the whole main screen on desktop */
+  #app {
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .big { font-size: clamp(60px, 12vw, 96px); }
+  .scr { padding: calc(var(--st) + 14px) 18px 70px; }
+  .bigrow { margin: 6px 0 18px; }
+  .tamt { font-size: 32px; }
+  .ecard { padding: 10px 13px; }
+  .enum { font-size: 20px; }
+}
 
 .dot {
   aspect-ratio: 1; border-radius: 50%;
@@ -260,6 +275,14 @@ button { font-family: inherit; cursor: pointer; }
   transform: translateY(100%); transition: transform .3s cubic-bezier(.4,0,.2,1);
 }
 .mover.on .msheet { transform: translateY(0); }
+@media (hover: hover) and (pointer: fine) {
+  .mover { align-items: center; }
+  .msheet {
+    border-radius: 24px; max-height: 80vh;
+    transform: translateY(20px) scale(.97);
+  }
+  .mover.on .msheet { transform: translateY(0) scale(1); }
+}
 .mdrg { width: 36px; height: 4px; border-radius: 2px; background: var(--sep); margin: 0 auto 16px; }
 .mtit { font-family: 'DM Serif Display', serif; font-size: 26px; margin-bottom: 18px; color: var(--text); }
 .fg { margin-bottom: 14px; }
@@ -861,7 +884,6 @@ function renderCal() {
       ontouchend="te(event,'${dk}')"
       onmousedown="ms(event,'${dk}')"
       onmouseup="mu(event,'${dk}')"
-      ondblclick="clrD('${dk}')"
 >
       <div class="pip"></div>
     </div>`;
@@ -917,6 +939,7 @@ function clrD(dk) {
 
 // ── MOUSE (desktop) ──
 let _ms0 = 0, _msLpt = null;
+let _mLastTap = 0, _mLastDk = null, _mDtTimer = null;
 function ms(e, dk) {
   if (e.button !== 0) return;
   _ms0 = Date.now();
@@ -930,8 +953,21 @@ function ms(e, dk) {
 function mu(e, dk) {
   clearTimeout(_msLpt);
   e.currentTarget.classList.remove('press');
-  if (Date.now() - _ms0 >= 500) return; // was long press, already opened
-  openModal(dk);
+  if (Date.now() - _ms0 >= 500) return; // long press already handled
+  const now = Date.now();
+  if (_mLastDk === dk && now - _mLastTap < 350) {
+    // double click → clear
+    clearTimeout(_mDtTimer);
+    _mLastTap = 0; _mLastDk = null;
+    clrD(dk);
+    return;
+  }
+  _mLastTap = now; _mLastDk = dk;
+  clearTimeout(_mDtTimer);
+  _mDtTimer = setTimeout(() => {
+    _mLastTap = 0; _mLastDk = null;
+    openModal(dk);
+  }, 350);
 }
 
 // ── MODAL ──
@@ -1247,41 +1283,43 @@ function goTab(tab, fromSwipe = false) {
   });
 
   // Trackpad two-finger swipe (Mac)
-  let _wheelAcc = 0, _wheelTimer = null;
+  let _wheelAcc = 0, _wheelTimer = null, _wheelLocked = false;
   wrap.addEventListener('wheel', e => {
     if (document.getElementById('modal').classList.contains('on')) return;
-    // Only horizontal swipes; ignore if vertical dominates
     if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) return;
     e.preventDefault();
+    if (_wheelLocked) return; // already switching, ignore further input
     _wheelAcc += e.deltaX;
-    clearTimeout(_wheelTimer);
-    // Live drag feel
     const W = window.innerWidth;
+    // Clamp so panel never goes past its resting position on the other side
     if (curTab_ref.v === 'main') {
-      const x = Math.min(0, -_wheelAcc);
+      _wheelAcc = Math.max(0, Math.min(_wheelAcc, W));
+      const x = -_wheelAcc;
       m.style.transition = 'none';
       s.style.transition = 'none';
       m.style.transform = `translateX(${x}px)`;
       s.style.transform = `translateX(${W + x}px)`;
     } else {
-      const x = Math.max(0, -_wheelAcc);
-      m.style.transition = 'none';
+      _wheelAcc = Math.max(-W, Math.min(_wheelAcc, 0));
+      const x = -_wheelAcc;
       s.style.transition = 'none';
+      m.style.transition = 'none';
       s.style.transform = `translateX(${x}px)`;
       m.style.transform = `translateX(${x - W}px)`;
     }
-    // Settle after gesture ends
+    clearTimeout(_wheelTimer);
     _wheelTimer = setTimeout(() => {
       const EASE = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
       m.style.transition = EASE;
       s.style.transition = EASE;
-      if      (curTab_ref.v === 'main' && _wheelAcc > 60)  goTab('sett', true);
-      else if (curTab_ref.v === 'sett' && _wheelAcc < -60) goTab('main', true);
+      if      (curTab_ref.v === 'main' && _wheelAcc > W * 0.3)  { _wheelLocked = true; goTab('sett', true); }
+      else if (curTab_ref.v === 'sett' && _wheelAcc < -W * 0.3) { _wheelLocked = true; goTab('main', true); }
       else {
         m.style.transform = curTab_ref.v === 'main' ? 'translateX(0)' : 'translateX(-100%)';
         s.style.transform = curTab_ref.v === 'sett' ? 'translateX(0)' : 'translateX(100%)';
       }
       _wheelAcc = 0;
+      setTimeout(() => { _wheelLocked = false; }, 500);
     }, 80);
   }, { passive: false });
 })();
