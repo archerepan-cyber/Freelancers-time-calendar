@@ -437,11 +437,19 @@ button { font-family: inherit; cursor: pointer; }
 </div>
 
 <!-- THEME EDITOR -->
-<div class="te-over" id="teOver" onclick="if(event.target===this)closeTE()">
+<div class="te-over" id="teOver">
   <div class="te-sheet">
     <div class="te-drag"></div>
-    <div class="te-title" id="teTitle">Редактор темы</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <div class="te-title" id="teTitle" style="margin-bottom:0;">Редактор темы</div>
+      <button onclick="closeTE()" style="background:var(--bg3);border:none;border-radius:50%;width:34px;height:34px;font-size:18px;color:var(--text2);display:flex;align-items:center;justify-content:center;flex-shrink:0;touch-action:manipulation;">✕</button>
+    </div>
     <div class="te-sub">Нажмите на кружок чтобы изменить цвет</div>
+    <label class="bgbtn" style="margin-bottom:18px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;">
+      🖼 Подобрать цвета из фото
+      <input type="file" accept="image/*" style="display:none" onchange="teFromPhoto(event)"/>
+    </label>
+    <div id="tePhotoStatus" style="display:none;font-size:12px;color:var(--text3);text-align:center;margin:-10px 0 14px;"></div>
 
     <div class="te-section">Фон</div>
     <div class="te-row">
@@ -520,6 +528,33 @@ const TE_PRESETS = {
 let _teBase = null; // base preset for reset
 let _teCustom = {}; // saved custom overrides per theme key
 
+// Свайп вниз для закрытия редактора тем
+(function(){
+  const sheet = () => document.querySelector('.te-sheet');
+  let sy = 0, dragging = false;
+  document.addEventListener('touchstart', e => {
+    if (!document.getElementById('teOver').classList.contains('on')) return;
+    sy = e.touches[0].clientY;
+    dragging = false;
+  }, {passive:true});
+  document.addEventListener('touchmove', e => {
+    if (!document.getElementById('teOver').classList.contains('on')) return;
+    const s = sheet();
+    if (s.scrollTop > 0) return; // не закрываем если скроллим внутри
+    const dy = e.touches[0].clientY - sy;
+    if (dy > 10) { dragging = true; s.style.transform = `translateY(${Math.min(dy, 220)}px)`; s.style.transition = 'none'; }
+  }, {passive:true});
+  document.addEventListener('touchend', e => {
+    if (!document.getElementById('teOver').classList.contains('on')) return;
+    const s = sheet();
+    const dy = e.changedTouches[0].clientY - sy;
+    s.style.transition = '';
+    if (dragging && dy > 90) { closeTE(); }
+    else { s.style.transform = ''; }
+    dragging = false;
+  }, {passive:true});
+})();
+
 function openTE(themeKey, themeName) {
   _teBase = themeKey;
   document.getElementById('teTitle').textContent = themeName;
@@ -565,6 +600,120 @@ function teReset() {
   });
   cfg.teCustom = _teCustom;
   saveC();
+}
+
+// ── ЦВЕТА ИЗ ФОТО ──
+function teFromPhoto(e) {
+  const f = e.target.files[0]; if (!f) return;
+  e.target.value = '';
+  const status = document.getElementById('tePhotoStatus');
+  status.style.display = 'block';
+  status.textContent = '⏳ Анализирую фото...';
+  const img = new Image();
+  const url = URL.createObjectURL(f);
+  img.onload = () => {
+    // Сэмплируем цвета через canvas
+    const cv = document.createElement('canvas');
+    const S = 80; cv.width = S; cv.height = S;
+    const ctx = cv.getContext('2d');
+    ctx.drawImage(img, 0, 0, S, S);
+    URL.revokeObjectURL(url);
+    const data = ctx.getImageData(0, 0, S, S).data;
+    // Собираем все пиксели
+    const pixels = [];
+    for (let i = 0; i < data.length; i += 4) {
+      pixels.push([data[i], data[i+1], data[i+2]]);
+    }
+    // k-means 6 кластеров
+    const palette = kMeans(pixels, 6);
+    // Сортируем по яркости
+    palette.sort((a,b) => lum(a) - lum(b));
+    // Назначаем роли
+    const dark   = palette[0];
+    const mid1   = palette[1];
+    const mid2   = palette[2];
+    const mid3   = palette[3];
+    const light1 = palette[4];
+    const light2 = palette[5];
+    // Определяем светлая/тёмная тема по средней яркости
+    const avgLum = pixels.reduce((s,p) => s + lum(p), 0) / pixels.length;
+    const isDark = avgLum < 100;
+    // Строим набор переменных
+    const colors = isDark ? {
+      '--bg':       rgb2hex(dark),
+      '--bg2':      rgb2hex(blend(dark, mid1, 0.4)),
+      '--bg3':      rgb2hex(blend(dark, mid1, 0.25)),
+      '--text':     rgb2hex(light2),
+      '--text2':    rgb2hex(blend(light1, mid3, 0.4)),
+      '--text3':    rgb2hex(blend(mid2, mid3, 0.5)),
+      '--accent':   rgb2hex(vivid(palette)),
+      '--sep':      rgb2hex(blend(dark, mid1, 0.3)),
+      '--dot-bg':   rgb2hex(blend(dark, mid2, 0.35)),
+      '--dot-past': rgb2hex(blend(dark, mid2, 0.45)),
+      '--dot-future': rgb2hex(blend(dark, mid1, 0.2)),
+    } : {
+      '--bg':       rgb2hex(light2),
+      '--bg2':      rgb2hex(blend(light2, light1, 0.6)),
+      '--bg3':      rgb2hex(blend(light1, mid3, 0.25)),
+      '--text':     rgb2hex(dark),
+      '--text2':    rgb2hex(blend(dark, mid1, 0.5)),
+      '--text3':    rgb2hex(blend(mid2, mid3, 0.5)),
+      '--accent':   rgb2hex(vivid(palette)),
+      '--sep':      rgb2hex(blend(light1, mid3, 0.4)),
+      '--dot-bg':   rgb2hex(blend(light1, mid3, 0.5)),
+      '--dot-past': rgb2hex(blend(light1, mid2, 0.55)),
+      '--dot-future': rgb2hex(blend(light2, light1, 0.4)),
+    };
+    // Применяем
+    Object.entries(colors).forEach(([v, hex]) => {
+      teSet(v, hex);
+      if (document.getElementById(TE_IDS[v]))
+        document.getElementById(TE_IDS[v]).querySelector('input').value = hex;
+    });
+    status.textContent = '✅ Цвета подобраны! Можно скорректировать вручную.';
+    setTimeout(() => { status.style.display = 'none'; }, 3000);
+  };
+  img.onerror = () => { status.textContent = '❌ Не удалось загрузить фото'; };
+  img.src = url;
+}
+
+function kMeans(pixels, k) {
+  // Случайные начальные центроиды
+  let centers = [];
+  const step = Math.floor(pixels.length / k);
+  for (let i = 0; i < k; i++) centers.push([...pixels[i * step]]);
+  for (let iter = 0; iter < 12; iter++) {
+    const clusters = Array.from({length:k}, () => []);
+    pixels.forEach(p => {
+      let best = 0, bestD = Infinity;
+      centers.forEach((c,i) => { const d = dist(p,c); if (d < bestD) { bestD = d; best = i; } });
+      clusters[best].push(p);
+    });
+    centers = clusters.map(cl => {
+      if (!cl.length) return [128,128,128];
+      return [
+        Math.round(cl.reduce((s,p)=>s+p[0],0)/cl.length),
+        Math.round(cl.reduce((s,p)=>s+p[1],0)/cl.length),
+        Math.round(cl.reduce((s,p)=>s+p[2],0)/cl.length),
+      ];
+    });
+  }
+  return centers;
+}
+
+function dist(a,b) { return Math.sqrt((a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2); }
+function lum(p) { return 0.299*p[0]+0.587*p[1]+0.114*p[2]; }
+function blend(a,b,t) { return [Math.round(a[0]*(1-t)+b[0]*t),Math.round(a[1]*(1-t)+b[1]*t),Math.round(a[2]*(1-t)+b[2]*t)]; }
+function rgb2hex(p) { return '#'+p.map(v=>Math.max(0,Math.min(255,v)).toString(16).padStart(2,'0')).join(''); }
+function vivid(palette) {
+  // Ищем самый насыщенный цвет для акцента
+  let best = palette[0], bestS = 0;
+  palette.forEach(p => {
+    const mx = Math.max(...p), mn = Math.min(...p);
+    const s = mx - mn;
+    if (s > bestS && lum(p) > 40 && lum(p) < 220) { bestS = s; best = p; }
+  });
+  return best;
 }
 
 function toHex(val) {
