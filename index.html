@@ -627,10 +627,17 @@ function renderEnt() {
   const tx = ax.reduce((s, x) => s + (x.amount || 0), 0);
   const net = te - tx;
   let th = '';
+  // Группируем одинаковые траты по названию
+  const grouped = {};
   ax.forEach(x => {
+    const key = (x.comment || 'Затрата').trim();
+    if (grouped[key]) grouped[key] += (x.amount || 0);
+    else grouped[key] = (x.amount || 0);
+  });
+  Object.entries(grouped).forEach(([name, total]) => {
     th += `<div class="xrow">
-      <span>${x.comment || 'Затрата'} · ${x.lbl || x.day + ' ' + MONG[vm]}</span>
-      <span style="color:var(--accent);">−${cur}${(x.amount||0).toLocaleString()}</span>
+      <span>${name}</span>
+      <span style="color:var(--accent);">−${cur}${total.toLocaleString()}</span>
     </div>`;
   });
   th += `<div class="trow">
