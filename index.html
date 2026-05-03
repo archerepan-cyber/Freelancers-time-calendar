@@ -576,12 +576,14 @@ function openTE(themeKey, themeName) {
   const saved = (_teCustom[themeKey] || {});
   const preset = TE_PRESETS[themeKey] || TE_PRESETS.default;
   TE_VARS.forEach(v => {
+    // Всегда берём живой CSS текущей темы для отображения в редакторе
     const liveVal = getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-    const editorVal = saved[v] || preset[v] || liveVal || '#888888';
+    const editorVal = themeKey === 'custom'
+      ? (saved[v] || preset[v] || liveVal || '#888888')
+      : (liveVal || saved[v] || preset[v] || '#888888');
     const hex = toHex(editorVal);
     const sw = document.getElementById(TE_IDS[v]);
     if (sw) { sw.style.background = hex; sw.querySelector('input').value = hex; }
-    // Применяем в CSS только для custom темы
     if (themeKey === 'custom') document.documentElement.style.setProperty(v, editorVal);
   });
   document.getElementById('teOver').classList.add('on');
@@ -1003,18 +1005,18 @@ function renderEnt() {
     </div>`;
   });
   const xcDisp = (cfg.xcurs||[]).filter(x=>x.on!==false&&x.sym&&x.rate).map(x=>{
-    const conv = net/parseFloat(x.rate);
-    return `<div style="font-size:13px;color:${conv>=0?'var(--text2)':'#c0392b'};text-align:right;margin-top:1px;">${conv>=0?'+':''}${x.sym}${Math.abs(conv).toLocaleString(undefined,{maximumFractionDigits:2})}</div>`;
+    const conv = net * parseFloat(x.rate);
+    return `<div style="font-size:13px;color:${conv>=0?'var(--text2)':'#c0392b'};margin-top:1px;text-align:right;">${conv>=0?'+':''}${x.sym}${Math.abs(conv).toLocaleString(undefined,{maximumFractionDigits:2})}</div>`;
   }).join('');
 
-  th += `<div class="trow">
-    <div class="tlbl">Итого</div>
+  th += `<div class="trow" style="align-items:flex-start;">
+    <div class="tlbl" style="padding-top:10px;">Итого</div>
     <div style="text-align:right;">
       <div class="tamt" style="color:${net >= 0 ? 'var(--accent)' : '#c0392b'};">${net >= 0 ? '+' : ''}${cur}${Math.abs(net).toLocaleString()}</div>
       ${xcDisp}
+      <div class="xcur-wrap" id="xcurEdit"></div>
     </div>
-  </div>
-  <div class="xcur-wrap" id="xcurEdit"></div>`;
+  </div>`;
   tw.innerHTML = `<div class="tcard">${th}</div>`;
   renderXcurEdit();
 }
@@ -1052,16 +1054,16 @@ function renderXcurEdit() {
   let h = '';
   cfg.xcurs.forEach((x, i) => {
     const rateInfo = x.rate
-      ? `<span style="font-size:10px;color:var(--text3);">1${cfg.cur}≈${(+x.rate).toFixed(2)}${x.sym}</span>`
+      ? `<span style="font-size:10px;color:var(--text3);">курс: 1${cfg.cur}≈${(+x.rate).toFixed(4)}${x.sym}</span>`
       : `<span style="font-size:10px;color:var(--text3);">загрузка…</span>`;
-    h += `<div class="xcur-row">
+    h += `<div class="xcur-row" style="justify-content:flex-start;">
       <button class="xcur-toggle ${x.on===false?'':'on'}" onclick="xcToggle(${i})"></button>
       <input class="xcur-sym" placeholder="$ € £" maxlength="5" value="${x.sym||''}" oninput="xcSym(${i},this.value)"/>
       ${rateInfo}
       <button class="xcur-del" onclick="xcDel(${i})" style="margin-left:auto;">×</button>
     </div>`;
   });
-  if (canAdd) h += `<button class="xcur-add" onclick="xcAdd()">+ Добавить валюту</button>`;
+  if (canAdd) h += `<button class="xcur-add" onclick="xcAdd()" style="text-align:right;">+ Добавить валюту</button>`;
   el.innerHTML = h;
 }
 function xcAdd() {
