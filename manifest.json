@@ -1,7 +1,7 @@
 {
   "name": "Freelancer Calendar",
   "short_name": "FreelCal",
-  "description": "Календарь и учёт доходов фрилансера",
+  "description": "Учёт рабочих дней и доходов фрилансера",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f5f0e8",
