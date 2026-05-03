@@ -662,38 +662,41 @@ function teFromPhoto(e) {
     const avgLum = pixels.reduce((s,p) => s + lum(p), 0) / pixels.length;
     const isDark = avgLum < 100;
     // Строим набор переменных
+    const viv = rgb2hex(vivid(palette));
     const colors = isDark ? {
-      '--bg':       rgb2hex(dark),
-      '--bg2':      rgb2hex(blend(dark, mid1, 0.4)),
-      '--bg3':      rgb2hex(blend(dark, mid1, 0.25)),
-      '--text':     rgb2hex(light2),
-      '--text2':    rgb2hex(blend(light1, mid3, 0.4)),
-      '--text3':    rgb2hex(blend(mid2, mid3, 0.5)),
-      '--accent':   rgb2hex(vivid(palette)),
-      '--sep':      rgb2hex(blend(dark, mid1, 0.3)),
-      '--dot-bg':   rgb2hex(blend(dark, mid2, 0.35)),
-      '--dot-past': rgb2hex(blend(dark, mid2, 0.45)),
-      '--dot-future': rgb2hex(blend(dark, mid1, 0.2)),
+      '--bg':           rgb2hex(dark),
+      '--bg2':          rgb2hex(blend(dark, mid1, 0.4)),
+      '--bg3':          rgb2hex(blend(dark, mid1, 0.25)),
+      '--text':         rgb2hex(light2),
+      '--text2':        rgb2hex(blend(light1, mid3, 0.4)),
+      '--text3':        rgb2hex(blend(mid2, mid3, 0.5)),
+      '--accent':       viv,
+      '--sep':          rgb2hex(blend(dark, mid1, 0.3)),
+      '--dot-today-bg': rgb2hex(blend(dark, vivid(palette), 0.3)),
+      '--dot-today':    viv,
+      '--dot-past':     rgb2hex(blend(dark, mid2, 0.45)),
+      '--dot-future':   rgb2hex(blend(dark, mid1, 0.2)),
     } : {
-      '--bg':       rgb2hex(light2),
-      '--bg2':      rgb2hex(blend(light2, light1, 0.6)),
-      '--bg3':      rgb2hex(blend(light1, mid3, 0.25)),
-      '--text':     rgb2hex(dark),
-      '--text2':    rgb2hex(blend(dark, mid1, 0.5)),
-      '--text3':    rgb2hex(blend(mid2, mid3, 0.5)),
-      '--accent':   rgb2hex(vivid(palette)),
-      '--sep':      rgb2hex(blend(light1, mid3, 0.4)),
-      '--dot-today-bg': rgb2hex(blend(light1, vivid([palette[0],palette[1],palette[2],palette[3],palette[4],palette[5]]), 0.2)),
-      '--dot-today': rgb2hex(vivid([palette[0],palette[1],palette[2],palette[3],palette[4],palette[5]])),
-      '--dot-bg':   rgb2hex(blend(light1, mid3, 0.5)),
-      '--dot-past': rgb2hex(blend(light1, mid2, 0.55)),
-      '--dot-future': rgb2hex(blend(light2, light1, 0.4)),
+      '--bg':           rgb2hex(light2),
+      '--bg2':          rgb2hex(blend(light2, light1, 0.6)),
+      '--bg3':          rgb2hex(blend(light1, mid3, 0.25)),
+      '--text':         rgb2hex(dark),
+      '--text2':        rgb2hex(blend(dark, mid1, 0.5)),
+      '--text3':        rgb2hex(blend(mid2, mid3, 0.5)),
+      '--accent':       viv,
+      '--sep':          rgb2hex(blend(light1, mid3, 0.4)),
+      '--dot-today-bg': rgb2hex(blend(light1, vivid(palette), 0.2)),
+      '--dot-today':    viv,
+      '--dot-past':     rgb2hex(blend(light1, mid2, 0.55)),
+      '--dot-future':   rgb2hex(blend(light2, light1, 0.4)),
     };
-    // Применяем
+    // Применяем — teSet только для переменных со свотчами, остальные напрямую
     Object.entries(colors).forEach(([v, hex]) => {
-      teSet(v, hex);
-      if (document.getElementById(TE_IDS[v]))
-        document.getElementById(TE_IDS[v]).querySelector('input').value = hex;
+      document.documentElement.style.setProperty(v, hex);
+      if (TE_IDS[v]) {
+        const sw = document.getElementById(TE_IDS[v]);
+        if (sw) { sw.style.background = hex; sw.querySelector('input').value = hex; }
+      }
     });
     status.textContent = '✅ Цвета подобраны! Можно скорректировать вручную.';
     setTimeout(() => { status.style.display = 'none'; }, 3000);
