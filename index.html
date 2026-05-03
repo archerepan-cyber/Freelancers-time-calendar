@@ -189,6 +189,47 @@ button { font-family: inherit; cursor: pointer; }
 .slrow input[type=range] { flex: 1; accent-color: var(--accent); cursor: pointer; height: 28px; margin: -8px 0; padding: 8px 0; touch-action: none; }
 .slrow span { font-size: 12px; color: var(--text3); }
 
+/* ── THEME EDITOR ── */
+.te-over {
+  position: fixed; inset: 0; z-index: 400;
+  background: rgba(0,0,0,.6);
+  display: flex; align-items: flex-end; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity .25s;
+}
+.te-over.on { opacity: 1; pointer-events: auto; }
+.te-sheet {
+  width: 100%; max-width: 520px;
+  background: var(--bg); border-radius: 24px 24px 0 0;
+  padding: 14px 20px calc(var(--sb) + 20px);
+  max-height: 88vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  transform: translateY(100%); transition: transform .3s cubic-bezier(.4,0,.2,1);
+}
+.te-over.on .te-sheet { transform: translateY(0); }
+.te-drag { width: 36px; height: 4px; border-radius: 2px; background: var(--sep); margin: 0 auto 16px; }
+.te-title { font-family: 'DM Serif Display', serif; font-size: 26px; margin-bottom: 6px; color: var(--text); }
+.te-sub { font-size: 12px; color: var(--text3); margin-bottom: 20px; }
+.te-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 14px; border-radius: 14px; background: var(--bg3);
+  margin-bottom: 8px; gap: 12px;
+}
+.te-lbl { font-size: 14px; font-weight: 500; color: var(--text); flex: 1; }
+.te-desc { font-size: 11px; color: var(--text3); margin-top: 1px; }
+.te-swatch {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  border: 2.5px solid rgba(128,128,128,.25); cursor: pointer;
+  position: relative; overflow: hidden;
+}
+.te-swatch input[type=color] {
+  position: absolute; inset: -4px; width: calc(100% + 8px); height: calc(100% + 8px);
+  opacity: 0; cursor: pointer; border: none; padding: 0;
+}
+.te-section { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); margin: 18px 0 10px; }
+.te-actions { display: flex; gap: 10px; margin-top: 20px; }
+.te-reset { flex: 1; padding: 14px; border-radius: 14px; background: var(--bg3); border: none; font-size: 15px; font-weight: 600; color: var(--text2); touch-action: manipulation; }
+.te-save  { flex: 2; padding: 14px; border-radius: 14px; background: var(--accent); border: none; font-size: 15px; font-weight: 600; color: #fff; touch-action: manipulation; }
+
 /* ── MODAL ── */
 .mover {
   position: fixed; inset: 0; z-index: 300;
@@ -395,7 +436,152 @@ button { font-family: inherit; cursor: pointer; }
   </div>
 </div>
 
+<!-- THEME EDITOR -->
+<div class="te-over" id="teOver" onclick="if(event.target===this)closeTE()">
+  <div class="te-sheet">
+    <div class="te-drag"></div>
+    <div class="te-title" id="teTitle">Редактор темы</div>
+    <div class="te-sub">Нажмите на кружок чтобы изменить цвет</div>
+
+    <div class="te-section">Фон</div>
+    <div class="te-row">
+      <div><div class="te-lbl">Основной фон</div><div class="te-desc">Цвет фона приложения</div></div>
+      <div class="te-swatch" id="sw-bg"><input type="color" oninput="teSet('--bg',this.value)" onchange="teSet('--bg',this.value)"/></div>
+    </div>
+    <div class="te-row">
+      <div><div class="te-lbl">Карточки</div><div class="te-desc">Фон карточек и панелей</div></div>
+      <div class="te-swatch" id="sw-bg2"><input type="color" oninput="teSet('--bg2',this.value)" onchange="teSet('--bg2',this.value)"/></div>
+    </div>
+    <div class="te-row">
+      <div><div class="te-lbl">Поля ввода</div><div class="te-desc">Фон кнопок и полей</div></div>
+      <div class="te-swatch" id="sw-bg3"><input type="color" oninput="teSet('--bg3',this.value)" onchange="teSet('--bg3',this.value)"/></div>
+    </div>
+
+    <div class="te-section">Текст</div>
+    <div class="te-row">
+      <div><div class="te-lbl">Основной текст</div><div class="te-desc">Заголовки и важные надписи</div></div>
+      <div class="te-swatch" id="sw-text"><input type="color" oninput="teSet('--text',this.value)" onchange="teSet('--text',this.value)"/></div>
+    </div>
+    <div class="te-row">
+      <div><div class="te-lbl">Вторичный текст</div><div class="te-desc">Подписи и описания</div></div>
+      <div class="te-swatch" id="sw-text2"><input type="color" oninput="teSet('--text2',this.value)" onchange="teSet('--text2',this.value)"/></div>
+    </div>
+    <div class="te-row">
+      <div><div class="te-lbl">Слабый текст</div><div class="te-desc">Метки, даты, подсказки</div></div>
+      <div class="te-swatch" id="sw-text3"><input type="color" oninput="teSet('--text3',this.value)" onchange="teSet('--text3',this.value)"/></div>
+    </div>
+
+    <div class="te-section">Элементы</div>
+    <div class="te-row">
+      <div><div class="te-lbl">Цвет акцента</div><div class="te-desc">Кнопки, цифры, выделения</div></div>
+      <div class="te-swatch" id="sw-accent"><input type="color" oninput="teSet('--accent',this.value)" onchange="teSet('--accent',this.value)"/></div>
+    </div>
+    <div class="te-row">
+      <div><div class="te-lbl">Разделители</div><div class="te-desc">Линии и границы</div></div>
+      <div class="te-swatch" id="sw-sep"><input type="color" oninput="teSet('--sep',this.value)" onchange="teSet('--sep',this.value)"/></div>
+    </div>
+
+    <div class="te-section">Кружки дней</div>
+    <div class="te-row">
+      <div><div class="te-lbl">Обычный день</div><div class="te-desc">Текущие дни без отметки</div></div>
+      <div class="te-swatch" id="sw-dot-bg"><input type="color" oninput="teSet('--dot-bg',this.value)" onchange="teSet('--dot-bg',this.value)"/></div>
+    </div>
+    <div class="te-row">
+      <div><div class="te-lbl">Прошедший день</div><div class="te-desc">Дни до сегодня</div></div>
+      <div class="te-swatch" id="sw-dot-past"><input type="color" oninput="teSet('--dot-past',this.value)" onchange="teSet('--dot-past',this.value)"/></div>
+    </div>
+    <div class="te-row">
+      <div><div class="te-lbl">Будущий день</div><div class="te-desc">Дни после сегодня</div></div>
+      <div class="te-swatch" id="sw-dot-future"><input type="color" oninput="teSet('--dot-future',this.value)" onchange="teSet('--dot-future',this.value)"/></div>
+    </div>
+
+    <div class="te-actions">
+      <button class="te-reset" onclick="teReset()">Сбросить</button>
+      <button class="te-save" onclick="closeTE()">Готово</button>
+    </div>
+  </div>
+</div>
+
 <script>
+// ── THEME EDITOR ──
+const TE_VARS = ['--bg','--bg2','--bg3','--text','--text2','--text3','--accent','--sep','--dot-bg','--dot-past','--dot-future'];
+const TE_IDS  = {'--bg':'sw-bg','--bg2':'sw-bg2','--bg3':'sw-bg3','--text':'sw-text','--text2':'sw-text2','--text3':'sw-text3','--accent':'sw-accent','--sep':'sw-sep','--dot-bg':'sw-dot-bg','--dot-past':'sw-dot-past','--dot-future':'sw-dot-future'};
+
+// Base theme presets (solid hex only — rgba stored separately for live editing)
+const TE_PRESETS = {
+  default: {'--bg':'#f5f0e8','--bg2':'#ffffff','--bg3':'#f0ece4','--text':'#1a1a1a','--text2':'#666666','--text3':'#aaaaaa','--accent':'#D0391B','--sep':'#e8e4dc','--dot-bg':'#d8d4cc','--dot-past':'#ccc8c0','--dot-future':'#e4e0d8'},
+  dark:    {'--bg':'#151515','--bg2':'#1e1e1e','--bg3':'#2a2a2a','--text':'#efefef','--text2':'#999999','--text3':'#555555','--accent':'#D0391B','--sep':'#333333','--dot-bg':'#303030','--dot-past':'#383838','--dot-future':'#222222'},
+  warm:    {'--bg':'#EFE8CB','--bg2':'#fffae6','--bg3':'#e8dfc0','--text':'#2a1a08','--text2':'#6b4a28','--text3':'#b09060','--accent':'#D0391B','--sep':'#ddd0b0','--dot-bg':'#ddd0a8','--dot-past':'#d0c498','--dot-future':'#e8ddc0'},
+  ocean:   {'--bg':'#E2E4D2','--bg2':'#dce0d2','--bg3':'#d0d4c0','--text':'#1a2826','--text2':'#3d5654','--text3':'#7BA7AF','--accent':'#D0391B','--sep':'#c8ccb8','--dot-bg':'#c8ccb8','--dot-past':'#bec2ae','--dot-future':'#d4d8c8'},
+  retro:   {'--bg':'#DCC9A9','--bg2':'#dcc8a5','--bg3':'#cdbf98','--text':'#2a1508','--text2':'#7a4a20','--text3':'#b08050','--accent':'#D0391B','--sep':'#c8b890','--dot-bg':'#c8b890','--dot-past':'#beae84','--dot-future':'#d4c49c'},
+  night:   {'--bg':'#080808','--bg2':'#121212','--bg3':'#1a1a1a','--text':'#dddddd','--text2':'#777777','--text3':'#404040','--accent':'#D0391B','--sep':'#222222','--dot-bg':'#222222','--dot-past':'#2a2a2a','--dot-future':'#161616'},
+};
+
+let _teBase = null; // base preset for reset
+let _teCustom = {}; // saved custom overrides per theme key
+
+function openTE(themeKey, themeName) {
+  _teBase = themeKey;
+  document.getElementById('teTitle').textContent = themeName;
+  // Load saved custom or fall back to preset
+  const saved = (_teCustom[themeKey] || {});
+  const preset = TE_PRESETS[themeKey] || TE_PRESETS.default;
+  TE_VARS.forEach(v => {
+    const val = saved[v] || preset[v] || getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#888888';
+    const hex = toHex(val);
+    document.getElementById(TE_IDS[v]).style.background = hex;
+    document.getElementById(TE_IDS[v]).querySelector('input').value = hex;
+    document.documentElement.style.setProperty(v, val);
+  });
+  document.getElementById('teOver').classList.add('on');
+}
+
+function closeTE() {
+  // Save current values as custom for this theme
+  if (_teBase) {
+    if (!_teCustom[_teBase]) _teCustom[_teBase] = {};
+    TE_VARS.forEach(v => {
+      _teCustom[_teBase][v] = getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+    });
+    cfg.teCustom = _teCustom;
+    saveC();
+  }
+  document.getElementById('teOver').classList.remove('on');
+}
+
+function teSet(varName, hex) {
+  document.documentElement.style.setProperty(varName, hex);
+  document.getElementById(TE_IDS[varName]).style.background = hex;
+}
+
+function teReset() {
+  const preset = TE_PRESETS[_teBase] || TE_PRESETS.default;
+  if (_teCustom[_teBase]) delete _teCustom[_teBase];
+  TE_VARS.forEach(v => {
+    const val = preset[v] || '#888888';
+    document.documentElement.style.setProperty(v, val);
+    document.getElementById(TE_IDS[v]).style.background = val;
+    document.getElementById(TE_IDS[v]).querySelector('input').value = val;
+  });
+  cfg.teCustom = _teCustom;
+  saveC();
+}
+
+function toHex(val) {
+  if (!val) return '#888888';
+  val = val.trim();
+  if (val.startsWith('#') && (val.length === 7 || val.length === 4)) return val;
+  // rgba/rgb → extract and convert
+  const m = val.match(/[\d.]+/g);
+  if (m && m.length >= 3) {
+    const r = Math.round(parseFloat(m[0])).toString(16).padStart(2,'0');
+    const g = Math.round(parseFloat(m[1])).toString(16).padStart(2,'0');
+    const b = Math.round(parseFloat(m[2])).toString(16).padStart(2,'0');
+    return '#' + r + g + b;
+  }
+  return '#888888';
+}
+
 // ── STORAGE ──
 const SK = 'ftc_d1', SS = 'ftc_s1';
 let days = {}, cfg = { cur:'₽', theme:'default', thcls:'', acc:'#D0391B', ov:45, bg:'' };
@@ -759,12 +945,29 @@ function setTheme(card) {
   saveC();
   // Apply theme class
   const keep = [];
-  document.body.className.split(' ').forEach(c => { if (!c.startsWith('t-')) keep.push(c); });
+  document.body.className.split(' ').forEach(cl => { if (!cl.startsWith('t-')) keep.push(cl); });
   document.body.className = (keep.join(' ') + ' ' + cfg.thcls).trim();
-  // Reapply accent (theme may override)
-  document.documentElement.style.setProperty('--accent', cfg.acc);
+  // Apply saved custom vars for this theme
+  applyTeCustom(cfg.theme);
   document.querySelectorAll('.tcrd').forEach(c => c.classList.remove('on'));
   card.classList.add('on');
+  // Open theme editor
+  const names = {default:'Пергамент',dark:'Ночь',warm:'Тепло',ocean:'Океан',retro:'Ретро',night:'Тёмная'};
+  openTE(cfg.theme, names[cfg.theme] || 'Тема');
+}
+
+function applyTeCustom(themeKey) {
+  const custom = (cfg.teCustom || {})[themeKey];
+  if (custom) {
+    TE_VARS.forEach(v => {
+      if (custom[v]) document.documentElement.style.setProperty(v, custom[v]);
+    });
+  } else {
+    // Clear inline overrides so CSS class takes over
+    TE_VARS.forEach(v => document.documentElement.style.removeProperty(v));
+  }
+  // Always reapply accent on top
+  if (cfg.acc) document.documentElement.style.setProperty('--accent', cfg.acc);
 }
 
 function setAcc(c, dot) {
@@ -804,6 +1007,8 @@ function applyBg() {
 function applyCfg() {
   // Theme
   if (cfg.thcls) document.body.classList.add(cfg.thcls);
+  // Custom theme colors
+  applyTeCustom(cfg.theme || 'default');
   // Accent
   document.documentElement.style.setProperty('--accent', cfg.acc || '#D0391B');
   // Overlay slider
