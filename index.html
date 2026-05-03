@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="theme-color" content="#f5f0e8"/>
@@ -33,8 +33,8 @@
 
 /* ── RESET ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; overflow: hidden; }
-body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); }
+html, body { height: 100%; overflow: hidden; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
 input, textarea, select { font-family: inherit; user-select: text; -webkit-user-select: text; }
 button { font-family: inherit; cursor: pointer; }
 * { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
@@ -58,8 +58,10 @@ button { font-family: inherit; cursor: pointer; }
   overscroll-behavior: contain;
   padding: calc(var(--st) + 20px) 22px 78px;
   will-change: transform;
-  transition: transform .42s cubic-bezier(.25,0.46,0.45,0.94);
+  transform: translateZ(0);
   -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transition: transform .42s cubic-bezier(.25,0.46,0.45,0.94);
 }
 #sMain { transform: translateX(0); }
 #sSett { transform: translateX(100%); }
@@ -132,9 +134,8 @@ button { font-family: inherit; cursor: pointer; }
   #sMain .mnav,
   #sMain .chdr,
   #sMain .cgrid   { grid-column: 1; }
-  /* Right column items stacked naturally */
-  #sMain #entWrap { grid-column: 2; grid-row: 1 / 8; }
-  #sMain #totWrap { grid-column: 2; grid-row: 8; }
+  /* Right column: stacked container */
+  #sMain #rightCol { grid-column: 2; grid-row: 1 / span 8; display: flex; flex-direction: column; gap: 0; }
 
   /* Calendar dots larger on desktop */
   .cgrid { gap: 8px; }
@@ -345,13 +346,101 @@ button { font-family: inherit; cursor: pointer; }
 .dc-cw span { pointer-events: none; font-size: 11px; }
 .dc-cw input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
 
-.xlist .xrow2 { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
-.xlist .xrow2 input { flex: 1; min-width: 0; }
-.xlist .xrow2 .xdel { background: none; border: none; font-size: 20px; color: var(--text3); touch-action: manipulation; flex-shrink: 0; padding: 4px; }
-.addx { width: 100%; padding: 10px; border-radius: 10px; border: 1.5px dashed var(--text3); background: none; font-size: 13px; color: var(--text3); touch-action: manipulation; margin-bottom: 14px; }
-.mact { display: flex; gap: 10px; margin-top: 16px; }
-.btnc { flex: 1; padding: 14px; border-radius: 14px; background: var(--bg3); border: none; font-size: 15px; font-weight: 600; color: var(--text2); touch-action: manipulation; }
-.btno { flex: 2; padding: 14px; border-radius: 14px; background: var(--accent); border: none; font-size: 15px; font-weight: 600; color: #fff; touch-action: manipulation; }
+/* ── LAYER 2 DOT INDICATOR ── */
+.dot-l2 {
+  position: absolute;
+  top: -2px; right: -2px;
+  width: 30%; height: 30%;
+  min-width: 7px; min-height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid var(--bg);
+  z-index: 3;
+  pointer-events: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,.25);
+}
+
+/* ── LAYER 2 SWITCH BUTTON ── */
+#l2Btn {
+  position: absolute;
+  top: calc(var(--st) + 14px);
+  right: 18px;
+  z-index: 50;
+  background: var(--bg2);
+  border: 1.5px solid var(--sep);
+  border-radius: 50%;
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  cursor: pointer;
+  touch-action: manipulation;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  transition: transform .15s, box-shadow .15s;
+}
+#l2Btn:active { transform: scale(.88); }
+#l2Btn .l2num {
+  font-family: 'DM Serif Display', serif;
+  font-size: 15px;
+  color: var(--text);
+  line-height: 1;
+}
+#l2Btn .l2dot {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  position: absolute;
+  top: -3px; right: -3px;
+  border: 2px solid var(--bg);
+}
+
+/* ── LAYER 2 CALENDAR OVERLAY ── */
+#l2Panel {
+  position: fixed; inset: 0; z-index: 200;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  opacity: 0; pointer-events: none;
+  transform: translateY(30px) scale(.97);
+  transition: opacity .25s, transform .25s cubic-bezier(.4,0,.2,1);
+}
+#l2Panel.on { opacity: 1; pointer-events: auto; transform: none; }
+#l2Header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: calc(var(--st) + 18px) 22px 14px;
+  border-bottom: .5px solid var(--sep);
+  flex-shrink: 0;
+  background: var(--bg2);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+}
+#l2Title { font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--text); }
+#l2CloseBtn {
+  background: var(--bg3); border: none; border-radius: 50%;
+  width: 34px; height: 34px; font-size: 18px; color: var(--text2);
+  display: flex; align-items: center; justify-content: center;
+  touch-action: manipulation; cursor: pointer;
+}
+#l2Body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 18px 22px 78px; }
+#l2ColorRow { display: flex; gap: 10px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+.l2cb {
+  width: 28px; height: 28px; border-radius: 50%; touch-action: manipulation; cursor: pointer;
+  border: 2.5px solid transparent; transition: transform .12s, border-color .12s; flex-shrink: 0;
+}
+.l2cb.on { border-color: var(--text); transform: scale(1.18); }
+.l2cb:active { transform: scale(.85); }
+#l2MNav { display: flex; align-items: center; margin-bottom: 10px; }
+#l2MNavLbl { flex: 1; text-align: center; font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); }
+#l2Grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; }
+.l2dot-cell {
+  aspect-ratio: 1; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  touch-action: manipulation; cursor: pointer;
+  background: var(--dot-bg, rgba(0,0,0,.08));
+  position: relative; transition: transform .12s;
+}
+.l2dot-cell.empty { background: transparent; pointer-events: none; }
+.l2dot-cell.past { background: var(--dot-past, rgba(0,0,0,.1)); }
+.l2dot-cell.future { background: var(--dot-future, rgba(0,0,0,.05)); }
+.l2dot-cell.today { background: var(--dot-today-bg, rgba(0,0,0,.12)); box-shadow: 0 0 0 2px var(--dot-today, var(--accent)); }
+.l2dot-cell.marked { /* color via inline style */ }
+.l2dot-cell:active { transform: scale(.82); }
+.l2day-num { font-size: 11px; font-weight: 600; color: var(--text2); pointer-events: none; }
 </style>
 </head>
 <body>
@@ -360,6 +449,12 @@ button { font-family: inherit; cursor: pointer; }
 <div id="ov"></div>
 
 <div id="app">
+  <!-- LAYER 2 SWITCH BUTTON -->
+  <button id="l2Btn" onclick="openL2()" title="Второй слой">
+    <span class="l2num">2</span>
+    <div class="l2dot" id="l2BtnDot" style="display:none;"></div>
+  </button>
+
   <div id="wrap">
 
     <!-- MAIN -->
@@ -382,8 +477,10 @@ button { font-family: inherit; cursor: pointer; }
       </div>
       <div class="cgrid" id="grid"></div>
 
-      <div id="entWrap"></div>
-      <div id="totWrap"></div>
+      <div id="rightCol">
+        <div id="entWrap"></div>
+        <div id="totWrap"></div>
+      </div>
     </div>
 
     <!-- SETTINGS -->
@@ -406,7 +503,7 @@ button { font-family: inherit; cursor: pointer; }
               </div>
               <button onclick="fbSignOut()" style="background:none;border:none;font-size:12px;color:var(--text3);touch-action:manipulation;">Выйти</button>
             </div>
-            <div id="fbSyncStatus" style="font-size:11px;color:var(--text3);text-align:center;margin-top:6px;"></div>
+            <div id="fbSyncStatus" style="font-size:11px;color:var(--text3);text-align:center;margin-top:6px;opacity:0;transition:opacity 0.3s;"></div>
           </div>
         </div>
       </div>
@@ -478,6 +575,39 @@ button { font-family: inherit; cursor: pointer; }
   <div id="bar">
     <button class="tbtn on" id="tbM" onclick="goTab('main')">📅</button>
     <button class="tbtn" id="tbS" onclick="goTab('sett')">⚙️</button>
+  </div>
+</div>
+
+<!-- LAYER 2 PANEL -->
+<div id="l2Panel">
+  <div id="l2Header">
+    <div id="l2Title">Слой 2</div>
+    <button id="l2CloseBtn" onclick="closeL2()">✕</button>
+  </div>
+  <div id="l2Body">
+    <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:10px;">Цвет отметки</div>
+    <div id="l2ColorRow">
+      <div class="l2cb on" style="background:#6C63FF;" data-c="#6C63FF" onclick="l2PickC('#6C63FF',this)"></div>
+      <div class="l2cb" style="background:#FF6B8A;" data-c="#FF6B8A" onclick="l2PickC('#FF6B8A',this)"></div>
+      <div class="l2cb" style="background:#00BFA5;" data-c="#00BFA5" onclick="l2PickC('#00BFA5',this)"></div>
+      <div class="l2cb" style="background:#FF9800;" data-c="#FF9800" onclick="l2PickC('#FF9800',this)"></div>
+      <div class="l2cb" style="background:#5C6BC0;" data-c="#5C6BC0" onclick="l2PickC('#5C6BC0',this)"></div>
+      <div class="l2cb" style="background:#26A69A;" data-c="#26A69A" onclick="l2PickC('#26A69A',this)"></div>
+    </div>
+    <div id="l2MNav">
+      <button class="marr" onclick="l2ChM(-1)">‹</button>
+      <div id="l2MNavLbl"></div>
+      <button class="marr" onclick="l2ChM(1)">›</button>
+    </div>
+    <div class="chdr" style="margin-bottom:8px;">
+      <span>П</span><span>В</span><span>С</span><span>Ч</span><span>П</span>
+      <span class="we">С</span><span class="we">В</span>
+    </div>
+    <div id="l2Grid"></div>
+    <div style="margin-top:24px;font-size:12px;color:var(--text3);line-height:1.6;">
+      Нажмите на день чтобы отметить / снять отметку.<br>
+      Отметки видны как кружок в углу дней на основном календаре.
+    </div>
   </div>
 </div>
 
@@ -840,16 +970,21 @@ function toHex(val) {
 }
 
 // ── STORAGE ──
-const SK = 'ftc_d1', SS = 'ftc_s1';
+const SK = 'ftc_d1', SS = 'ftc_s1', SK2 = 'ftc_l2';
 let days = {}, cfg = { cur:'₽', theme:'default', thcls:'', acc:'#D0391B', ov:45, bg:'', xcurs:[] };
+let l2days = {}; // Layer 2 days: { 'YYYY-MM-DD': color }
 window.days = days; window.cfg = cfg;
 
 function load() {
   try { days = JSON.parse(localStorage.getItem(SK) || '{}'); } catch { days = {}; }
   try { Object.assign(cfg, JSON.parse(localStorage.getItem(SS) || '{}')); } catch {}
+  // Ensure default theme is parchment if nothing saved
+  if (!cfg.theme) { cfg.theme = 'default'; cfg.thcls = ''; }
+  try { l2days = JSON.parse(localStorage.getItem(SK2) || '{}'); } catch { l2days = {}; }
 }
 function saveD() { localStorage.setItem(SK, JSON.stringify(days)); window.days = days; }
 function saveC() { localStorage.setItem(SS, JSON.stringify(cfg)); window.cfg = cfg; }
+function saveL2() { localStorage.setItem(SK2, JSON.stringify(l2days)); }
 window.saveD = saveD; window.saveC = saveC;
 function dkey(y, m, d) { return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
 
@@ -870,6 +1005,16 @@ applyCfg();
 renderBig();
 renderCal();
 renderEnt();
+
+// ── FIX ORIENTATION SCALE ──
+window.addEventListener('orientationchange', function() {
+  // Force viewport reset after rotation to prevent scale glitch
+  const meta = document.querySelector('meta[name=viewport]');
+  if (!meta) return;
+  const orig = meta.getAttribute('content');
+  meta.setAttribute('content', orig + ', width=1');
+  setTimeout(() => meta.setAttribute('content', orig), 50);
+});
 
 // ── BIG DATE ──
 function renderBig() {
@@ -901,6 +1046,7 @@ function renderCal() {
   for (let d = 1; d <= dim; d++) {
     const dk = dkey(vy, vm, d);
     const dd = days[dk];
+    const l2 = l2days[dk]; // layer 2 color or undefined
     const dt = new Date(vy, vm, d);
     const isT = dk === tdk;
     const isP = dt < new Date(t.getFullYear(), t.getMonth(), t.getDate());
@@ -909,11 +1055,12 @@ function renderCal() {
     if (dd && dd.color) {
       sty = `background:${dd.color};`;
       cls += ' work';
-      if (isT) cls += ' today-w'; // today but has work color
-    } else if (isT) { cls += ' today'; }  // ring only, no fill
+      if (isT) cls += ' today-w';
+    } else if (isT) { cls += ' today'; }
     else if (isP)   { cls += ' past'; }
     else            { cls += ' future'; }
     if (dd) cls += ' has';
+    const l2dot = l2 ? `<div class="dot-l2" style="background:${l2};" onclick="openL2();event.stopPropagation();"></div>` : '';
     h += `<div class="${cls}" style="${sty}"
       ontouchstart="ts(event,'${dk}')"
       ontouchmove="tm()"
@@ -922,9 +1069,20 @@ function renderCal() {
       onmouseup="mu(event,'${dk}')"
 >
       <div class="pip"></div>
+      ${l2dot}
     </div>`;
   }
   document.getElementById('grid').innerHTML = h;
+  // Update l2 button dot indicator
+  const l2Keys = Object.keys(l2days);
+  const l2BtnDot = document.getElementById('l2BtnDot');
+  if (l2Keys.length > 0 && l2BtnDot) {
+    const sampleColor = l2days[l2Keys[0]];
+    l2BtnDot.style.background = sampleColor;
+    l2BtnDot.style.display = 'block';
+  } else if (l2BtnDot) {
+    l2BtnDot.style.display = 'none';
+  }
 }
 
 // ── TOUCH ──
@@ -1071,6 +1229,66 @@ function saveDay() {
     expenses:  xs
   };
   saveD(); closeModal(); renderCal(); renderEnt();
+}
+
+// ── LAYER 2 ──
+let l2Color = '#6C63FF';
+let l2vy = new Date().getFullYear(), l2vm = new Date().getMonth();
+
+function openL2() {
+  l2vy = vy; l2vm = vm; // sync to current month
+  document.getElementById('l2Panel').classList.add('on');
+  renderL2();
+}
+function closeL2() {
+  document.getElementById('l2Panel').classList.remove('on');
+}
+function l2PickC(c, el) {
+  l2Color = c;
+  document.querySelectorAll('.l2cb').forEach(d => d.classList.remove('on'));
+  if (el) el.classList.add('on');
+}
+function l2ChM(d) {
+  l2vm += d;
+  if (l2vm < 0) { l2vm = 11; l2vy--; }
+  if (l2vm > 11) { l2vm = 0; l2vy++; }
+  renderL2();
+}
+function renderL2() {
+  document.getElementById('l2MNavLbl').textContent = MON[l2vm] + ' ' + l2vy;
+  const t = new Date();
+  const tdk = dkey(t.getFullYear(), t.getMonth(), t.getDate());
+  const fd = (new Date(l2vy, l2vm, 1).getDay() + 6) % 7;
+  const dim = new Date(l2vy, l2vm+1, 0).getDate();
+  let h = '';
+  for (let i = 0; i < fd; i++) h += '<div class="l2dot-cell empty"></div>';
+  for (let d = 1; d <= dim; d++) {
+    const dk = dkey(l2vy, l2vm, d);
+    const l2 = l2days[dk];
+    const dt = new Date(l2vy, l2vm, d);
+    const isT = dk === tdk;
+    const isP = dt < new Date(t.getFullYear(), t.getMonth(), t.getDate());
+    let cls = 'l2dot-cell';
+    let sty = '';
+    if (l2) { sty = `background:${l2};`; cls += ' marked'; }
+    else if (isT) cls += ' today';
+    else if (isP) cls += ' past';
+    else cls += ' future';
+    h += `<div class="${cls}" style="${sty}" onclick="l2Toggle('${dk}')">
+      <span class="l2day-num" style="color:${l2?'rgba(255,255,255,.85)':''};">${d}</span>
+    </div>`;
+  }
+  document.getElementById('l2Grid').innerHTML = h;
+}
+function l2Toggle(dk) {
+  if (l2days[dk]) {
+    delete l2days[dk];
+  } else {
+    l2days[dk] = l2Color;
+  }
+  saveL2();
+  renderL2();
+  renderCal(); // refresh main calendar indicators
 }
 
 // ── ENTRIES ──
@@ -1298,15 +1516,16 @@ function goTab(tab, fromSwipe = false) {
     if (document.getElementById('modal').classList.contains('on')) return;
     const t = e.touches[0];
     const dx = t.clientX - sx, dy = t.clientY - sy;
-    if (!axis && (Math.abs(dx) > 8 || Math.abs(dy) > 8))
+    if (!axis && (Math.abs(dx) > 6 || Math.abs(dy) > 6))
       axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
     if (axis !== 'x') return;
+    e.preventDefault(); // prevent vertical scroll fighting horizontal swipe
     dragging = true;
     const now = Date.now(), dt = now - lastT;
     if (dt > 0) velocity = (t.clientX - lastX) / dt;
     lastX = t.clientX; lastT = now;
     panelPos(dx);
-  }, { passive: true });
+  }, { passive: false });
 
   wrap.addEventListener('touchend', e => {
     if (!dragging) return;
@@ -1455,7 +1674,23 @@ function setOv(v) {
 function loadBg(e) {
   const f = e.target.files[0]; if (!f) return;
   const r = new FileReader();
-  r.onload = ev => { cfg.bg = ev.target.result; cfg.bgMime = f.type; saveC(); applyBg(); };
+  r.onload = ev => {
+    // Compress image to max 800px wide and quality 0.72 so it fits in Firestore (< 1MB)
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 800;
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(img, 0, 0, w, h);
+      const compressed = cv.toDataURL('image/jpeg', 0.72);
+      cfg.bg = compressed; cfg.bgMime = 'image/jpeg';
+      saveC(); applyBg();
+    };
+    img.src = ev.target.result;
+  };
   r.readAsDataURL(f);
   e.target.value = '';
 }
@@ -1533,20 +1768,41 @@ const db = getFirestore(app);
 
 let _fbUid = null, _fbUnsub = null, _fbSaving = false;
 
+let _fbStatusTimer = null;
 function fbStatus(msg) {
   const el = document.getElementById('fbSyncStatus');
-  if (el) el.textContent = msg;
+  if (!el) return;
+  el.textContent = msg;
+  el.style.opacity = '1';
+  clearTimeout(_fbStatusTimer);
+  _fbStatusTimer = setTimeout(() => {
+    el.style.transition = 'opacity 0.8s';
+    el.style.opacity = '0';
+  }, 2500);
+}
+
+let _fbSaveTimer = null;
+function fbSaveDebounced() {
+  clearTimeout(_fbSaveTimer);
+  _fbSaveTimer = setTimeout(fbSave, 800);
 }
 
 async function fbSave() {
   if (!_fbUid || _fbSaving) return;
   _fbSaving = true;
   try {
-    await setDoc(doc(db, 'users', _fbUid, 'data', 'main'), {
-      days: JSON.stringify(window.days),
-      cfg: JSON.stringify(window.cfg),
-      ts: Date.now()
-    });
+    // cfg may contain a base64 bg photo — keep it but check size
+    const cfgStr = JSON.stringify(window.cfg);
+    const daysStr = JSON.stringify(window.days);
+    // Firestore doc limit ~1MB. If payload too large, save bg separately (strip from main doc)
+    let payload;
+    if ((cfgStr.length + daysStr.length) > 800000) {
+      const cfgNoBg = Object.assign({}, window.cfg, { bg: '', bgMime: '' });
+      payload = { days: daysStr, cfg: JSON.stringify(cfgNoBg), ts: Date.now(), bgTooBig: true };
+    } else {
+      payload = { days: daysStr, cfg: cfgStr, ts: Date.now(), bgTooBig: false };
+    }
+    await setDoc(doc(db, 'users', _fbUid, 'data', 'main'), payload);
     fbStatus('✓ Сохранено в облако');
   } catch(e) { fbStatus('⚠ Ошибка сохранения'); }
   _fbSaving = false;
@@ -1595,8 +1851,8 @@ onAuthStateChanged(auth, user => {
     // Перехватываем saveD и saveC для автосинхронизации
     const _origSaveD = window.saveD;
     const _origSaveC = window.saveC;
-    window.saveD = function() { _origSaveD.call(this); fbSave(); };
-    window.saveC = function() { _origSaveC.call(this); fbSave(); };
+    window.saveD = function() { _origSaveD.call(this); fbSaveDebounced(); };
+    window.saveC = function() { _origSaveC.call(this); fbSaveDebounced(); };
   } else {
     _fbUid = null;
     if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
@@ -1616,109 +1872,3 @@ window.fbSignOut = async function() {
 </script>
 </body>
 </html>
-<script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, doc, setDoc, getDoc, onSnapshot }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-
-const firebaseConfig = {
-  apiKey: "AIzaSyAhu9apuPi0o7Zwi_YbPikO3f5vKetNvi8",
-  authDomain: "freelancers-time-calendar.firebaseapp.com",
-  projectId: "freelancers-time-calendar",
-  storageBucket: "freelancers-time-calendar.firebasestorage.app",
-  messagingSenderId: "270890748637",
-  appId: "1:270890748637:web:e58fa74466758043c2e934"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-let _fbUid = null, _fbUnsub = null, _fbSaving = false;
-
-function fbStatus(msg) {
-  const el = document.getElementById('fbSyncStatus');
-  if (el) el.textContent = msg;
-}
-
-async function fbSave() {
-  if (!_fbUid || _fbSaving) return;
-  _fbSaving = true;
-  try {
-    await setDoc(doc(db, 'users', _fbUid, 'data', 'main'), {
-      days: JSON.stringify(days),
-      cfg: JSON.stringify(cfg),
-      ts: Date.now()
-    });
-    fbStatus('✓ Сохранено в облако');
-  } catch(e) { fbStatus('⚠ Ошибка сохранения'); }
-  _fbSaving = false;
-}
-
-function fbListen() {
-  if (_fbUnsub) _fbUnsub();
-  _fbUnsub = onSnapshot(doc(db, 'users', _fbUid, 'data', 'main'), snap => {
-    if (!snap.exists()) return;
-    const d = snap.data();
-    const remoteDays = JSON.parse(d.days || '{}');
-    const remoteCfg  = JSON.parse(d.cfg  || '{}');
-    // Мёржим — берём более свежие данные
-    days = remoteDays;
-    Object.assign(cfg, remoteCfg);
-    saveD(); saveC();
-    applyCfg();
-    renderCal();
-    renderEnt();
-    fbStatus('✓ Данные синхронизированы');
-  });
-}
-
-function fbUpdateUI(user) {
-  const signInBtn  = document.getElementById('fbSignInBtn');
-  const userInfo   = document.getElementById('fbUserInfo');
-  if (!signInBtn || !userInfo) return;
-  if (user) {
-    signInBtn.style.display = 'none';
-    userInfo.style.display = 'block';
-    document.getElementById('fbAvatar').src = user.photoURL || '';
-    document.getElementById('fbName').textContent = user.displayName || '';
-    document.getElementById('fbEmail').textContent = user.email || '';
-  } else {
-    signInBtn.style.display = '';
-    userInfo.style.display = 'none';
-  }
-}
-
-onAuthStateChanged(auth, user => {
-  if (user) {
-    _fbUid = user.uid;
-    fbUpdateUI(user);
-    fbListen();
-    // Патчим saveD и saveC чтобы автосохранять в облако
-    const _origSaveD = window.saveD;
-    const _origSaveC = window.saveC;
-    window.saveD = function() { _origSaveD(); fbSave(); };
-    window.saveC = function() { _origSaveC(); fbSave(); };
-  } else {
-    _fbUid = null;
-    if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
-    fbUpdateUI(null);
-  }
-});
-
-window.fbInit = function() {}; // уже инициализировано через onAuthStateChanged
-
-window.fbSignIn = async function() {
-  try {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
-  } catch(e) { console.error('Sign in error', e); }
-};
-
-window.fbSignOut = async function() {
-  if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
-  await signOut(auth);
-};
-</script>
