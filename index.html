@@ -337,7 +337,7 @@ button { font-family: inherit; cursor: pointer; }
           <div class="tcrd" style="background:#EFE8CB;" data-t="warm" data-c="t-warm" onclick="setTheme(this)"><div class="tcn">Тепло</div></div>
           <div class="tcrd" style="background:#E2E4D2;" data-t="ocean" data-c="t-ocean" onclick="setTheme(this)"><div class="tcn">Океан</div></div>
           <div class="tcrd" style="background:#DCC9A9;" data-t="retro" data-c="t-retro" onclick="setTheme(this)"><div class="tcn">Ретро</div></div>
-          <div class="tcrd custom-theme-card" id="customThemeCard" style="background:#080808;" data-t="custom" data-c="" onclick="setTheme(this)"><div style="font-size:22px;margin-bottom:4px;color:#aaa;">✕</div><div class="tcn" style="color:#aaa;">Своя тема</div></div>
+          <div class="tcrd custom-theme-card" id="customThemeCard" style="background:#080808;" data-t="custom" data-c="" onclick="setTheme(this)"><div style="font-size:26px;font-weight:300;margin-bottom:2px;color:#aaa;line-height:1;">+</div><div class="tcn" style="color:#aaa;">Своя тема</div></div>
         </div>
       </div>
 
@@ -1103,9 +1103,8 @@ function setTheme(card) {
   card.classList.add('on');
   // Update custom card preview
   updateCustomCard();
-  // Open theme editor
-  const names = {default:'Пергамент',dark:'Ночь',warm:'Тепло',ocean:'Океан',retro:'Ретро',custom:'Своя тема'};
-  openTE(cfg.theme, names[cfg.theme] || 'Тема');
+  // Open theme editor only for custom
+  if (cfg.theme === 'custom') openTE('custom', 'Своя тема');
 }
 
 function updateCustomCard() {
