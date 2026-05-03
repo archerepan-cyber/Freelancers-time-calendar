@@ -57,7 +57,7 @@ button { font-family: inherit; cursor: pointer; }
   overscroll-behavior: contain;
   padding: calc(var(--st) + 20px) 22px calc(var(--sb) + 68px);
   will-change: transform;
-  transition: transform .38s cubic-bezier(.4,0,.2,1);
+  transition: transform .42s cubic-bezier(.25,0.46,0.45,0.94);
   -webkit-backface-visibility: hidden;
 }
 #sMain { transform: translateX(0); }
@@ -103,7 +103,7 @@ button { font-family: inherit; cursor: pointer; }
   background: rgba(0,0,0,.08);
 }
 .dot.past   { background: rgba(0,0,0,.1); }
-.dot.today  { background: var(--accent); }
+.dot.today  { background: rgba(0,0,0,0.12); box-shadow: 0 0 0 2px var(--accent); }
 .dot.future { background: rgba(0,0,0,.05); }
 .dot.work   { /* color set via inline style */ }
 .dot.empty  { background: transparent; pointer-events: none; }
@@ -307,7 +307,7 @@ button { font-family: inherit; cursor: pointer; }
           <div class="pc" style="background:#4B848A;" onclick="setAcc('#4B848A',this)"></div>
           <div class="pc" style="background:#902223;" onclick="setAcc('#902223',this)"></div>
           <div class="cwbtn" title="Свой цвет">
-            <span>🎨</span>
+            <span style="font-size:18px;font-weight:300;color:#fff;line-height:1;">+</span>
             <input type="color" value="#D0391B" oninput="setAcc(this.value,null)"/>
           </div>
         </div>
@@ -357,7 +357,7 @@ button { font-family: inherit; cursor: pointer; }
         <div class="dc" style="background:#73A642;" data-c="#73A642" onclick="pickC('#73A642',this)"></div>
         <div class="dc" style="background:#4E6851;" data-c="#4E6851" onclick="pickC('#4E6851',this)"></div>
         <div class="dc-cw" title="Свой цвет">
-          <span>🎨</span>
+          <span style="font-size:18px;font-weight:300;color:#fff;line-height:1;">+</span>
           <input type="color" value="#324E44" oninput="pickCHex(this.value)"/>
         </div>
       </div>
@@ -461,7 +461,7 @@ function renderCal() {
       sty = `background:${dd.color};`;
       cls += ' work';
       if (isT) cls += ' today-w'; // today but has work color
-    } else if (isT) { cls += ' today'; }
+    } else if (isT) { cls += ' today'; }  // ring only, no fill
     else if (isP)   { cls += ' past'; }
     else            { cls += ' future'; }
     if (dd) cls += ' has';
@@ -634,7 +634,7 @@ function goTab(tab, animate = true) {
   const m = document.getElementById('sMain');
   const s = document.getElementById('sSett');
   const toR = tab === 'sett';
-  const tr = animate ? 'transform .38s cubic-bezier(.4,0,.2,1)' : 'none';
+  const tr = animate ? 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)' : 'none';
   m.style.transition = tr;
   s.style.transition = tr;
   // Use requestAnimationFrame for reliable animation
@@ -686,8 +686,8 @@ function goTab(tab, animate = true) {
   wrap.addEventListener('touchend', e => {
     if (!dragging) return;
     const dx = e.changedTouches[0].clientX - sx;
-    m.style.transition = 'transform .38s cubic-bezier(.4,0,.2,1)';
-    s.style.transition = 'transform .38s cubic-bezier(.4,0,.2,1)';
+    m.style.transition = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
+    s.style.transition = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
     if      (curTab_ref.v === 'main' && dx < -60) goTab('sett', false);
     else if (curTab_ref.v === 'sett' && dx >  60) goTab('main', false);
     else {
