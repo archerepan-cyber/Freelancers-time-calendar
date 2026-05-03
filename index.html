@@ -122,27 +122,19 @@ button { font-family: inherit; cursor: pointer; }
   /* ── MAIN SCREEN: two-column layout ── */
   #sMain {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto auto auto 1fr auto;
+    grid-template-columns: minmax(0,1fr) minmax(0,1fr);
     column-gap: 40px;
     align-items: start;
   }
-
-  /* Big date spans left column rows 1-2 */
-  #sMain .big    { grid-column: 1; grid-row: 1; }
-  #sMain .bigrow { grid-column: 1; grid-row: 2; margin: 10px 0 20px; }
-
-  /* Calendar (nav + header + grid) all left column */
-  #sMain .mnav  { grid-column: 1; grid-row: 3; margin-bottom: 8px; }
-  #sMain .chdr  { grid-column: 1; grid-row: 4; }
-  #sMain .cgrid { grid-column: 1; grid-row: 5; }
-
-  /* Right column: entries + totals — span all rows */
-  #sMain #entWrap { grid-column: 2; grid-row: 1 / 6; overflow-y: auto; }
-  #sMain #totWrap { grid-column: 2; grid-row: 6; }
-
-  /* Big date size */
-  .big { font-size: clamp(80px, 10vw, 120px); }
+  /* All left-column items */
+  #sMain .big,
+  #sMain .bigrow,
+  #sMain .mnav,
+  #sMain .chdr,
+  #sMain .cgrid   { grid-column: 1; }
+  /* Right column items stacked naturally */
+  #sMain #entWrap { grid-column: 2; grid-row: 1 / 8; }
+  #sMain #totWrap { grid-column: 2; grid-row: 8; }
 
   /* Calendar dots larger on desktop */
   .cgrid { gap: 8px; }
