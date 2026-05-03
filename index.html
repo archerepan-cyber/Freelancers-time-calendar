@@ -109,19 +109,26 @@ button { font-family: inherit; cursor: pointer; }
 .chdr .we { color: var(--accent); }
 .cgrid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; }
 @media (hover: hover) and (pointer: fine) {
-  .cgrid { gap: 4px; }
-  .dot { max-width: 44px; max-height: 44px; justify-self: center; width: 100%; }
-  /* Scale down the whole main screen on desktop */
-  #app {
-    max-width: 480px;
-    margin: 0 auto;
-  }
-  .big { font-size: clamp(60px, 12vw, 96px); }
-  .scr { padding: calc(var(--st) + 14px) 18px 70px; }
-  .bigrow { margin: 6px 0 18px; }
-  .tamt { font-size: 32px; }
-  .ecard { padding: 10px 13px; }
-  .enum { font-size: 20px; }
+  /* Centered column, comfortable reading width */
+  #app { max-width: 560px; margin: 0 auto; }
+  .scr { padding: calc(var(--st) + 22px) 28px 80px; }
+
+  /* Big date — slightly smaller than mobile clamp */
+  .big { font-size: clamp(72px, 14vw, 110px); }
+  .bigrow { margin: 8px 0 22px; }
+
+  /* Calendar dots — compact but not tiny */
+  .cgrid { gap: 5px; }
+  .dot { max-width: 52px; max-height: 52px; justify-self: center; width: 100%; }
+
+  /* Cards */
+  .ecard { padding: 12px 15px; }
+  .enum  { font-size: 22px; }
+  .tamt  { font-size: 36px; }
+
+  /* Cursor hint on wrap so user knows it's swipeable */
+  #wrap { cursor: grab; }
+  #wrap:active { cursor: grabbing; }
 }
 
 .dot {
@@ -1210,126 +1217,159 @@ function goTab(tab, fromSwipe = false) {
   const wrap = document.getElementById('wrap');
   const m = document.getElementById('sMain');
   const s = document.getElementById('sSett');
+  const EASE = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
+  const EASE_FAST = 'transform .28s cubic-bezier(.25,0.46,0.45,0.94)';
+
+  // ── Shared drag state ──
   let sx = 0, sy = 0, axis = null, dragging = false;
+  let lastX = 0, lastT = 0, velocity = 0; // px/ms
 
-  function swipeStart(clientX, clientY) {
-    if (document.getElementById('modal').classList.contains('on')) return;
-    sx = clientX;
-    sy = clientY;
-    axis = null; dragging = false;
-    m.style.transition = 'none';
-    s.style.transition = 'none';
-  }
-
-  function swipeMove(clientX, clientY) {
-    if (document.getElementById('modal').classList.contains('on')) return;
-    const dx = clientX - sx;
-    const dy = clientY - sy;
-    if (!axis && (Math.abs(dx) > 10 || Math.abs(dy) > 10))
-      axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-    if (axis !== 'x') return;
-    dragging = true;
+  function panelPos(dx) {
     const W = window.innerWidth;
     if (curTab_ref.v === 'main') {
-      const x = Math.min(0, dx);
+      const x = Math.max(-W, Math.min(0, dx));
       m.style.transform = `translateX(${x}px)`;
       s.style.transform = `translateX(${W + x}px)`;
     } else {
-      const x = Math.max(0, dx);
+      const x = Math.min(W, Math.max(0, dx));
       s.style.transform = `translateX(${x}px)`;
       m.style.transform = `translateX(${x - W}px)`;
     }
   }
 
-  function swipeEnd(clientX) {
-    if (!dragging) return;
-    const dx = clientX - sx;
-    m.style.transition = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
-    s.style.transition = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
-    if      (curTab_ref.v === 'main' && dx < -60) goTab('sett', true);
-    else if (curTab_ref.v === 'sett' && dx >  60) goTab('main', true);
+  function settle(dx) {
+    const W = window.innerWidth;
+    // Use velocity to decide: flick fast enough = switch regardless of distance
+    const flick = Math.abs(velocity) > 0.4;
+    const half  = Math.abs(dx) > W * 0.3;
+    const shouldSwitch = flick || half;
+    const ease = flick ? EASE_FAST : EASE;
+    m.style.transition = ease;
+    s.style.transition = ease;
+    if      (curTab_ref.v === 'main' && dx < 0 && shouldSwitch) goTab('sett', true);
+    else if (curTab_ref.v === 'sett' && dx > 0 && shouldSwitch) goTab('main', true);
     else {
-      requestAnimationFrame(() => {
-        m.style.transform = curTab_ref.v === 'main' ? 'translateX(0)' : 'translateX(-100%)';
-        s.style.transform = curTab_ref.v === 'sett' ? 'translateX(0)' : 'translateX(100%)';
-      });
+      m.style.transform = curTab_ref.v === 'main' ? 'translateX(0)' : 'translateX(-100%)';
+      s.style.transform = curTab_ref.v === 'sett' ? 'translateX(0)' : 'translateX(100%)';
     }
-    dragging = false;
   }
 
-  // Touch events
+  // ── TOUCH (phone/tablet) ──
   wrap.addEventListener('touchstart', e => {
+    if (document.getElementById('modal').classList.contains('on')) return;
     if (e.target.type === 'range') return;
-    swipeStart(e.touches[0].clientX, e.touches[0].clientY);
+    const t = e.touches[0];
+    sx = t.clientX; sy = t.clientY;
+    lastX = sx; lastT = Date.now(); velocity = 0;
+    axis = null; dragging = false;
+    m.style.transition = 'none'; s.style.transition = 'none';
   }, { passive: true });
 
   wrap.addEventListener('touchmove', e => {
-    swipeMove(e.touches[0].clientX, e.touches[0].clientY);
+    if (document.getElementById('modal').classList.contains('on')) return;
+    const t = e.touches[0];
+    const dx = t.clientX - sx, dy = t.clientY - sy;
+    if (!axis && (Math.abs(dx) > 8 || Math.abs(dy) > 8))
+      axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+    if (axis !== 'x') return;
+    dragging = true;
+    const now = Date.now(), dt = now - lastT;
+    if (dt > 0) velocity = (t.clientX - lastX) / dt;
+    lastX = t.clientX; lastT = now;
+    panelPos(dx);
   }, { passive: true });
 
   wrap.addEventListener('touchend', e => {
-    swipeEnd(e.changedTouches[0].clientX);
+    if (!dragging) return;
+    dragging = false;
+    settle(e.changedTouches[0].clientX - sx);
   }, { passive: true });
 
-  // Mouse events (desktop swipe)
-  let mouseDown = false;
-  wrap.addEventListener('mousedown', e => {
-    if (e.target.type === 'range') return;
-    if (e.button !== 0) return;
-    mouseDown = true;
-    swipeStart(e.clientX, e.clientY);
+  // ── POINTER (mouse drag on desktop) ──
+  let pointerDown = false, pointerId = null;
+  wrap.addEventListener('pointerdown', e => {
+    if (_recentTouch) return;
+    if (document.getElementById('modal').classList.contains('on')) return;
+    if (e.button !== 0 || e.target.type === 'range') return;
+    pointerDown = true; pointerId = e.pointerId;
+    wrap.setPointerCapture(e.pointerId);
+    sx = e.clientX; sy = e.clientY;
+    lastX = sx; lastT = Date.now(); velocity = 0;
+    axis = null; dragging = false;
+    m.style.transition = 'none'; s.style.transition = 'none';
   });
 
-  window.addEventListener('mousemove', e => {
-    if (!mouseDown) return;
-    swipeMove(e.clientX, e.clientY);
+  wrap.addEventListener('pointermove', e => {
+    if (!pointerDown || e.pointerId !== pointerId) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    if (!axis && (Math.abs(dx) > 8 || Math.abs(dy) > 8))
+      axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+    if (axis !== 'x') return;
+    dragging = true;
+    wrap.style.cursor = 'grabbing';
+    const now = Date.now(), dt = now - lastT;
+    if (dt > 0) velocity = (e.clientX - lastX) / dt;
+    lastX = e.clientX; lastT = now;
+    panelPos(dx);
   });
 
-  window.addEventListener('mouseup', e => {
-    if (!mouseDown) return;
-    mouseDown = false;
-    swipeEnd(e.clientX);
+  wrap.addEventListener('pointerup', e => {
+    if (!pointerDown || e.pointerId !== pointerId) return;
+    pointerDown = false; pointerId = null;
+    wrap.style.cursor = '';
+    if (!dragging) return;
+    dragging = false;
+    settle(e.clientX - sx);
   });
 
-  // Trackpad two-finger swipe (Mac)
-  let _wheelAcc = 0, _wheelTimer = null, _wheelLocked = false;
+  wrap.addEventListener('pointercancel', e => {
+    if (!pointerDown || e.pointerId !== pointerId) return;
+    pointerDown = false; pointerId = null; dragging = false;
+    wrap.style.cursor = '';
+    m.style.transition = EASE; s.style.transition = EASE;
+    m.style.transform = curTab_ref.v === 'main' ? 'translateX(0)' : 'translateX(-100%)';
+    s.style.transform = curTab_ref.v === 'sett' ? 'translateX(0)' : 'translateX(100%)';
+  });
+
+  // ── WHEEL (Mac trackpad two-finger horizontal swipe) ──
+  let _wAcc = 0, _wTimer = null, _wLocked = false, _wActive = false;
   wrap.addEventListener('wheel', e => {
     if (document.getElementById('modal').classList.contains('on')) return;
-    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) return;
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX) * 1.5) return;
     e.preventDefault();
-    if (_wheelLocked) return; // already switching, ignore further input
-    _wheelAcc += e.deltaX;
+    if (_wLocked) return;
+
     const W = window.innerWidth;
-    // Clamp so panel never goes past its resting position on the other side
-    if (curTab_ref.v === 'main') {
-      _wheelAcc = Math.max(0, Math.min(_wheelAcc, W));
-      const x = -_wheelAcc;
-      m.style.transition = 'none';
-      s.style.transition = 'none';
-      m.style.transform = `translateX(${x}px)`;
-      s.style.transform = `translateX(${W + x}px)`;
-    } else {
-      _wheelAcc = Math.max(-W, Math.min(_wheelAcc, 0));
-      const x = -_wheelAcc;
-      s.style.transition = 'none';
-      m.style.transition = 'none';
-      s.style.transform = `translateX(${x}px)`;
-      m.style.transform = `translateX(${x - W}px)`;
+    if (!_wActive) {
+      // fresh gesture start — reset panels to no-transition
+      _wActive = true;
+      m.style.transition = 'none'; s.style.transition = 'none';
     }
-    clearTimeout(_wheelTimer);
-    _wheelTimer = setTimeout(() => {
-      const EASE = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
-      m.style.transition = EASE;
-      s.style.transition = EASE;
-      if      (curTab_ref.v === 'main' && _wheelAcc > W * 0.3)  { _wheelLocked = true; goTab('sett', true); }
-      else if (curTab_ref.v === 'sett' && _wheelAcc < -W * 0.3) { _wheelLocked = true; goTab('main', true); }
+
+    _wAcc += e.deltaX;
+    if (curTab_ref.v === 'main') {
+      _wAcc = Math.max(0, Math.min(_wAcc, W));
+    } else {
+      _wAcc = Math.max(-W, Math.min(_wAcc, 0));
+    }
+
+    panelPos(curTab_ref.v === 'main' ? -_wAcc : -_wAcc);
+
+    clearTimeout(_wTimer);
+    _wTimer = setTimeout(() => {
+      _wActive = false;
+      const W2 = window.innerWidth;
+      const half = Math.abs(_wAcc) > W2 * 0.28;
+      m.style.transition = EASE; s.style.transition = EASE;
+      if      (curTab_ref.v === 'main' && _wAcc > 0 && half)  { _wLocked = true; goTab('sett', true); }
+      else if (curTab_ref.v === 'sett' && _wAcc < 0 && half)  { _wLocked = true; goTab('main', true); }
       else {
         m.style.transform = curTab_ref.v === 'main' ? 'translateX(0)' : 'translateX(-100%)';
         s.style.transform = curTab_ref.v === 'sett' ? 'translateX(0)' : 'translateX(100%)';
       }
-      _wheelAcc = 0;
-      setTimeout(() => { _wheelLocked = false; }, 500);
-    }, 80);
+      _wAcc = 0;
+      setTimeout(() => { _wLocked = false; }, 450);
+    }, 60);
   }, { passive: false });
 })();
 
