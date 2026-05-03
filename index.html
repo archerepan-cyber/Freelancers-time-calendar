@@ -162,7 +162,7 @@ button { font-family: inherit; cursor: pointer; }
 .cwbtn {
   width: 36px; height: 36px; border-radius: 50%; touch-action: manipulation; cursor: pointer;
   background: conic-gradient(from 0deg,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00);
-  position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;
+  position: relative; display: flex; align-items: center; justify-content: center;
   border: 2.5px solid rgba(255,255,255,.5); flex-shrink: 0;
 }
 .cwbtn span { pointer-events: none; font-size: 14px; }
@@ -221,7 +221,7 @@ button { font-family: inherit; cursor: pointer; }
 .dc-cw {
   width: 30px; height: 30px; border-radius: 50%; touch-action: manipulation; cursor: pointer;
   background: conic-gradient(from 0deg,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00);
-  position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;
+  position: relative; display: flex; align-items: center; justify-content: center;
   border: 2.5px solid rgba(255,255,255,.5); flex-shrink: 0;
 }
 .dc-cw span { pointer-events: none; font-size: 11px; }
@@ -305,7 +305,6 @@ button { font-family: inherit; cursor: pointer; }
           <div class="pc" style="background:#9F4125;" onclick="setAcc('#9F4125',this)"></div>
           <div class="pc" style="background:#73A642;" onclick="setAcc('#73A642',this)"></div>
           <div class="pc" style="background:#4B848A;" onclick="setAcc('#4B848A',this)"></div>
-          <div class="pc" style="background:#902223;" onclick="setAcc('#902223',this)"></div>
           <div class="cwbtn" title="Свой цвет">
             <span style="font-size:18px;font-weight:300;color:#fff;line-height:1;">+</span>
             <input type="color" value="#D0391B" oninput="setAcc(this.value,null)"/>
@@ -504,6 +503,7 @@ function tapDot(dk) {
   openModal(dk);
 }
 function clrD(dk) {
+  if (!days[dk]) return; // двойное нажатие на непомеченный день — ничего не делать
   delete days[dk];
   saveD(); renderCal(); renderEnt();
 }
