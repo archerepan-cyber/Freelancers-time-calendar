@@ -109,24 +109,23 @@ button { font-family: inherit; cursor: pointer; }
 .chdr .we { color: var(--accent); }
 .cgrid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; }
 @media (hover: hover) and (pointer: fine) {
-  /* Centered column, comfortable reading width */
-  #app { max-width: 680px; margin: 0 auto; }
-  .scr { padding: calc(var(--st) + 26px) 36px 88px; }
+  /* Full-width desktop — matches screenshot */
+  #app { max-width: 100%; margin: 0; }
+  .scr { padding: calc(var(--st) + 20px) 40px 80px; }
 
-  /* Big date */
-  .big { font-size: clamp(88px, 16vw, 130px); }
-  .bigrow { margin: 10px 0 26px; }
+  /* Big date — hide on desktop, screen starts from calendar */
+  .big, .bigrow { display: none; }
 
-  /* Calendar dots */
-  .cgrid { gap: 6px; }
-  .dot { max-width: 62px; max-height: 62px; justify-self: center; width: 100%; }
+  /* Calendar dots — fill the grid naturally */
+  .cgrid { gap: 8px; }
+  .dot { max-width: none; max-height: none; width: 100%; }
 
   /* Cards */
   .ecard { padding: 14px 17px; }
   .enum  { font-size: 26px; }
   .tamt  { font-size: 40px; }
 
-  /* Cursor hint on wrap so user knows it's swipeable */
+  /* Cursor hint */
   #wrap { cursor: grab; }
   #wrap:active { cursor: grabbing; }
 }
@@ -1319,11 +1318,11 @@ function goTab(tab, fromSwipe = false) {
     _wAcc += e.deltaX;
     clearTimeout(_wTimer);
     _wTimer = setTimeout(() => {
-      if      (curTab_ref.v === 'main' && _wAcc > 60) { _wLocked = true; goTab('sett'); }
-      else if (curTab_ref.v === 'sett' && _wAcc < -60) { _wLocked = true; goTab('main'); }
+      if      (curTab_ref.v === 'main' && _wAcc > 40) { _wLocked = true; goTab('sett'); }
+      else if (curTab_ref.v === 'sett' && _wAcc < -40) { _wLocked = true; goTab('main'); }
       _wAcc = 0;
-      setTimeout(() => { _wLocked = false; }, 500);
-    }, 60);
+      setTimeout(() => { _wLocked = false; }, 400);
+    }, 30);
   }, { passive: false });
 })();
 
