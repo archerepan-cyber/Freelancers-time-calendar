@@ -458,7 +458,7 @@ button { font-family: inherit; cursor: pointer; }
     <div class="te-drag"></div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
       <div class="te-title" id="teTitle" style="margin-bottom:0;">Редактор темы</div>
-      <button onclick="closeTE()" style="background:var(--bg3);border:none;border-radius:50%;width:34px;height:34px;font-size:18px;color:var(--text2);display:flex;align-items:center;justify-content:center;flex-shrink:0;touch-action:manipulation;">✕</button>
+      <button onclick="closeTE(false)" style="background:var(--bg3);border:none;border-radius:50%;width:34px;height:34px;font-size:18px;color:var(--text2);display:flex;align-items:center;justify-content:center;flex-shrink:0;touch-action:manipulation;">✕</button>
     </div>
     <div class="te-sub">Нажмите на кружок чтобы изменить цвет</div>
     <label class="bgbtn" style="margin-bottom:18px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;">
@@ -519,7 +519,7 @@ button { font-family: inherit; cursor: pointer; }
 
     <div class="te-actions">
       <button class="te-reset" onclick="teReset()">Сбросить</button>
-      <button class="te-save" onclick="closeTE()">Готово</button>
+      <button class="te-save" onclick="closeTE(true)">Применить тему</button>
     </div>
   </div>
 </div>
@@ -564,7 +564,7 @@ let _teCustom = {}; // saved custom overrides per theme key
     const s = sheet();
     const dy = e.changedTouches[0].clientY - sy;
     s.style.transition = '';
-    if (dragging && dy > 90) { closeTE(); }
+    if (dragging && dy > 90) { closeTE(false); }
     else { s.style.transform = ''; }
     dragging = false;
   }, {passive:true});
@@ -573,27 +573,34 @@ let _teCustom = {}; // saved custom overrides per theme key
 function openTE(themeKey, themeName) {
   _teBase = themeKey;
   document.getElementById('teTitle').textContent = themeName;
-  // Load saved custom or fall back to preset
   const saved = (_teCustom[themeKey] || {});
   const preset = TE_PRESETS[themeKey] || TE_PRESETS.default;
   TE_VARS.forEach(v => {
-    const val = saved[v] || preset[v] || getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#888888';
-    const hex = toHex(val);
-    document.getElementById(TE_IDS[v]).style.background = hex;
-    document.getElementById(TE_IDS[v]).querySelector('input').value = hex;
-    document.documentElement.style.setProperty(v, val);
+    const liveVal = getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+    const editorVal = saved[v] || preset[v] || liveVal || '#888888';
+    const hex = toHex(editorVal);
+    const sw = document.getElementById(TE_IDS[v]);
+    if (sw) { sw.style.background = hex; sw.querySelector('input').value = hex; }
+    // Применяем в CSS только для custom темы
+    if (themeKey === 'custom') document.documentElement.style.setProperty(v, editorVal);
   });
   document.getElementById('teOver').classList.add('on');
 }
 
-function closeTE() {
+function closeTE(apply) {
   if (_teBase) {
     if (!_teCustom[_teBase]) _teCustom[_teBase] = {};
     TE_VARS.forEach(v => {
       _teCustom[_teBase][v] = getComputedStyle(document.documentElement).getPropertyValue(v).trim();
     });
     cfg.teCustom = _teCustom;
-    saveC();
+    if (apply && _teBase === 'custom') {
+      cfg.theme = 'custom'; cfg.thcls = ''; saveC();
+      document.querySelectorAll('.tcrd').forEach(el => el.classList.remove('on'));
+      document.getElementById('customThemeCard').classList.add('on');
+    } else if (!apply && _teBase === 'custom' && cfg.theme !== 'custom') {
+      saveC(); applyTeCustom(cfg.theme); // восстановить текущую тему
+    } else { saveC(); }
   }
   updateCustomCard();
   document.getElementById('teOver').classList.remove('on');
@@ -995,44 +1002,63 @@ function renderEnt() {
       <span style="color:var(--accent);">−${cur}${total.toLocaleString()}</span>
     </div>`;
   });
-  const xcDisp = (cfg.xcurs || []).map(x => {
-    if (x.on === false) return '';
-    const rate = parseFloat(x.rate) || 1;
-    const sym = x.sym || '?';
-    const conv = net / rate;
-    return `<div class="xcur-disp">
-      <span>${sym} <span style="font-size:10px;opacity:.6;">1${cur}=${rate}${sym}</span></span>
-      <span class="xamt" style="color:${conv>=0?'var(--text2)':'#c0392b'};">${conv>=0?'+':''}${sym}${Math.abs(conv).toLocaleString(undefined,{maximumFractionDigits:2})}</span>
-    </div>`;
+  const xcDisp = (cfg.xcurs||[]).filter(x=>x.on!==false&&x.sym&&x.rate).map(x=>{
+    const conv = net/parseFloat(x.rate);
+    return `<div style="font-size:13px;color:${conv>=0?'var(--text2)':'#c0392b'};text-align:right;margin-top:1px;">${conv>=0?'+':''}${x.sym}${Math.abs(conv).toLocaleString(undefined,{maximumFractionDigits:2})}</div>`;
   }).join('');
 
   th += `<div class="trow">
     <div class="tlbl">Итого</div>
-    <div class="tamt" style="color:${net >= 0 ? 'var(--accent)' : '#c0392b'};">
-      ${net >= 0 ? '+' : ''}${cur}${Math.abs(net).toLocaleString()}
+    <div style="text-align:right;">
+      <div class="tamt" style="color:${net >= 0 ? 'var(--accent)' : '#c0392b'};">${net >= 0 ? '+' : ''}${cur}${Math.abs(net).toLocaleString()}</div>
+      ${xcDisp}
     </div>
   </div>
-  ${xcDisp}
   <div class="xcur-wrap" id="xcurEdit"></div>`;
   tw.innerHTML = `<div class="tcard">${th}</div>`;
   renderXcurEdit();
 }
 
 // ── EXTRA CURRENCIES ──
+const CUR_CODE = {'₽':'RUB','$':'USD','€':'EUR','₸':'KZT','₴':'UAH','£':'GBP','¥':'JPY','₿':'BTC','₩':'KRW','Fr':'CHF','kr':'SEK','zł':'PLN','₫':'VND','₹':'INR','R$':'BRL','₱':'PHP'};
+let _rateCache = {}, _rateTs = 0;
+async function fetchRates(baseSym) {
+  const base = CUR_CODE[baseSym] || baseSym.replace(/[^A-Za-z]/g,'').toUpperCase() || 'USD';
+  const now = Date.now();
+  if (_rateCache[base] && now - _rateTs < 3600000) return _rateCache[base];
+  try {
+    const r = await fetch(`https://api.exchangerate-api.com/v4/latest/${base}`);
+    const d = await r.json();
+    _rateCache[base] = d.rates || {}; _rateTs = now;
+    return _rateCache[base];
+  } catch { return {}; }
+}
+async function xcRefreshRates() {
+  if (!cfg.xcurs || !cfg.xcurs.length) return;
+  const rates = await fetchRates(cfg.cur);
+  let changed = false;
+  cfg.xcurs.forEach(x => {
+    if (!x.sym) return;
+    const code = CUR_CODE[x.sym] || x.sym.replace(/[^A-Za-z]/g,'').toUpperCase();
+    if (rates[code]) { x.rate = rates[code]; changed = true; }
+  });
+  if (changed) { saveC(); renderEnt(); }
+}
 function renderXcurEdit() {
   const el = document.getElementById('xcurEdit');
   if (!el) return;
   if (!cfg.xcurs) cfg.xcurs = [];
-  const xc = cfg.xcurs;
-  const canAdd = xc.length < 2;
+  const canAdd = cfg.xcurs.length < 2;
   let h = '';
-  xc.forEach((x, i) => {
+  cfg.xcurs.forEach((x, i) => {
+    const rateInfo = x.rate
+      ? `<span style="font-size:10px;color:var(--text3);">1${cfg.cur}≈${(+x.rate).toFixed(2)}${x.sym}</span>`
+      : `<span style="font-size:10px;color:var(--text3);">загрузка…</span>`;
     h += `<div class="xcur-row">
       <button class="xcur-toggle ${x.on===false?'':'on'}" onclick="xcToggle(${i})"></button>
-      <input class="xcur-sym" placeholder="₿" maxlength="5" value="${x.sym||''}" oninput="xcSet(${i},'sym',this.value)"/>
-      <span style="font-size:11px;color:var(--text3);">1${cfg.cur}=</span>
-      <input class="xcur-rate" type="number" placeholder="курс" value="${x.rate||''}" oninput="xcSet(${i},'rate',this.value)"/>
-      <button class="xcur-del" onclick="xcDel(${i})">×</button>
+      <input class="xcur-sym" placeholder="$ € £" maxlength="5" value="${x.sym||''}" oninput="xcSym(${i},this.value)"/>
+      ${rateInfo}
+      <button class="xcur-del" onclick="xcDel(${i})" style="margin-left:auto;">×</button>
     </div>`;
   });
   if (canAdd) h += `<button class="xcur-add" onclick="xcAdd()">+ Добавить валюту</button>`;
@@ -1041,12 +1067,12 @@ function renderXcurEdit() {
 function xcAdd() {
   if (!cfg.xcurs) cfg.xcurs = [];
   if (cfg.xcurs.length >= 2) return;
-  cfg.xcurs.push({ sym:'', rate:'', on:true });
-  saveC(); renderEnt();
+  cfg.xcurs.push({sym:'',rate:'',on:true});
+  saveC(); renderEnt(); xcRefreshRates();
 }
 function xcDel(i) { cfg.xcurs.splice(i,1); saveC(); renderEnt(); }
-function xcToggle(i) { cfg.xcurs[i].on = cfg.xcurs[i].on === false ? true : false; saveC(); renderEnt(); }
-function xcSet(i, key, val) { cfg.xcurs[i][key] = val; saveC(); renderEnt(); }
+function xcToggle(i) { cfg.xcurs[i].on = cfg.xcurs[i].on===false?true:false; saveC(); renderEnt(); }
+function xcSym(i,val) { cfg.xcurs[i].sym=val; cfg.xcurs[i].rate=''; saveC(); renderEnt(); if(val.length>=1) xcRefreshRates(); }
 
 // ── TABS ──
 function goTab(tab, fromSwipe = false) {
@@ -1145,26 +1171,35 @@ function goTab(tab, fromSwipe = false) {
 function setCur(sym, btn) {
   cfg.cur = sym; saveC();
   document.querySelectorAll('.curbtn').forEach(b => b.classList.remove('on'));
-  btn.classList.add('on');
+  if (btn) btn.classList.add('on');
+  const ci = document.getElementById('cusCurIn');
+  if (ci) ci.value = '';
   renderEnt();
+}
+function focusCusCur() { document.getElementById('cusCurIn').focus(); }
+function onCusCurFocus() {
+  document.querySelectorAll('.curbtn').forEach(b => b.classList.remove('on'));
+  document.getElementById('cusCurBtn').classList.add('on');
+  const v = document.getElementById('cusCurIn').value.trim();
+  if (v) { cfg.cur = v; saveC(); renderEnt(); }
+}
+function onCusCur(inp) {
+  const v = inp.value.trim();
+  if (!v) return;
+  cfg.cur = v; saveC(); renderEnt();
 }
 
 function setTheme(card) {
-  cfg.theme = card.dataset.t;
-  cfg.thcls = card.dataset.c;
-  saveC();
-  // Apply theme class
+  const t = card.dataset.t;
+  if (t === 'custom') { openTE('custom', 'Своя тема'); return; }
+  cfg.theme = t; cfg.thcls = card.dataset.c; saveC();
   const keep = [];
   document.body.className.split(' ').forEach(cl => { if (!cl.startsWith('t-')) keep.push(cl); });
   document.body.className = (keep.join(' ') + ' ' + cfg.thcls).trim();
-  // Apply saved custom vars for this theme
   applyTeCustom(cfg.theme);
   document.querySelectorAll('.tcrd').forEach(c => c.classList.remove('on'));
   card.classList.add('on');
-  // Update custom card preview
   updateCustomCard();
-  // Open theme editor only for custom
-  if (cfg.theme === 'custom') openTE('custom', 'Своя тема');
 }
 
 function updateCustomCard() {
@@ -1259,6 +1294,8 @@ function applyCfg() {
   document.querySelectorAll('.tcrd').forEach(c => {
     c.classList.toggle('on', c.dataset.t === cfg.theme);
   });
+  // Auto-refresh exchange rates
+  if (cfg.xcurs && cfg.xcurs.length) setTimeout(xcRefreshRates, 500);
 }
 </script>
 </body>
