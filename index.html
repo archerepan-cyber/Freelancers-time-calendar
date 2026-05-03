@@ -109,25 +109,63 @@ button { font-family: inherit; cursor: pointer; }
 .chdr .we { color: var(--accent); }
 .cgrid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; }
 @media (hover: hover) and (pointer: fine) {
-  /* Full-width desktop — matches screenshot */
-  #app { max-width: 100%; margin: 0; }
-  .scr { padding: calc(var(--st) + 20px) 40px 80px; }
-
-  /* Big date — hide on desktop, screen starts from calendar */
-  .big, .bigrow { display: none; }
-
-  /* Calendar dots — fill the grid naturally */
-  .cgrid { gap: 8px; }
-  .dot { max-width: none; max-height: none; width: 100%; }
-
-  /* Cards */
-  .ecard { padding: 14px 17px; }
-  .enum  { font-size: 26px; }
-  .tamt  { font-size: 40px; }
+  /* Wider shell */
+  #app { max-width: 1100px; margin: 0 auto; }
 
   /* Cursor hint */
   #wrap { cursor: grab; }
   #wrap:active { cursor: grabbing; }
+
+  /* Screens side-by-side panel layout */
+  .scr { padding: calc(var(--st) + 32px) 48px 96px; }
+
+  /* ── MAIN SCREEN: two-column layout ── */
+  #sMain {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto auto auto 1fr auto;
+    column-gap: 40px;
+    align-items: start;
+  }
+
+  /* Big date spans left column rows 1-2 */
+  #sMain .big    { grid-column: 1; grid-row: 1; }
+  #sMain .bigrow { grid-column: 1; grid-row: 2; margin: 10px 0 20px; }
+
+  /* Calendar (nav + header + grid) all left column */
+  #sMain .mnav  { grid-column: 1; grid-row: 3; margin-bottom: 8px; }
+  #sMain .chdr  { grid-column: 1; grid-row: 4; }
+  #sMain .cgrid { grid-column: 1; grid-row: 5; }
+
+  /* Right column: entries + totals — span all rows */
+  #sMain #entWrap { grid-column: 2; grid-row: 1 / 6; overflow-y: auto; }
+  #sMain #totWrap { grid-column: 2; grid-row: 6; }
+
+  /* Big date size */
+  .big { font-size: clamp(80px, 10vw, 120px); }
+
+  /* Calendar dots larger on desktop */
+  .cgrid { gap: 8px; }
+  .dot { max-width: 70px; max-height: 70px; justify-self: center; width: 100%; }
+
+  /* Cards */
+  .ecard { padding: 16px 20px; }
+  .enum  { font-size: 28px; }
+  .tamt  { font-size: 44px; }
+
+  /* Settings screen: two-column grid for setting sections */
+  #sSett {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 40px;
+    align-items: start;
+  }
+  #sSett .stitle { grid-column: 1 / -1; }
+  #sSett .ssec   { /* natural flow fills two columns */ }
+
+  /* Tab bar bigger on desktop */
+  #bar { height: 64px; gap: 80px; }
+  .tbtn { font-size: 30px; }
 }
 
 .dot {
@@ -1309,20 +1347,37 @@ function goTab(tab, fromSwipe = false) {
   });
 
   // ── WHEEL (Mac trackpad two-finger horizontal swipe) ──
-  let _wAcc = 0, _wTimer = null, _wLocked = false;
+  // No setTimeout — fires the moment cumulative deltaX crosses threshold.
+  // Uses a rAF loop to consume queued wheel events instantly.
+  let _wAcc = 0, _wLocked = false, _wRafId = null, _wLastDX = 0;
+  const W_THRESHOLD = 40; // px to trigger switch
+
+  function _wFlush() {
+    _wRafId = null;
+    if (_wLocked) { _wAcc = 0; return; }
+    if      (curTab_ref.v === 'main' && _wAcc >  W_THRESHOLD) { _wLocked = true; goTab('sett'); _wAcc = 0; }
+    else if (curTab_ref.v === 'sett' && _wAcc < -W_THRESHOLD) { _wLocked = true; goTab('main'); _wAcc = 0; }
+    // Decay accumulator slowly so a resting finger doesn't carry momentum
+    if (Math.abs(_wAcc) > 2) {
+      _wAcc *= 0.6;
+      _wRafId = requestAnimationFrame(_wFlush);
+    } else {
+      _wAcc = 0;
+    }
+  }
+
   wrap.addEventListener('wheel', e => {
     if (document.getElementById('modal').classList.contains('on')) return;
-    if (Math.abs(e.deltaY) > Math.abs(e.deltaX) * 1.5) return;
+    // Ignore mostly-vertical scrolls (allow some diagonal tolerance for lazy fingers)
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX) * 2.5) return;
     e.preventDefault();
-    if (_wLocked) return;
+    if (_wLocked) {
+      // Release lock once fingers stop (deltaX near zero)
+      if (Math.abs(e.deltaX) < 3) { _wLocked = false; _wAcc = 0; }
+      return;
+    }
     _wAcc += e.deltaX;
-    clearTimeout(_wTimer);
-    _wTimer = setTimeout(() => {
-      if      (curTab_ref.v === 'main' && _wAcc > 40) { _wLocked = true; goTab('sett'); }
-      else if (curTab_ref.v === 'sett' && _wAcc < -40) { _wLocked = true; goTab('main'); }
-      _wAcc = 0;
-      setTimeout(() => { _wLocked = false; }, 400);
-    }, 30);
+    if (!_wRafId) _wRafId = requestAnimationFrame(_wFlush);
   }, { passive: false });
 })();
 
