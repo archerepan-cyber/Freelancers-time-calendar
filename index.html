@@ -25,11 +25,11 @@
 }
 
 /* ── THEMES ── */
-.t-dark  { --bg:#151515; --bg2:rgba(30,30,30,.9); --bg3:rgba(255,255,255,.07); --text:#efefef; --text2:#999; --text3:#555; --sep:rgba(255,255,255,.08); --dot-bg:rgba(255,255,255,.10); --dot-past:rgba(255,255,255,.13); --dot-today:rgba(255,255,255,.15); --dot-future:rgba(255,255,255,.06); }
+.t-dark  { --bg:#151515; --bg2:rgba(30,30,30,.9); --bg3:rgba(255,255,255,.07); --text:#efefef; --text2:#999; --text3:#555; --sep:rgba(255,255,255,.08); --dot-bg:rgba(255,255,255,.10); --dot-past:rgba(255,255,255,.13); --dot-today-bg:rgba(255,255,255,.18); --dot-today:rgba(255,255,255,.6); --dot-future:rgba(255,255,255,.06); }
 .t-warm  { --bg:#EFE8CB; --bg2:rgba(255,250,230,.85); --bg3:rgba(50,30,0,.06); --text:#2a1a08; --text2:#6b4a28; --text3:#b09060; --sep:rgba(0,0,0,.08); }
 .t-ocean { --bg:#E2E4D2; --bg2:rgba(220,224,210,.9); --bg3:rgba(26,42,40,.06); --text:#1a2826; --text2:#3d5654; --text3:#7BA7AF; --sep:rgba(0,0,0,.08); }
 .t-retro { --bg:#DCC9A9; --bg2:rgba(220,200,165,.9); --bg3:rgba(40,20,10,.06); --text:#2a1508; --text2:#7a4a20; --text3:#b08050; --sep:rgba(0,0,0,.08); }
-.t-night { --bg:#080808; --bg2:rgba(18,18,18,.95); --bg3:rgba(255,255,255,.05); --text:#ddd; --text2:#777; --text3:#404040; --sep:rgba(255,255,255,.06); --dot-bg:rgba(255,255,255,.09); --dot-past:rgba(255,255,255,.12); --dot-today:rgba(255,255,255,.14); --dot-future:rgba(255,255,255,.05); }
+.t-night { --bg:#080808; --bg2:rgba(18,18,18,.95); --bg3:rgba(255,255,255,.05); --text:#ddd; --text2:#777; --text3:#404040; --sep:rgba(255,255,255,.06); --dot-bg:rgba(255,255,255,.09); --dot-past:rgba(255,255,255,.12); --dot-today-bg:rgba(255,255,255,.16); --dot-today:rgba(255,255,255,.5); --dot-future:rgba(255,255,255,.05); }
 
 /* ── RESET ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -104,7 +104,7 @@ button { font-family: inherit; cursor: pointer; }
   background: var(--dot-bg, rgba(0,0,0,.08));
 }
 .dot.past   { background: var(--dot-past, rgba(0,0,0,.1)); }
-.dot.today  { background: var(--dot-today, rgba(0,0,0,0.12)); box-shadow: 0 0 0 2px var(--accent); }
+.dot.today  { background: var(--dot-today-bg, rgba(0,0,0,0.12)); box-shadow: 0 0 0 2px var(--dot-today, var(--accent)); }
 .dot.future { background: var(--dot-future, rgba(0,0,0,.05)); }
 .dot.work   { /* color set via inline style */ }
 .dot.empty  { background: transparent; pointer-events: none; }
@@ -337,7 +337,7 @@ button { font-family: inherit; cursor: pointer; }
           <div class="tcrd" style="background:#EFE8CB;" data-t="warm" data-c="t-warm" onclick="setTheme(this)"><div class="tcn">Тепло</div></div>
           <div class="tcrd" style="background:#E2E4D2;" data-t="ocean" data-c="t-ocean" onclick="setTheme(this)"><div class="tcn">Океан</div></div>
           <div class="tcrd" style="background:#DCC9A9;" data-t="retro" data-c="t-retro" onclick="setTheme(this)"><div class="tcn">Ретро</div></div>
-          <div class="tcrd" style="background:#080808;" data-t="night" data-c="t-night" onclick="setTheme(this)"><div class="tcn" style="color:#ddd;">Тёмная</div></div>
+          <div class="tcrd custom-theme-card" id="customThemeCard" style="background:#080808;" data-t="custom" data-c="" onclick="setTheme(this)"><div style="font-size:22px;margin-bottom:4px;color:#aaa;">✕</div><div class="tcn" style="color:#aaa;">Своя тема</div></div>
         </div>
       </div>
 
@@ -446,7 +446,7 @@ button { font-family: inherit; cursor: pointer; }
     </div>
     <div class="te-sub">Нажмите на кружок чтобы изменить цвет</div>
     <label class="bgbtn" style="margin-bottom:18px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;">
-      🖼 Подобрать цвета из фото
+      Подобрать цвета из фото
       <input type="file" accept="image/*" style="display:none" onchange="teFromPhoto(event)"/>
     </label>
     <div id="tePhotoStatus" style="display:none;font-size:12px;color:var(--text3);text-align:center;margin:-10px 0 14px;"></div>
@@ -485,14 +485,12 @@ button { font-family: inherit; cursor: pointer; }
       <div class="te-swatch" id="sw-accent"><input type="color" oninput="teSet('--accent',this.value)" onchange="teSet('--accent',this.value)"/></div>
     </div>
     <div class="te-row">
-      <div><div class="te-lbl">Разделители</div><div class="te-desc">Линии и границы</div></div>
-      <div class="te-swatch" id="sw-sep"><input type="color" oninput="teSet('--sep',this.value)" onchange="teSet('--sep',this.value)"/></div>
+      <div><div class="te-lbl">Сегодня — фон</div><div class="te-desc">Заливка кружка сегодня</div></div>
+      <div class="te-swatch" id="sw-dot-today-bg"><input type="color" oninput="teSet('--dot-today-bg',this.value)" onchange="teSet('--dot-today-bg',this.value)"/></div>
     </div>
-
-    <div class="te-section">Кружки дней</div>
     <div class="te-row">
-      <div><div class="te-lbl">Обычный день</div><div class="te-desc">Текущие дни без отметки</div></div>
-      <div class="te-swatch" id="sw-dot-bg"><input type="color" oninput="teSet('--dot-bg',this.value)" onchange="teSet('--dot-bg',this.value)"/></div>
+      <div><div class="te-lbl">Сегодня — кольцо</div><div class="te-desc">Обводка кружка сегодня</div></div>
+      <div class="te-swatch" id="sw-dot-today"><input type="color" oninput="teSet('--dot-today',this.value)" onchange="teSet('--dot-today',this.value)"/></div>
     </div>
     <div class="te-row">
       <div><div class="te-lbl">Прошедший день</div><div class="te-desc">Дни до сегодня</div></div>
@@ -512,17 +510,18 @@ button { font-family: inherit; cursor: pointer; }
 
 <script>
 // ── THEME EDITOR ──
-const TE_VARS = ['--bg','--bg2','--bg3','--text','--text2','--text3','--accent','--sep','--dot-bg','--dot-past','--dot-future'];
-const TE_IDS  = {'--bg':'sw-bg','--bg2':'sw-bg2','--bg3':'sw-bg3','--text':'sw-text','--text2':'sw-text2','--text3':'sw-text3','--accent':'sw-accent','--sep':'sw-sep','--dot-bg':'sw-dot-bg','--dot-past':'sw-dot-past','--dot-future':'sw-dot-future'};
+const TE_VARS = ['--bg','--bg2','--bg3','--text','--text2','--text3','--accent','--dot-today','--dot-past','--dot-future'];
+const TE_IDS  = {'--bg':'sw-bg','--bg2':'sw-bg2','--bg3':'sw-bg3','--text':'sw-text','--text2':'sw-text2','--text3':'sw-text3','--accent':'sw-accent','--dot-today-bg':'sw-dot-today-bg','--dot-today':'sw-dot-today','--dot-past':'sw-dot-past','--dot-future':'sw-dot-future'};
 
 // Base theme presets (solid hex only — rgba stored separately for live editing)
 const TE_PRESETS = {
-  default: {'--bg':'#f5f0e8','--bg2':'#ffffff','--bg3':'#f0ece4','--text':'#1a1a1a','--text2':'#666666','--text3':'#aaaaaa','--accent':'#D0391B','--sep':'#e8e4dc','--dot-bg':'#d8d4cc','--dot-past':'#ccc8c0','--dot-future':'#e4e0d8'},
-  dark:    {'--bg':'#151515','--bg2':'#1e1e1e','--bg3':'#2a2a2a','--text':'#efefef','--text2':'#999999','--text3':'#555555','--accent':'#D0391B','--sep':'#333333','--dot-bg':'#303030','--dot-past':'#383838','--dot-future':'#222222'},
-  warm:    {'--bg':'#EFE8CB','--bg2':'#fffae6','--bg3':'#e8dfc0','--text':'#2a1a08','--text2':'#6b4a28','--text3':'#b09060','--accent':'#D0391B','--sep':'#ddd0b0','--dot-bg':'#ddd0a8','--dot-past':'#d0c498','--dot-future':'#e8ddc0'},
-  ocean:   {'--bg':'#E2E4D2','--bg2':'#dce0d2','--bg3':'#d0d4c0','--text':'#1a2826','--text2':'#3d5654','--text3':'#7BA7AF','--accent':'#D0391B','--sep':'#c8ccb8','--dot-bg':'#c8ccb8','--dot-past':'#bec2ae','--dot-future':'#d4d8c8'},
-  retro:   {'--bg':'#DCC9A9','--bg2':'#dcc8a5','--bg3':'#cdbf98','--text':'#2a1508','--text2':'#7a4a20','--text3':'#b08050','--accent':'#D0391B','--sep':'#c8b890','--dot-bg':'#c8b890','--dot-past':'#beae84','--dot-future':'#d4c49c'},
-  night:   {'--bg':'#080808','--bg2':'#121212','--bg3':'#1a1a1a','--text':'#dddddd','--text2':'#777777','--text3':'#404040','--accent':'#D0391B','--sep':'#222222','--dot-bg':'#222222','--dot-past':'#2a2a2a','--dot-future':'#161616'},
+  default: {'--bg':'#f5f0e8','--bg2':'#ffffff','--bg3':'#f0ece4','--text':'#1a1a1a','--text2':'#666666','--text3':'#aaaaaa','--accent':'#D0391B','--dot-today':'#D0391B','--dot-past':'#ccc8c0','--dot-future':'#e4e0d8'},
+  dark:    {'--bg':'#151515','--bg2':'#1e1e1e','--bg3':'#2a2a2a','--text':'#efefef','--text2':'#999999','--text3':'#555555','--accent':'#D0391B','--dot-today':'#D0391B','--dot-past':'#383838','--dot-future':'#222222'},
+  warm:    {'--bg':'#EFE8CB','--bg2':'#fffae6','--bg3':'#e8dfc0','--text':'#2a1a08','--text2':'#6b4a28','--text3':'#b09060','--accent':'#D0391B','--dot-today':'#D0391B','--dot-past':'#d0c498','--dot-future':'#e8ddc0'},
+  ocean:   {'--bg':'#E2E4D2','--bg2':'#dce0d2','--bg3':'#d0d4c0','--text':'#1a2826','--text2':'#3d5654','--text3':'#7BA7AF','--accent':'#D0391B','--dot-today':'#D0391B','--dot-past':'#bec2ae','--dot-future':'#d4d8c8'},
+  retro:   {'--bg':'#DCC9A9','--bg2':'#dcc8a5','--bg3':'#cdbf98','--text':'#2a1508','--text2':'#7a4a20','--text3':'#b08050','--accent':'#D0391B','--dot-today':'#D0391B','--dot-past':'#beae84','--dot-future':'#d4c49c'},
+  night:   {'--bg':'#080808','--bg2':'#121212','--bg3':'#1a1a1a','--text':'#dddddd','--text2':'#777777','--text3':'#404040','--accent':'#D0391B','--dot-today':'#D0391B','--dot-past':'#2a2a2a','--dot-future':'#161616'},
+  custom:  {'--bg':'#1a1a2e','--bg2':'#16213e','--bg3':'#0f3460','--text':'#e2e2e2','--text2':'#a8a8b3','--text3':'#666680','--accent':'#e94560','--dot-today':'#e94560','--dot-past':'#333355','--dot-future':'#111128'},
 };
 
 let _teBase = null; // base preset for reset
@@ -572,7 +571,6 @@ function openTE(themeKey, themeName) {
 }
 
 function closeTE() {
-  // Save current values as custom for this theme
   if (_teBase) {
     if (!_teCustom[_teBase]) _teCustom[_teBase] = {};
     TE_VARS.forEach(v => {
@@ -581,6 +579,7 @@ function closeTE() {
     cfg.teCustom = _teCustom;
     saveC();
   }
+  updateCustomCard();
   document.getElementById('teOver').classList.remove('on');
 }
 
@@ -660,6 +659,8 @@ function teFromPhoto(e) {
       '--text3':    rgb2hex(blend(mid2, mid3, 0.5)),
       '--accent':   rgb2hex(vivid(palette)),
       '--sep':      rgb2hex(blend(light1, mid3, 0.4)),
+      '--dot-today-bg': rgb2hex(blend(light1, vivid([palette[0],palette[1],palette[2],palette[3],palette[4],palette[5]]), 0.2)),
+      '--dot-today': rgb2hex(vivid([palette[0],palette[1],palette[2],palette[3],palette[4],palette[5]])),
       '--dot-bg':   rgb2hex(blend(light1, mid3, 0.5)),
       '--dot-past': rgb2hex(blend(light1, mid2, 0.55)),
       '--dot-future': rgb2hex(blend(light2, light1, 0.4)),
@@ -1100,9 +1101,28 @@ function setTheme(card) {
   applyTeCustom(cfg.theme);
   document.querySelectorAll('.tcrd').forEach(c => c.classList.remove('on'));
   card.classList.add('on');
+  // Update custom card preview
+  updateCustomCard();
   // Open theme editor
-  const names = {default:'Пергамент',dark:'Ночь',warm:'Тепло',ocean:'Океан',retro:'Ретро',night:'Тёмная'};
+  const names = {default:'Пергамент',dark:'Ночь',warm:'Тепло',ocean:'Океан',retro:'Ретро',custom:'Своя тема'};
   openTE(cfg.theme, names[cfg.theme] || 'Тема');
+}
+
+function updateCustomCard() {
+  const card = document.getElementById('customThemeCard');
+  if (!card) return;
+  const custom = (cfg.teCustom || {})['custom'];
+  if (custom && custom['--bg']) {
+    card.style.background = custom['--bg'];
+    const lum = hexLum(custom['--bg']);
+    card.querySelector('.tcn').style.color = lum > 128 ? '#333' : '#ccc';
+    card.querySelector('div').style.color   = lum > 128 ? '#333' : '#ccc';
+  }
+}
+
+function hexLum(hex) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return 0.299*r + 0.587*g + 0.114*b;
 }
 
 function applyTeCustom(themeKey) {
@@ -1160,6 +1180,8 @@ function applyCfg() {
   applyTeCustom(cfg.theme || 'default');
   // Accent
   document.documentElement.style.setProperty('--accent', cfg.acc || '#D0391B');
+  // Custom card preview
+  setTimeout(updateCustomCard, 0);
   // Overlay slider
   document.getElementById('ovSl').value = cfg.ov;
   // BG
