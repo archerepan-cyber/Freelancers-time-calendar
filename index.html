@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <title>Freelancer Calendar</title>
@@ -31,7 +31,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 #bgOverlay{position:fixed;inset:0;z-index:1;background:rgba(0,0,0,0);pointer-events:none;}
 #app{position:fixed;inset:0;z-index:2;display:flex;flex-direction:column;overflow:hidden;}
 
-#screensWrap{flex:1;display:flex;overflow:hidden;position:relative;min-height:0;}
+#screensWrap{flex:1;display:flex;overflow:hidden;position:relative;min-height:0;width:100%;}
 .screen{flex:0 0 100%;width:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:calc(var(--safe-top)+16px) 24px calc(var(--safe-bot)+70px);will-change:transform;}
 #screenMain{transform:translateX(0);}
 #screenSett{transform:translateX(100%);}
@@ -392,10 +392,17 @@ function goTab(tab,anim=true){
   if(tab===curTab) return;
   const m=document.getElementById('screenMain'),s=document.getElementById('screenSett');
   const toR=tab==='sett';
-  const tr=anim?'transform .35s cubic-bezier(.4,0,.2,1)':'none';
-  m.style.transition=tr;s.style.transition=tr;
-  m.style.transform=toR?'translateX(-100%)':'translateX(0)';
-  s.style.transform=toR?'translateX(0)':'translateX(100%)';
+  if(anim){
+    m.style.transition='transform .35s cubic-bezier(.4,0,.2,1)';
+    s.style.transition='transform .35s cubic-bezier(.4,0,.2,1)';
+  } else {
+    m.style.transition='none';
+    s.style.transition='none';
+  }
+  requestAnimationFrame(()=>{
+    m.style.transform=toR?'translateX(-100%)':'translateX(0)';
+    s.style.transform=toR?'translateX(0)':'translateX(100%)';
+  });
   curTab=tab;
   document.getElementById('tbMain').classList.toggle('active',tab==='main');
   document.getElementById('tbSett').classList.toggle('active',tab==='sett');
@@ -426,7 +433,7 @@ function goTab(tab,anim=true){
     sett.style.transition='transform .35s cubic-bezier(.4,0,.2,1)';
     if(curTab==='main'&&dx<-60) goTab('sett',false);
     else if(curTab==='sett'&&dx>60) goTab('main',false);
-    else{main.style.transform=curTab==='main'?'translateX(0)':'translateX(-100%)';sett.style.transform=curTab==='sett'?'translateX(0)':'translateX(100%)';}
+    else{requestAnimationFrame(()=>{main.style.transform=curTab==='main'?'translateX(0)':'translateX(-100%)';sett.style.transform=curTab==='sett'?'translateX(0)':'translateX(100%)';});}
     dragging=false;
   },{passive:true});
 })();
