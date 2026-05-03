@@ -161,9 +161,11 @@ button { font-family: inherit; cursor: pointer; }
 .pc:active { transform: scale(.88); }
 .cwbtn {
   width: 36px; height: 36px; border-radius: 50%; touch-action: manipulation; cursor: pointer;
-  background: conic-gradient(from 0deg,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 60%),
+    conic-gradient(hsl(0,100%,55%), hsl(30,100%,55%), hsl(60,100%,55%), hsl(90,100%,50%), hsl(120,100%,45%), hsl(150,100%,45%), hsl(180,100%,45%), hsl(210,100%,55%), hsl(240,100%,60%), hsl(270,100%,60%), hsl(300,100%,55%), hsl(330,100%,55%), hsl(360,100%,55%));
   position: relative; display: flex; align-items: center; justify-content: center;
-  border: 2.5px solid rgba(255,255,255,.5); flex-shrink: 0;
+  border: none; flex-shrink: 0; box-shadow: 0 0 0 2.5px rgba(255,255,255,0.4);
 }
 .cwbtn span { pointer-events: none; font-size: 14px; }
 .cwbtn input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
@@ -468,7 +470,7 @@ function renderCal() {
       ontouchstart="ts(event,'${dk}')"
       ontouchmove="tm()"
       ontouchend="te(event,'${dk}')"
-      ondblclick="clrD('${dk}')">
+>
       <div class="pip"></div>
     </div>`;
   }
@@ -477,6 +479,7 @@ function renderCal() {
 
 // ── TOUCH ──
 let _t0 = 0, _mv = false, _lpt = null;
+let _lastTap = 0, _lastDk = null, _dtTimer = null;
 
 function ts(e, dk) {
   _mv = false; _t0 = Date.now();
@@ -497,13 +500,25 @@ function te(e, dk) {
   clearTimeout(_lpt);
   e.currentTarget.classList.remove('press');
   if (_mv) return;
-  if (Date.now() - _t0 < 500) tapDot(dk);
-}
-function tapDot(dk) {
-  openModal(dk);
+  if (Date.now() - _t0 >= 500) return;
+  const now = Date.now();
+  if (_lastDk === dk && now - _lastTap < 350) {
+    clearTimeout(_dtTimer);
+    _lastTap = 0; _lastDk = null;
+    clrD(dk);
+    return;
+  }
+  _lastTap = now;
+  _lastDk = dk;
+  clearTimeout(_dtTimer);
+  _dtTimer = setTimeout(() => {
+    _lastTap = 0; _lastDk = null;
+    openModal(dk);
+  }, 350);
 }
 function clrD(dk) {
-  if (!days[dk]) return; // двойное нажатие на непомеченный день — ничего не делать
+  if (!days[dk]) return;
+  navigator.vibrate && navigator.vibrate([20, 30, 20]);
   delete days[dk];
   saveD(); renderCal(); renderEnt();
 }
