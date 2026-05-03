@@ -25,11 +25,11 @@
 }
 
 /* ── THEMES ── */
-.t-dark  { --bg:#151515; --bg2:rgba(30,30,30,.9); --bg3:rgba(255,255,255,.07); --text:#efefef; --text2:#999; --text3:#555; --sep:rgba(255,255,255,.08); }
+.t-dark  { --bg:#151515; --bg2:rgba(30,30,30,.9); --bg3:rgba(255,255,255,.07); --text:#efefef; --text2:#999; --text3:#555; --sep:rgba(255,255,255,.08); --dot-bg:rgba(255,255,255,.10); --dot-past:rgba(255,255,255,.13); --dot-today:rgba(255,255,255,.15); --dot-future:rgba(255,255,255,.06); }
 .t-warm  { --bg:#EFE8CB; --bg2:rgba(255,250,230,.85); --bg3:rgba(50,30,0,.06); --text:#2a1a08; --text2:#6b4a28; --text3:#b09060; --sep:rgba(0,0,0,.08); }
 .t-ocean { --bg:#E2E4D2; --bg2:rgba(220,224,210,.9); --bg3:rgba(26,42,40,.06); --text:#1a2826; --text2:#3d5654; --text3:#7BA7AF; --sep:rgba(0,0,0,.08); }
 .t-retro { --bg:#DCC9A9; --bg2:rgba(220,200,165,.9); --bg3:rgba(40,20,10,.06); --text:#2a1508; --text2:#7a4a20; --text3:#b08050; --sep:rgba(0,0,0,.08); }
-.t-night { --bg:#080808; --bg2:rgba(18,18,18,.95); --bg3:rgba(255,255,255,.05); --text:#ddd; --text2:#777; --text3:#404040; --sep:rgba(255,255,255,.06); }
+.t-night { --bg:#080808; --bg2:rgba(18,18,18,.95); --bg3:rgba(255,255,255,.05); --text:#ddd; --text2:#777; --text3:#404040; --sep:rgba(255,255,255,.06); --dot-bg:rgba(255,255,255,.09); --dot-past:rgba(255,255,255,.12); --dot-today:rgba(255,255,255,.14); --dot-future:rgba(255,255,255,.05); }
 
 /* ── RESET ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -40,7 +40,8 @@ button { font-family: inherit; cursor: pointer; }
 * { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 
 /* ── BACKGROUND ── */
-#bg { position: fixed; inset: 0; z-index: 0; background-size: cover; background-position: center; }
+#bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+#bg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; }
 #ov { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
 
 /* ── APP SHELL ── */
@@ -100,11 +101,11 @@ button { font-family: inherit; cursor: pointer; }
   position: relative; touch-action: manipulation;
   transition: transform .12s ease;
   cursor: pointer;
-  background: rgba(0,0,0,.08);
+  background: var(--dot-bg, rgba(0,0,0,.08));
 }
-.dot.past   { background: rgba(0,0,0,.1); }
-.dot.today  { background: rgba(0,0,0,0.12); box-shadow: 0 0 0 2px var(--accent); }
-.dot.future { background: rgba(0,0,0,.05); }
+.dot.past   { background: var(--dot-past, rgba(0,0,0,.1)); }
+.dot.today  { background: var(--dot-today, rgba(0,0,0,0.12)); box-shadow: 0 0 0 2px var(--accent); }
+.dot.future { background: var(--dot-future, rgba(0,0,0,.05)); }
 .dot.work   { /* color set via inline style */ }
 .dot.empty  { background: transparent; pointer-events: none; }
 .dot.press  { transform: scale(.82); }
@@ -185,7 +186,7 @@ button { font-family: inherit; cursor: pointer; }
   margin-bottom: 8px; text-align: center;
 }
 .slrow { display: flex; align-items: center; gap: 12px; }
-.slrow input[type=range] { flex: 1; accent-color: var(--accent); cursor: pointer; height: 4px; }
+.slrow input[type=range] { flex: 1; accent-color: var(--accent); cursor: pointer; height: 28px; margin: -8px 0; padding: 8px 0; touch-action: none; }
 .slrow span { font-size: 12px; color: var(--text3); }
 
 /* ── MODAL ── */
@@ -222,9 +223,11 @@ button { font-family: inherit; cursor: pointer; }
 .dc:active { transform: scale(.85); }
 .dc-cw {
   width: 30px; height: 30px; border-radius: 50%; touch-action: manipulation; cursor: pointer;
-  background: conic-gradient(from 0deg,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 60%),
+    conic-gradient(hsl(0,100%,55%), hsl(30,100%,55%), hsl(60,100%,55%), hsl(90,100%,50%), hsl(120,100%,45%), hsl(150,100%,45%), hsl(180,100%,45%), hsl(210,100%,55%), hsl(240,100%,60%), hsl(270,100%,60%), hsl(300,100%,55%), hsl(330,100%,55%), hsl(360,100%,55%));
   position: relative; display: flex; align-items: center; justify-content: center;
-  border: 2.5px solid rgba(255,255,255,.5); flex-shrink: 0;
+  border: none; flex-shrink: 0; box-shadow: 0 0 0 2.5px rgba(255,255,255,0.4);
 }
 .dc-cw span { pointer-events: none; font-size: 11px; }
 .dc-cw input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
@@ -240,7 +243,7 @@ button { font-family: inherit; cursor: pointer; }
 </head>
 <body>
 
-<div id="bg"></div>
+<div id="bg"><img id="bgImg" alt=""/></div>
 <div id="ov"></div>
 
 <div id="app">
@@ -650,23 +653,40 @@ function renderEnt() {
 }
 
 // ── TABS ──
-function goTab(tab, animate = true) {
+function goTab(tab, fromSwipe = false) {
   const ct = curTab_ref.v;
   if (tab === ct) return;
   const m = document.getElementById('sMain');
   const s = document.getElementById('sSett');
   const toR = tab === 'sett';
-  const tr = animate ? 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)' : 'none';
-  m.style.transition = tr;
-  s.style.transition = tr;
-  // Use requestAnimationFrame for reliable animation
-  requestAnimationFrame(() => {
-    m.style.transform = toR ? 'translateX(-100%)' : 'translateX(0)';
-    s.style.transform = toR ? 'translateX(0)' : 'translateX(100%)';
-  });
+  const EASE = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
   curTab_ref.v = tab;
   document.getElementById('tbM').classList.toggle('on', tab === 'main');
   document.getElementById('tbS').classList.toggle('on', tab === 'sett');
+  if (fromSwipe) {
+    // After swipe: panels are already in motion — just set final position with animation
+    m.style.transition = EASE;
+    s.style.transition = EASE;
+    m.style.transform = toR ? 'translateX(-100%)' : 'translateX(0)';
+    s.style.transform = toR ? 'translateX(0)' : 'translateX(100%)';
+  } else {
+    // Tab bar tap: snap instantly to start position then animate
+    m.style.transition = 'none';
+    s.style.transition = 'none';
+    if (toR) {
+      m.style.transform = 'translateX(0)';
+      s.style.transform = 'translateX(100%)';
+    } else {
+      m.style.transform = 'translateX(-100%)';
+      s.style.transform = 'translateX(0)';
+    }
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      m.style.transition = EASE;
+      s.style.transition = EASE;
+      m.style.transform = toR ? 'translateX(-100%)' : 'translateX(0)';
+      s.style.transform = toR ? 'translateX(0)' : 'translateX(100%)';
+    }));
+  }
 }
 
 // ── SWIPE ──
@@ -678,6 +698,7 @@ function goTab(tab, animate = true) {
 
   wrap.addEventListener('touchstart', e => {
     if (document.getElementById('modal').classList.contains('on')) return;
+    if (e.target.type === 'range') return; // не перехватываем бегунок
     sx = e.touches[0].clientX;
     sy = e.touches[0].clientY;
     axis = null; dragging = false;
@@ -710,9 +731,11 @@ function goTab(tab, animate = true) {
     const dx = e.changedTouches[0].clientX - sx;
     m.style.transition = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
     s.style.transition = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
-    if      (curTab_ref.v === 'main' && dx < -60) goTab('sett', false);
-    else if (curTab_ref.v === 'sett' && dx >  60) goTab('main', false);
+    if      (curTab_ref.v === 'main' && dx < -60) goTab('sett', true);
+    else if (curTab_ref.v === 'sett' && dx >  60) goTab('main', true);
     else {
+      m.style.transition = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
+      s.style.transition = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
       requestAnimationFrame(() => {
         m.style.transform = curTab_ref.v === 'main' ? 'translateX(0)' : 'translateX(-100%)';
         s.style.transform = curTab_ref.v === 'sett' ? 'translateX(0)' : 'translateX(100%)';
@@ -760,14 +783,22 @@ function setOv(v) {
 function loadBg(e) {
   const f = e.target.files[0]; if (!f) return;
   const r = new FileReader();
-  r.onload = ev => { cfg.bg = ev.target.result; saveC(); applyBg(); };
+  r.onload = ev => { cfg.bg = ev.target.result; cfg.bgMime = f.type; saveC(); applyBg(); };
   r.readAsDataURL(f);
   e.target.value = '';
 }
-function clearBg() { cfg.bg = ''; saveC(); applyBg(); }
+function clearBg() { cfg.bg = ''; cfg.bgMime = ''; saveC(); applyBg(); }
 function applyBg() {
-  document.getElementById('bg').style.backgroundImage = cfg.bg ? `url(${cfg.bg})` : 'none';
-  document.getElementById('ov').style.background = cfg.bg ? `rgba(0,0,0,${cfg.ov/100})` : 'rgba(0,0,0,0)';
+  const img = document.getElementById('bgImg');
+  if (cfg.bg) {
+    img.src = cfg.bg;
+    img.style.display = 'block';
+    document.getElementById('ov').style.background = `rgba(0,0,0,${cfg.ov/100})`;
+  } else {
+    img.src = '';
+    img.style.display = 'none';
+    document.getElementById('ov').style.background = 'rgba(0,0,0,0)';
+  }
 }
 
 function applyCfg() {
