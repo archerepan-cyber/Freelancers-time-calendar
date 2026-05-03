@@ -1223,6 +1223,45 @@ function goTab(tab, fromSwipe = false) {
     mouseDown = false;
     swipeEnd(e.clientX);
   });
+
+  // Trackpad two-finger swipe (Mac)
+  let _wheelAcc = 0, _wheelTimer = null;
+  wrap.addEventListener('wheel', e => {
+    if (document.getElementById('modal').classList.contains('on')) return;
+    // Only horizontal swipes; ignore if vertical dominates
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) return;
+    e.preventDefault();
+    _wheelAcc += e.deltaX;
+    clearTimeout(_wheelTimer);
+    // Live drag feel
+    const W = window.innerWidth;
+    if (curTab_ref.v === 'main') {
+      const x = Math.min(0, -_wheelAcc);
+      m.style.transition = 'none';
+      s.style.transition = 'none';
+      m.style.transform = `translateX(${x}px)`;
+      s.style.transform = `translateX(${W + x}px)`;
+    } else {
+      const x = Math.max(0, -_wheelAcc);
+      m.style.transition = 'none';
+      s.style.transition = 'none';
+      s.style.transform = `translateX(${x}px)`;
+      m.style.transform = `translateX(${x - W}px)`;
+    }
+    // Settle after gesture ends
+    _wheelTimer = setTimeout(() => {
+      const EASE = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
+      m.style.transition = EASE;
+      s.style.transition = EASE;
+      if      (curTab_ref.v === 'main' && _wheelAcc > 60)  goTab('sett', true);
+      else if (curTab_ref.v === 'sett' && _wheelAcc < -60) goTab('main', true);
+      else {
+        m.style.transform = curTab_ref.v === 'main' ? 'translateX(0)' : 'translateX(-100%)';
+        s.style.transform = curTab_ref.v === 'sett' ? 'translateX(0)' : 'translateX(100%)';
+      }
+      _wheelAcc = 0;
+    }, 80);
+  }, { passive: false });
 })();
 
 // ── SETTINGS ──
