@@ -1044,24 +1044,25 @@ function renderXcurEdit() {
   if (!el) return;
   if (!cfg.xcurs) cfg.xcurs = [];
   const canAdd = cfg.xcurs.length < 2;
+  const net = window._lastNet || 0;
   let h = '';
   cfg.xcurs.forEach((x, i) => {
-    const conv = (x.rate && window._lastNet !== undefined) ? window._lastNet * parseFloat(x.rate) : null;
+    const conv = (x.rate && x.sym) ? net * parseFloat(x.rate) : null;
     const amtStr = conv !== null
-      ? `<span style="font-size:13px;color:${conv>=0?'var(--text2)':'#c0392b'};font-weight:500;">${conv>=0?'+':''}${x.sym||''}${Math.abs(conv).toLocaleString(undefined,{maximumFractionDigits:2})}</span>`
-      : '';
-    const rateStr = x.rate
-      ? `<span style="font-size:10px;color:var(--text3);">1${cfg.cur}≈${(+x.rate).toFixed(2)}${x.sym}</span>`
-      : `<span style="font-size:10px;color:var(--text3);">загрузка…</span>`;
-    h += `<div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:6px;">
-      <button class="xcur-toggle ${x.on===false?'':'on'}" onclick="xcToggle(${i})"></button>
-      <input class="xcur-sym" placeholder="$" maxlength="5" value="${x.sym||''}" oninput="xcSym(${i},this.value)" style="width:36px;text-align:center;"/>
-      ${rateStr}
+      ? `<span style="font-size:22px;font-family:'DM Serif Display',serif;font-weight:400;color:${conv>=0?'var(--accent)':'#c0392b'};">${conv>=0?'+':''}${x.sym}${Math.abs(conv).toLocaleString(undefined,{maximumFractionDigits:0})}</span>`
+      : `<span style="font-size:13px;color:var(--text3);">загрузка…</span>`;
+    const opacity = x.on === false ? '0.35' : '1';
+    h += `<div style="display:flex;align-items:center;gap:8px;margin-top:10px;opacity:${opacity};">
+      <button class="xcur-toggle ${x.on===false?'':'on'}" onclick="xcToggle(${i})" style="flex-shrink:0;"></button>
+      <div style="background:var(--bg3);border-radius:10px;padding:4px 10px;font-size:15px;color:var(--text);min-width:44px;text-align:center;">
+        <input maxlength="4" placeholder="$" value="${x.sym||''}" oninput="xcSym(${i},this.value)"
+          style="width:40px;background:none;border:none;outline:none;font:inherit;color:inherit;text-align:center;"/>
+      </div>
       ${amtStr}
-      <button class="xcur-del" onclick="xcDel(${i})">×</button>
+      <button class="xcur-del" onclick="xcDel(${i})" style="margin-left:auto;flex-shrink:0;">×</button>
     </div>`;
   });
-  if (canAdd) h += `<div style="text-align:center;margin-top:8px;"><button class="xcur-add" onclick="xcAdd()">+ Добавить валюту</button></div>`;
+  if (canAdd) h += `<div style="text-align:center;margin-top:12px;"><button class="xcur-add" onclick="xcAdd()">+ Добавить валюту</button></div>`;
   el.innerHTML = h;
 }
 function xcAdd() {
