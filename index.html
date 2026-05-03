@@ -1285,90 +1285,44 @@ function goTab(tab, fromSwipe = false) {
     settle(e.changedTouches[0].clientX - sx);
   }, { passive: true });
 
-  // ── POINTER (mouse drag on desktop) ──
-  let pointerDown = false, pointerId = null;
-  wrap.addEventListener('pointerdown', e => {
+  // ── MOUSE CLICK-DRAG (desktop) — treated as a directional flick, triggers goTab like buttons ──
+  let _md = false, _mdX = 0, _mdY = 0, _mdAxis = null, _mdMoved = false;
+  wrap.addEventListener('mousedown', e => {
     if (_recentTouch) return;
     if (document.getElementById('modal').classList.contains('on')) return;
     if (e.button !== 0 || e.target.type === 'range') return;
-    pointerDown = true; pointerId = e.pointerId;
-    wrap.setPointerCapture(e.pointerId);
-    sx = e.clientX; sy = e.clientY;
-    lastX = sx; lastT = Date.now(); velocity = 0;
-    axis = null; dragging = false;
-    m.style.transition = 'none'; s.style.transition = 'none';
+    _md = true; _mdX = e.clientX; _mdY = e.clientY; _mdAxis = null; _mdMoved = false;
   });
-
-  wrap.addEventListener('pointermove', e => {
-    if (!pointerDown || e.pointerId !== pointerId) return;
-    const dx = e.clientX - sx, dy = e.clientY - sy;
-    if (!axis && (Math.abs(dx) > 8 || Math.abs(dy) > 8))
-      axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-    if (axis !== 'x') return;
-    dragging = true;
-    wrap.style.cursor = 'grabbing';
-    const now = Date.now(), dt = now - lastT;
-    if (dt > 0) velocity = (e.clientX - lastX) / dt;
-    lastX = e.clientX; lastT = now;
-    panelPos(dx);
+  window.addEventListener('mousemove', e => {
+    if (!_md) return;
+    const dx = e.clientX - _mdX, dy = e.clientY - _mdY;
+    if (!_mdAxis && (Math.abs(dx) > 10 || Math.abs(dy) > 10))
+      _mdAxis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+    if (_mdAxis === 'x' && Math.abs(dx) > 10) _mdMoved = true;
   });
-
-  wrap.addEventListener('pointerup', e => {
-    if (!pointerDown || e.pointerId !== pointerId) return;
-    pointerDown = false; pointerId = null;
-    wrap.style.cursor = '';
-    if (!dragging) return;
-    dragging = false;
-    settle(e.clientX - sx);
-  });
-
-  wrap.addEventListener('pointercancel', e => {
-    if (!pointerDown || e.pointerId !== pointerId) return;
-    pointerDown = false; pointerId = null; dragging = false;
-    wrap.style.cursor = '';
-    m.style.transition = EASE; s.style.transition = EASE;
-    m.style.transform = curTab_ref.v === 'main' ? 'translateX(0)' : 'translateX(-100%)';
-    s.style.transform = curTab_ref.v === 'sett' ? 'translateX(0)' : 'translateX(100%)';
+  window.addEventListener('mouseup', e => {
+    if (!_md) return;
+    _md = false;
+    if (!_mdMoved || _mdAxis !== 'x') return;
+    const dx = e.clientX - _mdX;
+    if      (curTab_ref.v === 'main' && dx < -40) goTab('sett');
+    else if (curTab_ref.v === 'sett' && dx >  40) goTab('main');
   });
 
   // ── WHEEL (Mac trackpad two-finger horizontal swipe) ──
-  let _wAcc = 0, _wTimer = null, _wLocked = false, _wActive = false;
+  let _wAcc = 0, _wTimer = null, _wLocked = false;
   wrap.addEventListener('wheel', e => {
     if (document.getElementById('modal').classList.contains('on')) return;
     if (Math.abs(e.deltaY) > Math.abs(e.deltaX) * 1.5) return;
     e.preventDefault();
     if (_wLocked) return;
-
-    const W = window.innerWidth;
-    if (!_wActive) {
-      // fresh gesture start — reset panels to no-transition
-      _wActive = true;
-      m.style.transition = 'none'; s.style.transition = 'none';
-    }
-
     _wAcc += e.deltaX;
-    if (curTab_ref.v === 'main') {
-      _wAcc = Math.max(0, Math.min(_wAcc, W));
-    } else {
-      _wAcc = Math.max(-W, Math.min(_wAcc, 0));
-    }
-
-    panelPos(curTab_ref.v === 'main' ? -_wAcc : -_wAcc);
-
     clearTimeout(_wTimer);
     _wTimer = setTimeout(() => {
-      _wActive = false;
-      const W2 = window.innerWidth;
-      const half = Math.abs(_wAcc) > W2 * 0.28;
-      m.style.transition = EASE; s.style.transition = EASE;
-      if      (curTab_ref.v === 'main' && _wAcc > 0 && half)  { _wLocked = true; goTab('sett', true); }
-      else if (curTab_ref.v === 'sett' && _wAcc < 0 && half)  { _wLocked = true; goTab('main', true); }
-      else {
-        m.style.transform = curTab_ref.v === 'main' ? 'translateX(0)' : 'translateX(-100%)';
-        s.style.transform = curTab_ref.v === 'sett' ? 'translateX(0)' : 'translateX(100%)';
-      }
+      if      (curTab_ref.v === 'main' && _wAcc > 60) { _wLocked = true; goTab('sett'); }
+      else if (curTab_ref.v === 'sett' && _wAcc < -60) { _wLocked = true; goTab('main'); }
       _wAcc = 0;
-      setTimeout(() => { _wLocked = false; }, 450);
+      setTimeout(() => { _wLocked = false; }, 500);
     }, 60);
   }, { passive: false });
 })();
