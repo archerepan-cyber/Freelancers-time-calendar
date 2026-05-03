@@ -1145,20 +1145,19 @@ function goTab(tab, fromSwipe = false) {
   const s = document.getElementById('sSett');
   let sx = 0, sy = 0, axis = null, dragging = false;
 
-  wrap.addEventListener('touchstart', e => {
+  function swipeStart(clientX, clientY) {
     if (document.getElementById('modal').classList.contains('on')) return;
-    if (e.target.type === 'range') return; // не перехватываем бегунок
-    sx = e.touches[0].clientX;
-    sy = e.touches[0].clientY;
+    sx = clientX;
+    sy = clientY;
     axis = null; dragging = false;
     m.style.transition = 'none';
     s.style.transition = 'none';
-  }, { passive: true });
+  }
 
-  wrap.addEventListener('touchmove', e => {
+  function swipeMove(clientX, clientY) {
     if (document.getElementById('modal').classList.contains('on')) return;
-    const dx = e.touches[0].clientX - sx;
-    const dy = e.touches[0].clientY - sy;
+    const dx = clientX - sx;
+    const dy = clientY - sy;
     if (!axis && (Math.abs(dx) > 10 || Math.abs(dy) > 10))
       axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
     if (axis !== 'x') return;
@@ -1173,25 +1172,57 @@ function goTab(tab, fromSwipe = false) {
       s.style.transform = `translateX(${x}px)`;
       m.style.transform = `translateX(${x - W}px)`;
     }
-  }, { passive: true });
+  }
 
-  wrap.addEventListener('touchend', e => {
+  function swipeEnd(clientX) {
     if (!dragging) return;
-    const dx = e.changedTouches[0].clientX - sx;
+    const dx = clientX - sx;
     m.style.transition = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
     s.style.transition = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
     if      (curTab_ref.v === 'main' && dx < -60) goTab('sett', true);
     else if (curTab_ref.v === 'sett' && dx >  60) goTab('main', true);
     else {
-      m.style.transition = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
-      s.style.transition = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
       requestAnimationFrame(() => {
         m.style.transform = curTab_ref.v === 'main' ? 'translateX(0)' : 'translateX(-100%)';
         s.style.transform = curTab_ref.v === 'sett' ? 'translateX(0)' : 'translateX(100%)';
       });
     }
     dragging = false;
+  }
+
+  // Touch events
+  wrap.addEventListener('touchstart', e => {
+    if (e.target.type === 'range') return;
+    swipeStart(e.touches[0].clientX, e.touches[0].clientY);
   }, { passive: true });
+
+  wrap.addEventListener('touchmove', e => {
+    swipeMove(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+
+  wrap.addEventListener('touchend', e => {
+    swipeEnd(e.changedTouches[0].clientX);
+  }, { passive: true });
+
+  // Mouse events (desktop swipe)
+  let mouseDown = false;
+  wrap.addEventListener('mousedown', e => {
+    if (e.target.type === 'range') return;
+    if (e.button !== 0) return;
+    mouseDown = true;
+    swipeStart(e.clientX, e.clientY);
+  });
+
+  window.addEventListener('mousemove', e => {
+    if (!mouseDown) return;
+    swipeMove(e.clientX, e.clientY);
+  });
+
+  window.addEventListener('mouseup', e => {
+    if (!mouseDown) return;
+    mouseDown = false;
+    swipeEnd(e.clientX);
+  });
 })();
 
 // ── SETTINGS ──
