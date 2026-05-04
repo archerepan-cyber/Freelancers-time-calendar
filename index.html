@@ -125,23 +125,6 @@ button { font-family: inherit; cursor: pointer; }
 .dot .pip { position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); width: 3px; height: 3px; border-radius: 50%; background: rgba(255,255,255,.8); display: none; }
 .dot.has .pip { display: block; }
 
-/* ── DRAG GHOST ── */
-#dragGhost {
-  position: fixed; z-index: 999; pointer-events: none;
-  border-radius: 50%; width: 44px; height: 44px;
-  opacity: 0;
-  transform: translate(-50%, -50%) scale(1.22);
-  transition: opacity .12s;
-  box-shadow: 0 6px 24px rgba(0,0,0,.28);
-  will-change: transform;
-}
-#dragGhost.on { opacity: .88; }
-.dot.drag-src { opacity: .32; transform: scale(.88); }
-.dot.drag-over {
-  box-shadow: 0 0 0 3px var(--accent);
-  transform: scale(1.12);
-}
-
 /* ── ENTRIES ── */
 .slbl { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); margin: 26px 0 10px; }
 .ecard {
@@ -310,6 +293,20 @@ button { font-family: inherit; cursor: pointer; }
 .mact { display: flex; gap: 10px; margin-top: 16px; }
 .btnc { flex: 1; padding: 14px; border-radius: 14px; background: var(--bg3); border: none; font-size: 15px; font-weight: 600; color: var(--text2); touch-action: manipulation; }
 .btno { flex: 2; padding: 14px; border-radius: 14px; background: var(--accent); border: none; font-size: 15px; font-weight: 600; color: #fff; touch-action: manipulation; }
+
+/* ── DRAG GHOST ── */
+#dragGhost {
+  position: fixed; z-index: 999; pointer-events: none;
+  border-radius: 50%; width: 46px; height: 46px;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(1.25);
+  transition: opacity .15s;
+  box-shadow: 0 8px 28px rgba(0,0,0,.32);
+  will-change: left, top;
+}
+#dragGhost.on { opacity: .90; }
+.dot.drag-src  { opacity: .28; transform: scale(.84); transition: opacity .15s, transform .15s; }
+.dot.drag-over { box-shadow: 0 0 0 3px var(--accent) !important; transform: scale(1.14); transition: box-shadow .1s, transform .1s; }
 
 /* ── CONTEXT MENU ── */
 #ctxMenu {
@@ -958,16 +955,20 @@ document.addEventListener('touchstart', e => {
 let _t0 = 0, _mv = false, _lpt = null;
 let _lastTap = 0, _lastDk = null, _dtTimer = null;
 
+// After long-press fires: did user lift finger (→ ctx menu) or drag (→ move)?
+let _longPressed = false;  // long-press threshold reached
+let _longPressE  = null;   // saved event for ctx menu positioning
+let _longPressDk = null;
+
 // Drag state
-let _dragActive = false;   // true while ghost is flying
-let _dragSrcDk  = null;    // source day key
-let _dragSrcEl  = null;    // source dot element
-let _dragOverEl = null;    // current hovered dot element
-let _dragOverDk = null;    // current hovered day key
+let _dragActive = false;
+let _dragSrcDk  = null;
+let _dragSrcEl  = null;
+let _dragOverEl = null;
+let _dragOverDk = null;
 const _ghost    = document.getElementById('dragGhost');
 
 function _dotElFromPoint(x, y) {
-  // temporarily hide ghost so it doesn't block elementFromPoint
   _ghost.style.display = 'none';
   const el = document.elementFromPoint(x, y);
   _ghost.style.display = '';
@@ -977,62 +978,50 @@ function _dotElFromPoint(x, y) {
 }
 
 function _dkOfDot(el) {
-  // Extract dk from the ontouchstart attribute
   const attr = el.getAttribute('ontouchstart') || '';
   const m = attr.match(/'([^']+)'\)/);
   return m ? m[1] : null;
 }
 
-function _startDrag(e, dk) {
-  if (!days[dk]) return; // only drag filled dots
+function _startDrag(touch, dk, srcEl) {
   _dragActive = true;
   _dragSrcDk  = dk;
-  _dragSrcEl  = e.currentTarget;
-
-  // Style ghost
+  _dragSrcEl  = srcEl;
   const dd = days[dk];
-  _ghost.style.background = dd.color || cfg.acc || '#324E44';
+  _ghost.style.background = (dd && dd.color) ? dd.color : (cfg.acc || '#324E44');
+  _ghost.style.left = touch.clientX + 'px';
+  _ghost.style.top  = touch.clientY + 'px';
   _ghost.classList.add('on');
-
-  // Mark source
-  _dragSrcEl.classList.add('drag-src');
-
-  // Position ghost at finger
-  const t = e.touches[0];
-  _ghost.style.left = t.clientX + 'px';
-  _ghost.style.top  = t.clientY + 'px';
-
-  navigator.vibrate && navigator.vibrate(32);
+  srcEl.classList.add('drag-src');
 }
 
-function _endDrag() {
+function _endDrag(dropped) {
   _ghost.classList.remove('on');
   if (_dragSrcEl)  _dragSrcEl.classList.remove('drag-src');
   if (_dragOverEl) _dragOverEl.classList.remove('drag-over');
-
-  if (_dragActive && _dragOverDk && _dragOverDk !== _dragSrcDk) {
-    // Move data
+  if (dropped && _dragOverDk && _dragOverDk !== _dragSrcDk) {
     days[_dragOverDk] = JSON.parse(JSON.stringify(days[_dragSrcDk]));
     delete days[_dragSrcDk];
     saveD(); renderCal(); renderEnt();
     navigator.vibrate && navigator.vibrate([18, 24, 18]);
   }
-
   _dragActive = false;
-  _dragSrcDk  = null;
-  _dragSrcEl  = null;
-  _dragOverEl = null;
-  _dragOverDk = null;
+  _dragSrcDk = _dragSrcEl = _dragOverEl = _dragOverDk = null;
 }
 
-// Global touch handlers for drag (non-passive so we can preventDefault)
+// Global handlers — non-passive so we can preventDefault during drag
 document.addEventListener('touchmove', e => {
+  if (_longPressed && !_dragActive && _longPressDk && days[_longPressDk]) {
+    // First move after long-press on a filled dot → start drag
+    const t = e.touches[0];
+    _startDrag(t, _longPressDk, document.querySelector('.dot.press') || _dragSrcEl || e.target.closest('.dot'));
+    _longPressed = false;
+  }
   if (!_dragActive) return;
-  e.preventDefault(); // ← blocks scroll AND swipe during drag
+  e.preventDefault(); // blocks scroll + swipe during drag
   const t = e.touches[0];
   _ghost.style.left = t.clientX + 'px';
   _ghost.style.top  = t.clientY + 'px';
-
   const target = _dotElFromPoint(t.clientX, t.clientY);
   if (target !== _dragOverEl) {
     if (_dragOverEl) _dragOverEl.classList.remove('drag-over');
@@ -1044,51 +1033,60 @@ document.addEventListener('touchmove', e => {
 }, { passive: false });
 
 document.addEventListener('touchend', e => {
-  if (!_dragActive) return;
-  _endDrag();
+  if (_dragActive) { _endDrag(true); return; }
+  if (_longPressed) {
+    // Long-press, finger lifted without dragging → show context menu
+    _longPressed = false;
+    const dk = _longPressDk;
+    _longPressDk = null;
+    const hasDayData = !!days[dk];
+    const hasCopied  = !!_copiedDay;
+    if (hasDayData || hasCopied) {
+      showCtxMenu(_longPressE || e, dk, hasDayData, hasCopied);
+    } else {
+      openModal(dk);
+    }
+  }
 }, { passive: true });
 
 document.addEventListener('touchcancel', e => {
-  if (!_dragActive) return;
-  // cancel without moving data
-  _dragOverDk = null;
-  _endDrag();
+  if (_dragActive) { _endDrag(false); }
+  _longPressed = false; _longPressDk = null;
 }, { passive: true });
 
 function ts(e, dk) {
   _mv = false; _t0 = Date.now();
+  _longPressed = false; _longPressDk = null;
   const el = e.currentTarget;
   el.classList.add('press');
   _lpt = setTimeout(() => {
     el.classList.remove('press');
-    clearTimeout(_dtTimer);
-    _lastTap = 0; _lastDk = null;
-    if (days[dk]) {
-      // start drag-and-drop
-      _startDrag(e, dk);
-    } else {
-      // empty dot long-press: show paste if available, else open modal
-      const hasCopied = !!_copiedDay;
-      if (hasCopied) {
-        showCtxMenu(e, dk, false, true);
-      } else {
-        openModal(dk);
-      }
-    }
+    navigator.vibrate && navigator.vibrate(32);
+    // Mark that long-press fired; wait to see if finger moves (drag) or lifts (menu)
+    _longPressed  = true;
+    _longPressDk  = dk;
+    _longPressE   = e;
+    // Pre-position src el reference for drag
+    _dragSrcEl    = el;
   }, 500);
 }
 
 function tm() {
-  if (_dragActive) return; // let global handler manage move during drag
-  _mv = true;
-  clearTimeout(_lpt);
-  document.querySelectorAll('.dot.press').forEach(e => e.classList.remove('press'));
+  if (_dragActive) return;
+  // If still before long-press threshold, cancel it
+  if (!_longPressed) {
+    _mv = true;
+    clearTimeout(_lpt);
+    document.querySelectorAll('.dot.press').forEach(d => d.classList.remove('press'));
+  }
+  // If long-press already fired, movement is handled by global touchmove → drag starts there
 }
 
 function te(e, dk) {
   clearTimeout(_lpt);
   e.currentTarget.classList.remove('press');
-  if (_dragActive) return; // handled by global touchend
+  if (_dragActive) return;
+  if (_longPressed) return; // handled by global touchend
   if (_mv) return;
   if (Date.now() - _t0 >= 500) return;
   if (document.getElementById('ctxMenu').classList.contains('on')) return;
@@ -1099,8 +1097,7 @@ function te(e, dk) {
     clrD(dk);
     return;
   }
-  _lastTap = now;
-  _lastDk = dk;
+  _lastTap = now; _lastDk = dk;
   clearTimeout(_dtTimer);
   _dtTimer = setTimeout(() => {
     _lastTap = 0; _lastDk = null;
@@ -1350,7 +1347,7 @@ function goTab(tab, fromSwipe = false) {
 
   wrap.addEventListener('touchstart', e => {
     if (document.getElementById('modal').classList.contains('on')) return;
-    if (_dragActive) return; // drag in progress — ignore swipe start
+    if (_dragActive || _longPressed) return; // drag in progress
     if (e.target.type === 'range') return;
     sx = e.touches[0].clientX;
     sy = e.touches[0].clientY;
@@ -1361,7 +1358,7 @@ function goTab(tab, fromSwipe = false) {
 
   wrap.addEventListener('touchmove', e => {
     if (document.getElementById('modal').classList.contains('on')) return;
-    if (_dragActive) return; // drag in progress — don't swipe
+    if (_dragActive || _longPressed) return; // drag in progress — block swipe
     const dx = e.touches[0].clientX - sx;
     const dy = e.touches[0].clientY - sy;
     if (!axis && (Math.abs(dx) > 10 || Math.abs(dy) > 10))
