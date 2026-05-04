@@ -847,9 +847,23 @@ window.days = days; window.cfg = cfg;
 function load() {
   try { days = JSON.parse(localStorage.getItem(SK) || '{}'); } catch { days = {}; }
   try { Object.assign(cfg, JSON.parse(localStorage.getItem(SS) || '{}')); } catch {}
+  // Восстанавливаем фото из отдельного ключа
+  try {
+    const bgData = JSON.parse(localStorage.getItem('ftc_bg') || 'null');
+    if (bgData && bgData.bg) { cfg.bg = bgData.bg; cfg.bgMime = bgData.bgMime || ''; }
+  } catch {}
 }
 function saveD() { localStorage.setItem(SK, JSON.stringify(days)); window.days = days; }
-function saveC() { localStorage.setItem(SS, JSON.stringify(cfg)); window.cfg = cfg; }
+function saveC() {
+  // Храним фото отдельно — base64 может быть несколько MB и вызывать QuotaExceededError
+  const { bg, bgMime, ...cfgLight } = cfg;
+  try { localStorage.setItem(SS, JSON.stringify(cfgLight)); } catch(e) {}
+  try {
+    if (bg) localStorage.setItem('ftc_bg', JSON.stringify({ bg, bgMime: bgMime || '' }));
+    else localStorage.removeItem('ftc_bg');
+  } catch(e) {}
+  window.cfg = cfg;
+}
 window.saveD = saveD; window.saveC = saveC;
 function dkey(y, m, d) { return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
 
