@@ -24,9 +24,6 @@
   --sb:     env(safe-area-inset-bottom);
 }
 
-/* ── LAYER 2 TINT ── */
-#sMain2 { --accent: #2563EB; }
-
 /* ── THEMES ── */
 .t-dark  { --bg:#151515; --bg2:rgba(30,30,30,.9); --bg3:rgba(255,255,255,.07); --text:#efefef; --text2:#999; --text3:#555; --sep:rgba(255,255,255,.08); --dot-bg:rgba(255,255,255,.10); --dot-past:rgba(255,255,255,.13); --dot-today-bg:rgba(255,255,255,.18); --dot-today:rgba(255,255,255,.6); --dot-future:rgba(255,255,255,.06); }
 .t-warm  { --bg:#EFE8CB; --bg2:rgba(255,250,230,.85); --bg3:rgba(50,30,0,.06); --text:#2a1a08; --text2:#6b4a28; --text3:#b09060; --sep:rgba(0,0,0,.08); }
@@ -66,7 +63,6 @@ button { font-family: inherit; cursor: pointer; }
 }
 #sMain { transform: translateX(0); }
 #sSett { transform: translateX(100%); }
-#sMain2 { transform: translateX(-100%); }
 
 /* ── EXTRA CURRENCIES ── */
 .xcur-wrap { margin-top: 10px; }
@@ -124,22 +120,21 @@ button { font-family: inherit; cursor: pointer; }
   .scr { padding: calc(var(--st) + 32px) 48px 96px; }
 
   /* ── MAIN SCREEN: two-column layout ── */
-  #sMain, #sMain2 {
+  #sMain {
     display: grid;
     grid-template-columns: minmax(0,1fr) minmax(0,1fr);
     column-gap: 40px;
     align-items: start;
   }
   /* All left-column items */
-  #sMain .big, #sMain2 .big,
-  #sMain .bigrow, #sMain2 .bigrow,
-  #sMain .mnav, #sMain2 .mnav,
-  #sMain .chdr, #sMain2 .chdr,
-  #sMain .cgrid, #sMain2 .cgrid   { grid-column: 1; }
-  /* Right column */
-  #sMain #rightCol, #sMain2 #rightCol2 { grid-column: 2; grid-row: 1 / 6; align-self: start; display: flex; flex-direction: column; }
-  #sMain #entWrap, #sMain2 #entWrap2 { flex: 0 0 auto; }
-  #sMain #totWrap, #sMain2 #totWrap2 { flex: 0 0 auto; }
+  #sMain .big,
+  #sMain .bigrow,
+  #sMain .mnav,
+  #sMain .chdr,
+  #sMain .cgrid   { grid-column: 1; }
+  /* Right column items stacked naturally */
+  #sMain #entWrap { grid-column: 2; grid-row: 1 / 8; }
+  #sMain #totWrap { grid-column: 2; grid-row: 8; }
 
   /* Calendar dots larger on desktop */
   .cgrid { gap: 8px; }
@@ -357,6 +352,80 @@ button { font-family: inherit; cursor: pointer; }
 .mact { display: flex; gap: 10px; margin-top: 16px; }
 .btnc { flex: 1; padding: 14px; border-radius: 14px; background: var(--bg3); border: none; font-size: 15px; font-weight: 600; color: var(--text2); touch-action: manipulation; }
 .btno { flex: 2; padding: 14px; border-radius: 14px; background: var(--accent); border: none; font-size: 15px; font-weight: 600; color: #fff; touch-action: manipulation; }
+
+/* ── LAYER 2 ── */
+#layer2 {
+  position: fixed; inset: 0; z-index: 10;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  transform: translateY(100%);
+  transition: transform .42s cubic-bezier(.25,0.46,0.45,0.94);
+  -webkit-backface-visibility: hidden;
+}
+#layer2.open { transform: translateY(0); }
+#layer2.closing { transform: translateY(100%); }
+
+#l2header {
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: calc(var(--st) + 16px) 22px 8px;
+  background: var(--bg2);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-bottom: .5px solid var(--sep);
+}
+#l2title { font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text2); }
+#l2close {
+  width: 34px; height: 34px; border-radius: 50%; border: none;
+  background: var(--bg3); color: var(--text2); font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; touch-action: manipulation; flex-shrink: 0;
+}
+#l2body {
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 20px 22px 40px;
+}
+
+/* Layer2 calendar reuses main styles — just wrap */
+#l2body .cgrid { margin-top: 0; }
+
+/* Маркер второго слоя на кружке-дне: цветная точка в северо-восточном углу */
+.dot .l2pip {
+  position: absolute; top: 4px; right: 4px;
+  width: 8px; height: 8px; border-radius: 50%;
+  border: 1.5px solid var(--bg);
+  display: none; z-index: 1;
+}
+.dot.l2has .l2pip { display: block; }
+
+/* Кружок «2» в правом верхнем углу экрана */
+#l2badge {
+  position: fixed; top: calc(var(--st) + 14px); right: 18px; z-index: 8;
+  display: flex; align-items: center; gap: 6px;
+  cursor: pointer; touch-action: manipulation;
+  opacity: 1; transition: opacity .25s;
+  pointer-events: auto;
+}
+#l2badge.hidden { opacity: 0; pointer-events: none; }
+#l2badge .l2dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--accent); color: #fff;
+  font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,.18);
+}
+#l2badge .l2num {
+  font-size: 13px; font-weight: 700;
+  color: var(--accent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #l2body { padding: calc(var(--st) + 20px) 48px 96px; }
+  #l2header { padding: calc(var(--st) + 16px) 48px 8px; }
+  #l2badge { right: calc(50% - 550px + 18px); }
+  #l2badge { right: 18px; } /* fallback simple */
+}
+
 </style>
 </head>
 <body>
@@ -366,29 +435,6 @@ button { font-family: inherit; cursor: pointer; }
 
 <div id="app">
   <div id="wrap">
-
-    <!-- MAIN 2 (Second Layer) -->
-    <div class="scr" id="sMain2">
-      <div class="big" id="bNum2">3</div>
-      <div class="bigrow">
-        <div><span class="bigmon" id="bMon2">МАЙ</span><span class="bigyr" id="bYr2"> 2026</span></div>
-        <div class="bigdow" id="bDow2">Воскресенье</div>
-      </div>
-
-      <div class="mnav">
-        <button class="marr" onclick="chM2(-1)">‹</button>
-        <div class="mlbl" id="mLbl2">Май 2026</div>
-        <button class="marr" onclick="chM2(1)">›</button>
-      </div>
-
-      <div class="chdr">
-        <span>П</span><span>В</span><span>С</span><span>Ч</span><span>П</span>
-        <span class="we">С</span><span class="we">В</span>
-      </div>
-      <div class="cgrid" id="grid2"></div>
-
-      <div id="rightCol2"><div id="entWrap2"></div><div id="totWrap2"></div></div>
-    </div>
 
     <!-- MAIN -->
     <div class="scr" id="sMain">
@@ -410,7 +456,8 @@ button { font-family: inherit; cursor: pointer; }
       </div>
       <div class="cgrid" id="grid"></div>
 
-      <div id="rightCol"><div id="entWrap"></div><div id="totWrap"></div></div>
+      <div id="entWrap"></div>
+      <div id="totWrap"></div>
     </div>
 
     <!-- SETTINGS -->
@@ -503,60 +550,8 @@ button { font-family: inherit; cursor: pointer; }
   </div><!-- /wrap -->
 
   <div id="bar">
-    <button class="tbtn" id="tbM2" onclick="goTab('main2')">📆</button>
     <button class="tbtn on" id="tbM" onclick="goTab('main')">📅</button>
     <button class="tbtn" id="tbS" onclick="goTab('sett')">⚙️</button>
-  </div>
-</div>
-
-<!-- DAY MODAL 2 -->
-<div class="mover" id="modal2" onclick="if(event.target===this)closeModal2()">
-  <div class="msheet">
-    <div class="mdrg"></div>
-    <div class="mtit" id="mTit2">3 мая</div>
-
-    <div class="fg">
-      <label class="fl">Цвет дня</label>
-      <div class="dcs" id="dcs2">
-        <div class="dc on" style="background:#2563EB;" data-c="#2563EB" onclick="pickC2('#2563EB',this)"></div>
-        <div class="dc" style="background:#7C3AED;" data-c="#7C3AED" onclick="pickC2('#7C3AED',this)"></div>
-        <div class="dc" style="background:#059669;" data-c="#059669" onclick="pickC2('#059669',this)"></div>
-        <div class="dc" style="background:#D97706;" data-c="#D97706" onclick="pickC2('#D97706',this)"></div>
-        <div class="dc" style="background:#DC2626;" data-c="#DC2626" onclick="pickC2('#DC2626',this)"></div>
-        <div class="dc" style="background:#0891B2;" data-c="#0891B2" onclick="pickC2('#0891B2',this)"></div>
-        <div class="dc" style="background:#4F46E5;" data-c="#4F46E5" onclick="pickC2('#4F46E5',this)"></div>
-        <div class="dc-cw" title="Свой цвет">
-          <span style="font-size:18px;font-weight:300;color:#fff;line-height:1;">+</span>
-          <input type="color" value="#2563EB" oninput="pickCHex2(this.value)"/>
-        </div>
-      </div>
-    </div>
-
-    <div class="fg">
-      <label class="fl">Описание</label>
-      <input class="fi" id="fLbl2" placeholder="Название / комментарий"/>
-    </div>
-
-    <div class="frow">
-      <div class="fg"><label class="fl">Начало</label><input class="fi" id="fS2" type="time"/></div>
-      <div class="fg"><label class="fl">Конец</label><input class="fi" id="fE2" type="time"/></div>
-    </div>
-
-    <div class="fg">
-      <label class="fl">Заработано</label>
-      <input class="fi" id="fEarn2" type="number" placeholder="Заработано" inputmode="decimal"/>
-    </div>
-
-    <div class="fg">
-      <label class="fl">Затраты</label>
-      <div class="xlist" id="xList2"></div>
-      <button class="addx" onclick="addX2()">+ Добавить затрату</button>
-    </div>
-
-    <div class="mact">
-      <button class="btnc" onclick="closeModal2()">Отмена</button>
-      <button class="btno" onclick="saveDay2()">Сохранить</button>
-    </div>
   </div>
 </div>
 
@@ -791,15 +786,15 @@ function teFromPhoto(e) {
   const status = document.getElementById('tePhotoStatus');
   status.style.display = 'block';
   status.textContent = '⏳ Анализирую фото...';
-  const reader = new FileReader();
-  reader.onload = ev => {
-    const img = new Image();
-    img.onload = () => {
+  const img = new Image();
+  const url = URL.createObjectURL(f);
+  img.onload = () => {
     // Сэмплируем цвета через canvas
     const cv = document.createElement('canvas');
     const S = 80; cv.width = S; cv.height = S;
     const ctx = cv.getContext('2d');
     ctx.drawImage(img, 0, 0, S, S);
+    URL.revokeObjectURL(url);
     const data = ctx.getImageData(0, 0, S, S).data;
     // Собираем все пиксели
     const pixels = [];
@@ -859,22 +854,9 @@ function teFromPhoto(e) {
     });
     status.textContent = '✅ Цвета подобраны! Можно скорректировать вручную.';
     setTimeout(() => { status.style.display = 'none'; }, 3000);
-    };
-    img.onerror = () => {
-      // HEIC fallback: try canvas via createImageBitmap
-      if (typeof createImageBitmap !== 'undefined') {
-        createImageBitmap(f).then(bmp => {
-          const cv2 = document.createElement('canvas');
-          cv2.width = bmp.width; cv2.height = bmp.height;
-          cv2.getContext('2d').drawImage(bmp, 0, 0);
-          img.src = cv2.toDataURL('image/jpeg', 0.85);
-        }).catch(() => { status.textContent = '❌ Не удалось загрузить фото'; });
-      } else { status.textContent = '❌ Не удалось загрузить фото'; }
-    };
-    img.src = ev.target.result;
   };
-  reader.onerror = () => { status.textContent = '❌ Не удалось прочитать файл'; };
-  reader.readAsDataURL(f);
+  img.onerror = () => { status.textContent = '❌ Не удалось загрузить фото'; };
+  img.src = url;
 }
 
 function kMeans(pixels, k) {
@@ -931,281 +913,7 @@ function toHex(val) {
   return '#888888';
 }
 
-// ── LAYER 2 — SECOND CALENDAR ──
-const SK2 = 'ftc_d2', SS2 = 'ftc_s2';
-let days2 = {}, cfg2 = { cur:'₽', acc:'#2563EB' };
-let vy2 = now.getFullYear(), vm2 = now.getMonth();
-let eDk2 = null, dc2 = '#2563EB';
-
-function load2() {
-  try { days2 = JSON.parse(localStorage.getItem(SK2) || '{}'); } catch { days2 = {}; }
-  try { Object.assign(cfg2, JSON.parse(localStorage.getItem(SS2) || '{}')); } catch {}
-}
-function saveD2() { localStorage.setItem(SK2, JSON.stringify(days2)); }
-function saveC2() { localStorage.setItem(SS2, JSON.stringify(cfg2)); }
-
-function renderBig2() {
-  const t = new Date();
-  document.getElementById('bNum2').textContent = t.getDate();
-  document.getElementById('bMon2').textContent = MONU[t.getMonth()];
-  document.getElementById('bYr2').textContent  = ' ' + t.getFullYear();
-  document.getElementById('bDow2').textContent = DOW[t.getDay()];
-}
-
-function chM2(d) {
-  vm2 += d;
-  if (vm2 < 0) { vm2 = 11; vy2--; }
-  if (vm2 > 11) { vm2 = 0; vy2++; }
-  renderCal2();
-  renderEnt2();
-}
-
-function renderCal2() {
-  document.getElementById('mLbl2').textContent = MON[vm2] + ' ' + vy2;
-  const t = new Date();
-  const tdk = dkey(t.getFullYear(), t.getMonth(), t.getDate());
-  const fd = (new Date(vy2, vm2, 1).getDay() + 6) % 7;
-  const dim = new Date(vy2, vm2+1, 0).getDate();
-  let h = '';
-  for (let i = 0; i < fd; i++) h += '<div class="dot empty"></div>';
-  for (let d = 1; d <= dim; d++) {
-    const dk = dkey(vy2, vm2, d);
-    const dd = days2[dk];
-    const dt = new Date(vy2, vm2, d);
-    const isT = dk === tdk;
-    const isP = dt < new Date(t.getFullYear(), t.getMonth(), t.getDate());
-    let cls = 'dot';
-    let sty = '';
-    if (dd && dd.color) {
-      sty = `background:${dd.color};`;
-      cls += ' work';
-      if (isT) cls += ' today-w';
-    } else if (isT) { cls += ' today'; }
-    else if (isP)   { cls += ' past'; }
-    else            { cls += ' future'; }
-    if (dd) cls += ' has';
-    h += `<div class="${cls}" style="${sty}"
-      ontouchstart="ts2(event,'${dk}')"
-      ontouchmove="tm2()"
-      ontouchend="te2(event,'${dk}')"
-      onmousedown="ms2(event,'${dk}')"
-      onmouseup="mu2(event,'${dk}')"
->
-      <div class="pip"></div>
-    </div>`;
-  }
-  document.getElementById('grid2').innerHTML = h;
-}
-
-let _t02 = 0, _mv2 = false, _lpt2 = null;
-let _lastTap2 = 0, _lastDk2 = null, _dtTimer2 = null;
-
-function ts2(e, dk) {
-  _mv2 = false; _t02 = Date.now();
-  const el = e.currentTarget;
-  el.classList.add('press');
-  _lpt2 = setTimeout(() => {
-    el.classList.remove('press');
-    navigator.vibrate && navigator.vibrate(28);
-    openModal2(dk);
-  }, 500);
-}
-function tm2() {
-  _mv2 = true;
-  clearTimeout(_lpt2);
-  document.querySelectorAll('#sMain2 .dot.press').forEach(e => e.classList.remove('press'));
-}
-function te2(e, dk) {
-  clearTimeout(_lpt2);
-  e.currentTarget.classList.remove('press');
-  if (_mv2) return;
-  if (Date.now() - _t02 >= 500) return;
-  const now2 = Date.now();
-  if (_lastDk2 === dk && now2 - _lastTap2 < 350) {
-    clearTimeout(_dtTimer2);
-    _lastTap2 = 0; _lastDk2 = null;
-    clrD2(dk);
-    return;
-  }
-  _lastTap2 = now2; _lastDk2 = dk;
-  clearTimeout(_dtTimer2);
-  _dtTimer2 = setTimeout(() => {
-    _lastTap2 = 0; _lastDk2 = null;
-    openModal2(dk);
-  }, 350);
-}
-function clrD2(dk) {
-  if (!days2[dk]) return;
-  navigator.vibrate && navigator.vibrate([20, 30, 20]);
-  delete days2[dk];
-  saveD2(); renderCal2(); renderEnt2();
-}
-
-let _ms02 = 0, _msLpt2 = null;
-let _mLastTap2 = 0, _mLastDk2 = null, _mDtTimer2 = null;
-
-function ms2(e, dk) {
-  if (_recentTouch) return;
-  if (e.button !== 0) return;
-  _ms02 = Date.now();
-  const el = e.currentTarget;
-  el.classList.add('press');
-  _msLpt2 = setTimeout(() => {
-    el.classList.remove('press');
-    openModal2(dk);
-  }, 500);
-}
-function mu2(e, dk) {
-  if (_recentTouch) return;
-  clearTimeout(_msLpt2);
-  e.currentTarget.classList.remove('press');
-  if (Date.now() - _ms02 >= 500) return;
-  const now2 = Date.now();
-  if (_mLastDk2 === dk && now2 - _mLastTap2 < 350) {
-    clearTimeout(_mDtTimer2);
-    _mLastTap2 = 0; _mLastDk2 = null;
-    clrD2(dk);
-    return;
-  }
-  _mLastTap2 = now2; _mLastDk2 = dk;
-  clearTimeout(_mDtTimer2);
-  _mDtTimer2 = setTimeout(() => {
-    _mLastTap2 = 0; _mLastDk2 = null;
-    openModal2(dk);
-  }, 350);
-}
-
-function openModal2(dk) {
-  eDk2 = dk;
-  const [y, m, d] = dk.split('-').map(Number);
-  document.getElementById('mTit2').textContent = `${d} ${MONG[m-1]}`;
-  const dd = days2[dk] || {};
-  dc2 = dd.color || cfg2.acc || '#2563EB';
-  document.querySelectorAll('#dcs2 .dc').forEach(el => el.classList.toggle('on', el.dataset.c === dc2));
-  document.getElementById('fLbl2').value   = dd.label || '';
-  document.getElementById('fS2').value     = dd.timeStart || '';
-  document.getElementById('fE2').value     = dd.timeEnd || '';
-  document.getElementById('fEarn2').value  = dd.earned || '';
-  document.getElementById('xList2').innerHTML = '';
-  (dd.expenses || []).forEach(x => addX2(x.amount, x.comment));
-  document.getElementById('modal2').classList.add('on');
-}
-function closeModal2() {
-  document.getElementById('modal2').classList.remove('on');
-  eDk2 = null;
-}
-function pickC2(c, el) {
-  dc2 = c;
-  document.querySelectorAll('#dcs2 .dc').forEach(d => d.classList.remove('on'));
-  if (el) el.classList.add('on');
-}
-function pickCHex2(c) {
-  dc2 = c;
-  document.querySelectorAll('#dcs2 .dc').forEach(d => d.classList.remove('on'));
-}
-function addX2(amount = '', comment = '') {
-  const div = document.createElement('div');
-  div.className = 'xrow2';
-  div.innerHTML = `
-    <input class="fi" type="number" placeholder="Сумма" value="${amount}" style="max-width:110px;" inputmode="decimal"/>
-    <input class="fi" placeholder="На такси, еду..." value="${comment}"/>
-    <button class="xdel" onclick="this.parentElement.remove()">✕</button>`;
-  document.getElementById('xList2').appendChild(div);
-}
-function saveDay2() {
-  if (!eDk2) return;
-  const xs = [];
-  document.querySelectorAll('#xList2 .xrow2').forEach(r => {
-    const ins = r.querySelectorAll('input');
-    const a = parseFloat(ins[0].value) || 0;
-    const c = ins[1].value.trim();
-    if (a > 0 || c) xs.push({ amount: a, comment: c });
-  });
-  days2[eDk2] = {
-    color:     dc2,
-    label:     document.getElementById('fLbl2').value.trim(),
-    timeStart: document.getElementById('fS2').value,
-    timeEnd:   document.getElementById('fE2').value,
-    earned:    parseFloat(document.getElementById('fEarn2').value) || 0,
-    expenses:  xs
-  };
-  saveD2(); closeModal2(); renderCal2(); renderEnt2();
-}
-
-let _lastNet2 = 0;
-
-function renderEnt2() {
-  const items = [];
-  for (let d = 1; d <= 31; d++) {
-    const dk = dkey(vy2, vm2, d);
-    const dt = new Date(vy2, vm2, d);
-    if (dt.getMonth() !== vm2) break;
-    if (days2[dk]) items.push({ dk, d, dd: days2[dk] });
-  }
-  const ew = document.getElementById('entWrap2');
-  const tw = document.getElementById('totWrap2');
-  if (!items.length) { ew.innerHTML = ''; tw.innerHTML = ''; return; }
-
-  const cur = cfg2.cur || cfg.cur;
-  let html = `<div class="slbl">${MON[vm2]} ${vy2}</div>`;
-  let te2sum = 0; const ax = [];
-
-  items.forEach((it, i) => {
-    const dd = it.dd;
-    te2sum += dd.earned || 0;
-    (dd.expenses || []).forEach(x => ax.push({ ...x, day: it.d, lbl: dd.label }));
-    const ts  = dd.timeStart && dd.timeEnd ? `${dd.timeStart}–${dd.timeEnd}` : '';
-    const es  = dd.earned ? `+${cur}${dd.earned.toLocaleString()}` : '';
-    const xt  = (dd.expenses || []).reduce((s, x) => s + (x.amount || 0), 0);
-    const xs  = xt ? `−${cur}${xt.toLocaleString()}` : '';
-    html += `<div class="ecard" onclick="openModal2('${it.dk}')">
-      <div class="etop">
-        <div class="enum">${i+1}</div>
-        <div class="einfo">
-          <div class="edate">${it.d} ${MONG[vm2]}</div>
-          ${dd.label ? `<div class="ename">${dd.label}</div>` : ''}
-        </div>
-        <div class="edot" style="background:${dd.color || cfg2.acc || '#2563EB'};"></div>
-      </div>
-      <div class="enums">
-        ${ts ? `<span style="color:var(--text3);">🕐 ${ts}</span>` : ''}
-        ${es ? `<span style="color:var(--accent);font-weight:600;">${es}</span>` : ''}
-        ${xs ? `<span style="color:var(--text2);">${xs}</span>` : ''}
-      </div>
-    </div>`;
-  });
-  ew.innerHTML = html;
-
-  const tx = ax.reduce((s, x) => s + (x.amount || 0), 0);
-  const net2 = te2sum - tx; _lastNet2 = net2;
-  let th = '';
-  const grouped = {};
-  ax.forEach(x => {
-    const key = (x.comment || 'Затрата').trim();
-    if (grouped[key]) grouped[key] += (x.amount || 0);
-    else grouped[key] = (x.amount || 0);
-  });
-  Object.entries(grouped).forEach(([name, total]) => {
-    th += `<div class="xrow">
-      <span>${name}</span>
-      <span style="color:var(--accent);">−${cur}${total.toLocaleString()}</span>
-    </div>`;
-  });
-  th += `<div class="trow" style="align-items:flex-start;">
-    <div class="tlbl" style="padding-top:10px;">Итого</div>
-    <div style="text-align:right;">
-      <div class="tamt" style="color:${net2 >= 0 ? 'var(--accent)' : '#c0392b'};">${net2 >= 0 ? '+' : ''}${cur}${Math.abs(net2).toLocaleString()}</div>
-    </div>
-  </div>`;
-  tw.innerHTML = `<div class="tcard">${th}</div>`;
-}
-
-// Boot layer 2
-load2();
-renderBig2();
-renderCal2();
-renderEnt2();
-setInterval(renderBig2, 30000);
+// ── STORAGE ──
 const SK = 'ftc_d1', SS = 'ftc_s1';
 let days = {}, cfg = { cur:'₽', theme:'default', thcls:'', acc:'#D0391B', ov:45, bg:'', xcurs:[] };
 window.days = days; window.cfg = cfg;
@@ -1213,9 +921,23 @@ window.days = days; window.cfg = cfg;
 function load() {
   try { days = JSON.parse(localStorage.getItem(SK) || '{}'); } catch { days = {}; }
   try { Object.assign(cfg, JSON.parse(localStorage.getItem(SS) || '{}')); } catch {}
+  // Восстанавливаем фото из отдельного ключа
+  try {
+    const bgData = JSON.parse(localStorage.getItem('ftc_bg') || 'null');
+    if (bgData && bgData.bg) { cfg.bg = bgData.bg; cfg.bgMime = bgData.bgMime || ''; }
+  } catch {}
 }
 function saveD() { localStorage.setItem(SK, JSON.stringify(days)); window.days = days; }
-function saveC() { localStorage.setItem(SS, JSON.stringify(cfg)); window.cfg = cfg; }
+function saveC() {
+  // Храним фото отдельно — base64 может быть несколько MB и вызывать QuotaExceededError
+  const { bg, bgMime, ...cfgLight } = cfg;
+  try { localStorage.setItem(SS, JSON.stringify(cfgLight)); } catch(e) {}
+  try {
+    if (bg) localStorage.setItem('ftc_bg', JSON.stringify({ bg, bgMime: bgMime || '' }));
+    else localStorage.removeItem('ftc_bg');
+  } catch(e) {}
+  window.cfg = cfg;
+}
 window.saveD = saveD; window.saveC = saveC;
 function dkey(y, m, d) { return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
 
@@ -1574,45 +1296,35 @@ function xcSym(i,val) { cfg.xcurs[i].sym=val; cfg.xcurs[i].rate=''; saveC(); ren
 function goTab(tab, fromSwipe = false) {
   const ct = curTab_ref.v;
   if (tab === ct) return;
-  const m  = document.getElementById('sMain');
-  const s  = document.getElementById('sSett');
-  const m2 = document.getElementById('sMain2');
+  const m = document.getElementById('sMain');
+  const s = document.getElementById('sSett');
+  const toR = tab === 'sett';
   const EASE = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
   curTab_ref.v = tab;
-  document.getElementById('tbM').classList.toggle('on',  tab === 'main');
-  document.getElementById('tbS').classList.toggle('on',  tab === 'sett');
-  document.getElementById('tbM2').classList.toggle('on', tab === 'main2');
-
-  // Position map: main2 is left(-100%), main is center(0), sett is right(+100%)
-  const pos = { main2: -1, main: 0, sett: 1 };
-  const W = window.innerWidth;
-
-  function applyPositions(instant) {
-    [m2, m, s].forEach((el, idx) => {
-      const tabKey = ['main2','main','sett'][idx];
-      const x = (pos[tabKey] - pos[tab]) * 100;
-      if (instant) {
-        el.style.transition = 'none';
-        el.style.transform = `translateX(${x}%)`;
-      } else {
-        el.style.transition = EASE;
-        el.style.transform = `translateX(${x}%)`;
-      }
-    });
-  }
-
+  document.getElementById('tbM').classList.toggle('on', tab === 'main');
+  document.getElementById('tbS').classList.toggle('on', tab === 'sett');
   if (fromSwipe) {
-    applyPositions(false);
+    // After swipe: panels are already in motion — just set final position with animation
+    m.style.transition = EASE;
+    s.style.transition = EASE;
+    m.style.transform = toR ? 'translateX(-100%)' : 'translateX(0)';
+    s.style.transform = toR ? 'translateX(0)' : 'translateX(100%)';
   } else {
-    // Snap to start then animate
-    [m2, m, s].forEach((el, idx) => {
-      const tabKey = ['main2','main','sett'][idx];
-      const fromX = (pos[tabKey] - pos[ct]) * 100;
-      el.style.transition = 'none';
-      el.style.transform = `translateX(${fromX}%)`;
-    });
+    // Tab bar tap: snap instantly to start position then animate
+    m.style.transition = 'none';
+    s.style.transition = 'none';
+    if (toR) {
+      m.style.transform = 'translateX(0)';
+      s.style.transform = 'translateX(100%)';
+    } else {
+      m.style.transform = 'translateX(-100%)';
+      s.style.transform = 'translateX(0)';
+    }
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      applyPositions(false);
+      m.style.transition = EASE;
+      s.style.transition = EASE;
+      m.style.transform = toR ? 'translateX(-100%)' : 'translateX(0)';
+      s.style.transform = toR ? 'translateX(0)' : 'translateX(100%)';
     }));
   }
 }
@@ -1620,72 +1332,67 @@ function goTab(tab, fromSwipe = false) {
 // ── SWIPE ──
 (function () {
   const wrap = document.getElementById('wrap');
-  const m  = document.getElementById('sMain');
-  const s  = document.getElementById('sSett');
-  const m2 = document.getElementById('sMain2');
+  const m = document.getElementById('sMain');
+  const s = document.getElementById('sSett');
   const EASE = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
   const EASE_FAST = 'transform .28s cubic-bezier(.25,0.46,0.45,0.94)';
 
-  const tabs = ['main2','main','sett'];
-  const panels = [m2, m, s];
-
-  function currentIdx() { return tabs.indexOf(curTab_ref.v); }
-
+  // ── Shared drag state ──
   let sx = 0, sy = 0, axis = null, dragging = false;
-  let lastX = 0, lastT = 0, velocity = 0;
+  let lastX = 0, lastT = 0, velocity = 0; // px/ms
 
   function panelPos(dx) {
     const W = window.innerWidth;
-    const ci = currentIdx();
-    panels.forEach((el, i) => {
-      const base = (i - ci) * W;
-      const x = base + Math.min(W, Math.max(-W, dx));
-      el.style.transform = `translateX(${x}px)`;
-    });
+    if (curTab_ref.v === 'main') {
+      const x = Math.max(-W, Math.min(0, dx));
+      m.style.transform = `translateX(${x}px)`;
+      s.style.transform = `translateX(${W + x}px)`;
+    } else {
+      const x = Math.min(W, Math.max(0, dx));
+      s.style.transform = `translateX(${x}px)`;
+      m.style.transform = `translateX(${x - W}px)`;
+    }
   }
 
   function settle(dx) {
     const W = window.innerWidth;
-    const ci = currentIdx();
+    // Use velocity to decide: flick fast enough = switch regardless of distance
     const flick = Math.abs(velocity) > 0.4;
     const half  = Math.abs(dx) > W * 0.3;
     const shouldSwitch = flick || half;
     const ease = flick ? EASE_FAST : EASE;
-    panels.forEach(el => el.style.transition = ease);
-    if (shouldSwitch) {
-      if (dx < 0 && ci < tabs.length - 1) { goTab(tabs[ci + 1], true); return; }
-      if (dx > 0 && ci > 0)               { goTab(tabs[ci - 1], true); return; }
+    m.style.transition = ease;
+    s.style.transition = ease;
+    if      (curTab_ref.v === 'main' && dx < 0 && shouldSwitch) goTab('sett', true);
+    else if (curTab_ref.v === 'sett' && dx > 0 && shouldSwitch) goTab('main', true);
+    else {
+      m.style.transform = curTab_ref.v === 'main' ? 'translateX(0)' : 'translateX(-100%)';
+      s.style.transform = curTab_ref.v === 'sett' ? 'translateX(0)' : 'translateX(100%)';
     }
-    // Snap back
-    panels.forEach((el, i) => {
-      el.style.transform = `translateX(${(i - ci) * 100}%)`;
-    });
   }
 
-  // ── TOUCH ──
+  // ── TOUCH (phone/tablet) ──
   wrap.addEventListener('touchstart', e => {
     if (document.getElementById('modal').classList.contains('on')) return;
-    if (document.getElementById('modal2').classList.contains('on')) return;
     if (e.target.type === 'range') return;
     const t = e.touches[0];
     sx = t.clientX; sy = t.clientY;
     lastX = sx; lastT = Date.now(); velocity = 0;
     axis = null; dragging = false;
-    panels.forEach(el => el.style.transition = 'none');
+    m.style.transition = 'none'; s.style.transition = 'none';
   }, { passive: true });
 
   wrap.addEventListener('touchmove', e => {
     if (document.getElementById('modal').classList.contains('on')) return;
-    if (document.getElementById('modal2').classList.contains('on')) return;
     const t = e.touches[0];
     const dx = t.clientX - sx, dy = t.clientY - sy;
     if (!axis && (Math.abs(dx) > 8 || Math.abs(dy) > 8))
       axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
     if (axis !== 'x') return;
     dragging = true;
-    const now2 = Date.now(), dt = now2 - lastT;
+    const now = Date.now(), dt = now - lastT;
     if (dt > 0) velocity = (t.clientX - lastX) / dt;
-    lastX = t.clientX; lastT = now2;
+    lastX = t.clientX; lastT = now;
     panelPos(dx);
   }, { passive: true });
 
@@ -1695,12 +1402,11 @@ function goTab(tab, fromSwipe = false) {
     settle(e.changedTouches[0].clientX - sx);
   }, { passive: true });
 
-  // ── MOUSE (desktop) ──
+  // ── MOUSE CLICK-DRAG (desktop) — treated as a directional flick, triggers goTab like buttons ──
   let _md = false, _mdX = 0, _mdY = 0, _mdAxis = null, _mdMoved = false;
   wrap.addEventListener('mousedown', e => {
     if (_recentTouch) return;
     if (document.getElementById('modal').classList.contains('on')) return;
-    if (document.getElementById('modal2').classList.contains('on')) return;
     if (e.button !== 0 || e.target.type === 'range') return;
     _md = true; _mdX = e.clientX; _mdY = e.clientY; _mdAxis = null; _mdMoved = false;
   });
@@ -1716,33 +1422,37 @@ function goTab(tab, fromSwipe = false) {
     _md = false;
     if (!_mdMoved || _mdAxis !== 'x') return;
     const dx = e.clientX - _mdX;
-    const ci = currentIdx();
-    if      (dx < -40 && ci < tabs.length - 1) goTab(tabs[ci + 1]);
-    else if (dx >  40 && ci > 0)               goTab(tabs[ci - 1]);
+    if      (curTab_ref.v === 'main' && dx < -40) goTab('sett');
+    else if (curTab_ref.v === 'sett' && dx >  40) goTab('main');
   });
 
-  // ── WHEEL (trackpad) ──
-  let _wAcc = 0, _wLocked = false, _wRafId = null;
-  const W_THRESHOLD = 40;
+  // ── WHEEL (Mac trackpad two-finger horizontal swipe) ──
+  // No setTimeout — fires the moment cumulative deltaX crosses threshold.
+  // Uses a rAF loop to consume queued wheel events instantly.
+  let _wAcc = 0, _wLocked = false, _wRafId = null, _wLastDX = 0;
+  const W_THRESHOLD = 40; // px to trigger switch
 
   function _wFlush() {
     _wRafId = null;
     if (_wLocked) { _wAcc = 0; return; }
-    const ci = currentIdx();
-    if (_wAcc >  W_THRESHOLD && ci < tabs.length - 1) { _wLocked = true; goTab(tabs[ci + 1]); _wAcc = 0; }
-    else if (_wAcc < -W_THRESHOLD && ci > 0)           { _wLocked = true; goTab(tabs[ci - 1]); _wAcc = 0; }
+    if      (curTab_ref.v === 'main' && _wAcc >  W_THRESHOLD) { _wLocked = true; goTab('sett'); _wAcc = 0; }
+    else if (curTab_ref.v === 'sett' && _wAcc < -W_THRESHOLD) { _wLocked = true; goTab('main'); _wAcc = 0; }
+    // Decay accumulator slowly so a resting finger doesn't carry momentum
     if (Math.abs(_wAcc) > 2) {
       _wAcc *= 0.6;
       _wRafId = requestAnimationFrame(_wFlush);
-    } else { _wAcc = 0; }
+    } else {
+      _wAcc = 0;
+    }
   }
 
   wrap.addEventListener('wheel', e => {
     if (document.getElementById('modal').classList.contains('on')) return;
-    if (document.getElementById('modal2').classList.contains('on')) return;
+    // Ignore mostly-vertical scrolls (allow some diagonal tolerance for lazy fingers)
     if (Math.abs(e.deltaY) > Math.abs(e.deltaX) * 2.5) return;
     e.preventDefault();
     if (_wLocked) {
+      // Release lock once fingers stop (deltaX near zero)
       if (Math.abs(e.deltaX) < 3) { _wLocked = false; _wAcc = 0; }
       return;
     }
@@ -1830,33 +1540,12 @@ function setOv(v) {
   document.getElementById('ov').style.background = `rgba(0,0,0,${v/100})`;
 }
 
-function fileToJpegDataUrl(file, maxPx, quality, cb) {
-  const reader = new FileReader();
-  reader.onload = ev => {
-    const img = new Image();
-    img.onload = () => {
-      let w = img.naturalWidth, h = img.naturalHeight;
-      if (maxPx && Math.max(w, h) > maxPx) {
-        const s = maxPx / Math.max(w, h); w = Math.round(w * s); h = Math.round(h * s);
-      }
-      const cv = document.createElement('canvas');
-      cv.width = w; cv.height = h;
-      cv.getContext('2d').drawImage(img, 0, 0, w, h);
-      cb(cv.toDataURL('image/jpeg', quality || 0.85));
-    };
-    img.onerror = () => cb(null);
-    img.src = ev.target.result;
-  };
-  reader.onerror = () => cb(null);
-  reader.readAsDataURL(file);
-}
 function loadBg(e) {
   const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => { cfg.bg = ev.target.result; cfg.bgMime = f.type; saveC(); applyBg(); };
+  r.readAsDataURL(f);
   e.target.value = '';
-  fileToJpegDataUrl(f, 2400, 0.85, jpeg => {
-    if (!jpeg) return;
-    cfg.bg = jpeg; cfg.bgMime = 'image/jpeg'; saveC(); applyBg();
-  });
 }
 function clearBg() { cfg.bg = ''; cfg.bgMime = ''; saveC(); applyBg(); }
 function applyBg() {
@@ -2013,6 +1702,33 @@ window.fbSignOut = async function() {
   await signOut(auth);
 };
 </script>
+
+<!-- LAYER 2 BADGE -->
+<div id="l2badge" onclick="openLayer2()">
+  <div class="l2dot">2</div>
+</div>
+
+<!-- LAYER 2 OVERLAY -->
+<div id="layer2">
+  <div id="l2header">
+    <div id="l2title">Второй слой</div>
+    <button id="l2close" onclick="closeLayer2()">✕</button>
+  </div>
+  <div id="l2body">
+    <div class="mnav">
+      <button class="marr" onclick="l2chM(-1)">‹</button>
+      <div class="mlbl" id="l2mLbl">Май 2026</div>
+      <button class="marr" onclick="l2chM(1)">›</button>
+    </div>
+    <div class="chdr">
+      <span>П</span><span>В</span><span>С</span><span>Ч</span><span>П</span>
+      <span class="we">С</span><span class="we">В</span>
+    </div>
+    <div class="cgrid" id="l2grid"></div>
+    <div id="l2entWrap"></div>
+  </div>
+</div>
+
 </body>
 </html>
 <script type="module">
@@ -2120,4 +1836,263 @@ window.fbSignOut = async function() {
   if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
   await signOut(auth);
 };
+
+// ── LAYER 2 ──
+const l2days_key = 'ftc_d2';
+let l2days = {};
+let l2vy = new Date().getFullYear(), l2vm = new Date().getMonth();
+let l2eDk = null, l2dc = '#324E44';
+let _l2open = false;
+
+try { l2days = JSON.parse(localStorage.getItem(l2days_key) || '{}'); } catch { l2days = {}; }
+
+function saveL2() { localStorage.setItem(l2days_key, JSON.stringify(l2days)); }
+
+function openLayer2() {
+  _l2open = true;
+  document.getElementById('layer2').classList.add('open');
+  l2vy = vy; l2vm = vm; // синхронизируем месяц с главным
+  renderL2Cal();
+  renderL2Ent();
+  document.getElementById('l2mLbl').textContent = MON[l2vm] + ' ' + l2vy;
+}
+
+function closeLayer2() {
+  _l2open = false;
+  const el = document.getElementById('layer2');
+  el.classList.add('closing');
+  el.addEventListener('transitionend', () => {
+    el.classList.remove('open', 'closing');
+  }, { once: true });
+}
+
+function l2chM(d) {
+  l2vm += d;
+  if (l2vm < 0) { l2vm = 11; l2vy--; }
+  if (l2vm > 11) { l2vm = 0; l2vy++; }
+  document.getElementById('l2mLbl').textContent = MON[l2vm] + ' ' + l2vy;
+  renderL2Cal();
+  renderL2Ent();
+}
+
+function renderL2Cal() {
+  const t = new Date();
+  const tdk = dkey(t.getFullYear(), t.getMonth(), t.getDate());
+  const fd = (new Date(l2vy, l2vm, 1).getDay() + 6) % 7;
+  const dim = new Date(l2vy, l2vm+1, 0).getDate();
+  let h = '';
+  for (let i = 0; i < fd; i++) h += '<div class="dot empty"></div>';
+  for (let d = 1; d <= dim; d++) {
+    const dk = dkey(l2vy, l2vm, d);
+    const dd = l2days[dk];
+    const dt = new Date(l2vy, l2vm, d);
+    const isT = dk === tdk;
+    const isP = dt < new Date(t.getFullYear(), t.getMonth(), t.getDate());
+    let cls = 'dot';
+    let sty = '';
+    if (dd && dd.color) {
+      sty = `background:${dd.color};`;
+      cls += ' work';
+      if (isT) cls += ' today-w';
+    } else if (isT) { cls += ' today'; }
+    else if (isP)   { cls += ' past'; }
+    else            { cls += ' future'; }
+    if (dd) cls += ' has';
+    h += `<div class="${cls}" style="${sty}"
+      ontouchstart="l2ts(event,'${dk}')"
+      ontouchmove="l2tm()"
+      ontouchend="l2te(event,'${dk}')"
+      onmousedown="l2ms(event,'${dk}')"
+      onmouseup="l2mu(event,'${dk}')"
+    ><div class="pip"></div></div>`;
+  }
+  document.getElementById('l2grid').innerHTML = h;
+  // Обновляем маркеры на главном календаре
+  updateL2Markers();
+}
+
+function updateL2Markers() {
+  // Ставим/убираем l2has + l2pip на точках главного календаря
+  const grid = document.getElementById('grid');
+  if (!grid) return;
+  const dots = grid.querySelectorAll('.dot:not(.empty)');
+  const fd = (new Date(vy, vm, 1).getDay() + 6) % 7;
+  dots.forEach((dot, idx) => {
+    const d = idx + 1;
+    const dk = dkey(vy, vm, d);
+    const hasL2 = !!l2days[dk];
+    dot.classList.toggle('l2has', hasL2);
+    let pip = dot.querySelector('.l2pip');
+    if (hasL2) {
+      if (!pip) {
+        pip = document.createElement('div');
+        pip.className = 'l2pip';
+        dot.appendChild(pip);
+      }
+      pip.style.background = l2days[dk].color || cfg.acc || '#7BA7AF';
+    } else if (pip) {
+      pip.remove();
+    }
+  });
+}
+
+function renderL2Ent() {
+  const items = [];
+  for (let d = 1; d <= 31; d++) {
+    const dk = dkey(l2vy, l2vm, d);
+    const dt = new Date(l2vy, l2vm, d);
+    if (dt.getMonth() !== l2vm) break;
+    if (l2days[dk]) items.push({ dk, d, dd: l2days[dk] });
+  }
+  const ew = document.getElementById('l2entWrap');
+  if (!items.length) { ew.innerHTML = ''; return; }
+  const cur = cfg.cur;
+  let html = `<div class="slbl" style="margin-top:20px;">${MON[l2vm]} ${l2vy}</div>`;
+  items.forEach((it, i) => {
+    const dd = it.dd;
+    const ts = dd.timeStart && dd.timeEnd ? `${dd.timeStart}–${dd.timeEnd}` : '';
+    const es = dd.earned ? `+${cur}${dd.earned.toLocaleString()}` : '';
+    html += `<div class="ecard" onclick="l2openModal('${it.dk}')">
+      <div class="etop">
+        <div class="enum">${i+1}</div>
+        <div class="einfo">
+          <div class="edate">${it.d} ${MONG[l2vm]}</div>
+          ${dd.label ? `<div class="ename">${dd.label}</div>` : ''}
+        </div>
+        <div class="edot" style="background:${dd.color || cfg.acc};"></div>
+      </div>
+      <div class="enums">
+        ${ts ? `<span style="color:var(--text3);">🕐 ${ts}</span>` : ''}
+        ${es ? `<span style="color:var(--accent);font-weight:600;">${es}</span>` : ''}
+      </div>
+    </div>`;
+  });
+  ew.innerHTML = html;
+}
+
+// ── LAYER 2 TOUCH/MOUSE ──
+let _l2t0=0, _l2mv=false, _l2lpt=null, _l2lastTap=0, _l2lastDk=null, _l2dtTimer=null;
+function l2ts(e,dk){ _l2mv=false;_l2t0=Date.now();const el=e.currentTarget;el.classList.add('press');_l2lpt=setTimeout(()=>{el.classList.remove('press');navigator.vibrate&&navigator.vibrate(28);l2openModal(dk);},500);}
+function l2tm(){ _l2mv=true;clearTimeout(_l2lpt);document.querySelectorAll('#l2grid .dot.press').forEach(e=>e.classList.remove('press'));}
+function l2te(e,dk){ clearTimeout(_l2lpt);e.currentTarget.classList.remove('press');if(_l2mv)return;if(Date.now()-_l2t0>=500)return;const now=Date.now();if(_l2lastDk===dk&&now-_l2lastTap<350){clearTimeout(_l2dtTimer);_l2lastTap=0;_l2lastDk=null;l2clrD(dk);return;}_l2lastTap=now;_l2lastDk=dk;clearTimeout(_l2dtTimer);_l2dtTimer=setTimeout(()=>{_l2lastTap=0;_l2lastDk=null;l2openModal(dk);},350);}
+function l2clrD(dk){if(!l2days[dk])return;navigator.vibrate&&navigator.vibrate([20,30,20]);delete l2days[dk];saveL2();renderL2Cal();renderL2Ent();updateL2Markers();}
+let _l2ms0=0,_l2msLpt=null,_l2mLastTap=0,_l2mLastDk=null,_l2mDtTimer=null;
+function l2ms(e,dk){if(_recentTouch)return;if(e.button!==0)return;_l2ms0=Date.now();const el=e.currentTarget;el.classList.add('press');_l2msLpt=setTimeout(()=>{el.classList.remove('press');l2openModal(dk);},500);}
+function l2mu(e,dk){if(_recentTouch)return;clearTimeout(_l2msLpt);e.currentTarget.classList.remove('press');if(Date.now()-_l2ms0>=500)return;const now=Date.now();if(_l2mLastDk===dk&&now-_l2mLastTap<350){clearTimeout(_l2mDtTimer);_l2mLastTap=0;_l2mLastDk=null;l2clrD(dk);return;}_l2mLastTap=now;_l2mLastDk=dk;clearTimeout(_l2mDtTimer);_l2mDtTimer=setTimeout(()=>{_l2mLastTap=0;_l2mLastDk=null;l2openModal(dk);},350);}
+
+// ── LAYER 2 MODAL (reuses main modal) ──
+let _l2modalActive = false;
+function l2openModal(dk) {
+  _l2modalActive = true;
+  l2eDk = dk;
+  const [y,m,d] = dk.split('-').map(Number);
+  document.getElementById('mTit').textContent = `${d} ${MONG[m-1]} · слой 2`;
+  const dd = l2days[dk] || {};
+  l2dc = dd.color || cfg.acc || '#324E44';
+  document.querySelectorAll('#dcs .dc').forEach(el=>el.classList.toggle('on',el.dataset.c===l2dc));
+  document.getElementById('fLbl').value  = dd.label||'';
+  document.getElementById('fS').value   = dd.timeStart||'';
+  document.getElementById('fE').value   = dd.timeEnd||'';
+  document.getElementById('fEarn').value= dd.earned||'';
+  document.getElementById('xList').innerHTML='';
+  (dd.expenses||[]).forEach(x=>addX(x.amount,x.comment));
+  document.getElementById('modal').classList.add('on');
+}
+// Перехватываем saveDay чтобы знать куда сохранять
+const _origSaveDay = saveDay;
+window.saveDay = function() {
+  if (_l2modalActive) {
+    if (!l2eDk) return;
+    const xs=[];
+    document.querySelectorAll('#xList .xrow2').forEach(r=>{const ins=r.querySelectorAll('input');const a=parseFloat(ins[0].value)||0;const c=ins[1].value.trim();if(a>0||c)xs.push({amount:a,comment:c});});
+    l2days[l2eDk]={color:l2dc,label:document.getElementById('fLbl').value.trim(),timeStart:document.getElementById('fS').value,timeEnd:document.getElementById('fE').value,earned:parseFloat(document.getElementById('fEarn').value)||0,expenses:xs};
+    saveL2();
+    document.getElementById('modal').classList.remove('on');
+    l2eDk=null; _l2modalActive=false;
+    renderL2Cal(); renderL2Ent(); updateL2Markers();
+  } else {
+    _origSaveDay();
+  }
+};
+const _origCloseModal = closeModal;
+window.closeModal = function() {
+  _l2modalActive = false; l2eDk = null;
+  _origCloseModal();
+};
+
+// Цвет в модале для layer2 тоже пишем в l2dc
+const _origPickC = pickC;
+window.pickC = function(c, el) {
+  if (_l2modalActive) { l2dc=c; document.querySelectorAll('#dcs .dc').forEach(d=>d.classList.remove('on'));if(el)el.classList.add('on'); }
+  else { _origPickC(c,el); }
+};
+const _origPickCHex = pickCHex;
+window.pickCHex = function(c) {
+  if (_l2modalActive) { l2dc=c; document.querySelectorAll('#dcs .dc').forEach(d=>d.classList.remove('on')); }
+  else { _origPickCHex(c); }
+};
+
+// ── LAYER 2 SWIPE DOWN TO CLOSE ──
+(function(){
+  const l2el = document.getElementById('layer2');
+  const l2body = document.getElementById('l2body');
+  const EASE = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
+  let sx=0,sy=0,axis=null,dragging=false,lastY=0,lastT=0,velocity=0;
+
+  l2el.addEventListener('touchstart', e => {
+    if(document.getElementById('modal').classList.contains('on'))return;
+    if(e.target.type==='range')return;
+    const t=e.touches[0];
+    sx=t.clientX;sy=t.clientY;
+    lastY=sy;lastT=Date.now();velocity=0;
+    axis=null;dragging=false;
+    l2el.style.transition='none';
+  },{passive:true});
+
+  l2el.addEventListener('touchmove', e => {
+    if(document.getElementById('modal').classList.contains('on'))return;
+    const t=e.touches[0];
+    const dx=t.clientX-sx, dy=t.clientY-sy;
+    if(!axis&&(Math.abs(dx)>8||Math.abs(dy)>8))
+      axis=Math.abs(dy)>Math.abs(dx)?'y':'x';
+    if(axis!=='y')return;
+    // Только свайп вниз, и только если body скроллится в 0
+    if(dy<0)return;
+    if(l2body.scrollTop>2)return;
+    dragging=true;
+    const now=Date.now(),dt=now-lastT;
+    if(dt>0)velocity=(t.clientY-lastY)/dt;
+    lastY=t.clientY;lastT=now;
+    const clamp=Math.max(0,dy);
+    l2el.style.transform=`translateY(${clamp}px)`;
+  },{passive:true});
+
+  l2el.addEventListener('touchend', e => {
+    if(!dragging){l2el.style.transition=EASE;l2el.style.transform='translateY(0)';return;}
+    dragging=false;
+    const dy=e.changedTouches[0].clientY-sy;
+    const flick=velocity>0.4;
+    const half=dy>window.innerHeight*0.3;
+    l2el.style.transition=EASE;
+    if(flick||half){ closeLayer2(); }
+    else { l2el.style.transform='translateY(0)'; }
+  },{passive:true});
+})();
+
+// Показываем/скрываем бейдж при переключении таба
+const _origGoTab = goTab;
+window.goTab = function(tab, fromSwipe) {
+  _origGoTab(tab, fromSwipe);
+  const badge = document.getElementById('l2badge');
+  if(tab==='sett') badge.classList.add('hidden');
+  else badge.classList.remove('hidden');
+};
+
+// После renderCal обновляем маркеры layer2
+const _origRenderCal = renderCal;
+window.renderCal = function() {
+  _origRenderCal();
+  updateL2Markers();
+};
+
 </script>
