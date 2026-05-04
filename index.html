@@ -1295,13 +1295,7 @@ function te(e, dk) {
     return;
   }
 
-  // Заполненный день: короткий тап → меню (Изменить + Копировать)
-  if (days[dk]) {
-    showCtxMenu(dk, e.currentTarget, t.clientX, t.clientY);
-    return;
-  }
-
-  // Пустой день: короткий тап → открыть модал
+  // Любой день: короткий тап → открыть модал
   openModal(dk);
 }
 function clrD(dk) {
@@ -2295,8 +2289,7 @@ function showCtxMenu(dk, el, x, y) {
     openModal(dk); return;
   }
 
-  document.getElementById('ctx-edit').style.display  = (hasDat && !hasCb) ? '' : 'none';
-  document.getElementById('ctx-copy').style.display  = (hasDat && !hasCb) ? '' : 'none';
+  document.getElementById('ctx-copy').style.display  = !hasCb ? '' : 'none';
   document.getElementById('ctx-paste').style.display = hasCb  ? '' : 'none';
 
   const mw = 190, mh = 56;
@@ -2528,7 +2521,6 @@ window.fbSignOut = async function() {
 
 <!-- CONTEXT MENU -->
 <div id="ctx-menu">
-  <div class="ctx-item" id="ctx-edit"  onclick="ctxEdit()">Изменить</div>
   <div class="ctx-item" id="ctx-copy"  onclick="ctxCopy()">Копировать</div>
   <div class="ctx-item paste-item" id="ctx-paste" onclick="ctxPaste()" style="display:none">Вставить</div>
 </div>
