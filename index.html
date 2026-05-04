@@ -132,9 +132,11 @@ button { font-family: inherit; cursor: pointer; }
   #sMain .mnav,
   #sMain .chdr,
   #sMain .cgrid   { grid-column: 1; }
-  /* Right column items stacked naturally */
-  #sMain #entWrap { grid-column: 2; grid-row: 1 / 8; }
-  #sMain #totWrap { grid-column: 2; grid-row: 8; }
+  /* Right column: wrap both in a flex column so totals sit right below cards */
+  #sMain #entWrap,
+  #sMain #totWrap { grid-column: 2; }
+  #sMain #entWrap { grid-row: 1 / 7; display: flex; flex-direction: column; }
+  #sMain #totWrap { grid-row: 7; margin-top: 0; }
 
   /* Calendar dots larger on desktop */
   .cgrid { gap: 8px; }
