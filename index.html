@@ -174,7 +174,7 @@ button { font-family: inherit; cursor: pointer; }
 .dot.empty  { background: transparent; pointer-events: none; }
 .dot.press  { transform: scale(.82); }
 .dot .pip { position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); width: 3px; height: 3px; border-radius: 50%; background: rgba(255,255,255,.8); display: none; }
-.dot.has .pip { display: block; }
+.dot.has .pip { display: none; }
 
 /* ── ENTRIES ── */
 .slbl { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); margin: 26px 0 10px; }
@@ -1304,6 +1304,8 @@ function goTab(tab, fromSwipe = false) {
   curTab_ref.v = tab;
   document.getElementById('tbM').classList.toggle('on', tab === 'main');
   document.getElementById('tbS').classList.toggle('on', tab === 'sett');
+  const _badge = document.getElementById('l2badge');
+  if (_badge) { if(tab==='sett') _badge.classList.add('hidden'); else _badge.classList.remove('hidden'); }
   if (fromSwipe) {
     // After swipe: panels are already in motion — just set final position with animation
     m.style.transition = EASE;
@@ -1813,17 +1815,18 @@ window.pickCHex = function(c) {
   const l2el = document.getElementById('layer2');
   const l2body = document.getElementById('l2body');
   const EASE = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
+  const EASE_FAST = 'transform .28s cubic-bezier(.25,0.46,0.45,0.94)';
   let sx=0,sy=0,axis=null,dragging=false,lastY=0,lastT=0,velocity=0;
+  let fromHeader=false, lockedByScroll=false;
 
-  let _l2swipeFromHeader = false;
   l2el.addEventListener('touchstart', e => {
     if(document.getElementById('modal').classList.contains('on'))return;
     if(e.target.type==='range')return;
     const t=e.touches[0];
-    sx=t.clientX;sy=t.clientY;
-    lastY=sy;lastT=Date.now();velocity=0;
-    axis=null;dragging=false;
-    _l2swipeFromHeader = !!e.target.closest('#l2header');
+    sx=t.clientX; sy=t.clientY;
+    lastY=sy; lastT=Date.now(); velocity=0;
+    axis=null; dragging=false; lockedByScroll=false;
+    fromHeader = !!e.target.closest('#l2header');
     l2el.style.transition='none';
   },{passive:true});
 
@@ -1834,36 +1837,51 @@ window.pickCHex = function(c) {
     if(!axis&&(Math.abs(dx)>8||Math.abs(dy)>8))
       axis=Math.abs(dy)>Math.abs(dx)?'y':'x';
     if(axis!=='y')return;
-    if(dy<0)return;
-    if(l2body.scrollTop>2&&!_l2swipeFromHeader)return;
-    dragging=true;
+    // Определяем однажды: заблокирован ли жест скроллом
+    if(!dragging&&!lockedByScroll) {
+      if(dy>0&&(l2body.scrollTop<=2||fromHeader)) {
+        dragging=true; // начинаем тянуть вниз
+      } else if(dy<0||l2body.scrollTop>2) {
+        lockedByScroll=true; // это скролл контента, не свайп закрытия
+        return;
+      }
+    }
+    if(lockedByScroll)return;
+    if(!dragging)return;
+    if(dy<0){l2el.style.transform='translateY(0)';return;}
     const now=Date.now(),dt=now-lastT;
     if(dt>0)velocity=(t.clientY-lastY)/dt;
-    lastY=t.clientY;lastT=now;
-    const clamp=Math.max(0,dy);
-    l2el.style.transform=`translateY(${clamp}px)`;
+    lastY=t.clientY; lastT=now;
+    l2el.style.transform=`translateY(${Math.max(0,dy)}px)`;
   },{passive:true});
 
   l2el.addEventListener('touchend', e => {
-    if(!dragging){l2el.style.transition=EASE;l2el.style.transform='translateY(0)';return;}
+    if(!dragging){
+      if(!lockedByScroll){l2el.style.transition=EASE;l2el.style.transform='translateY(0)';}
+      return;
+    }
     dragging=false;
     const dy=e.changedTouches[0].clientY-sy;
-    const flick=velocity>0.4;
-    const half=dy>window.innerHeight*0.3;
-    l2el.style.transition=EASE;
-    if(flick||half){ closeLayer2(); }
-    else { l2el.style.transform='translateY(0)'; }
+    const flick=velocity>0.35;
+    const half=dy>window.innerHeight*0.28;
+    const ease=flick?EASE_FAST:EASE;
+    l2el.style.transition=ease;
+    if(flick||half){
+      // Анимируем из текущей позиции вниз до 100%
+      l2el.style.transform='translateY(100%)';
+      _l2open=false;
+      l2el.addEventListener('transitionend',()=>{
+        l2el.classList.remove('open','closing');
+        l2el.style.transform='';
+        l2el.style.transition='';
+      },{once:true});
+    } else {
+      l2el.style.transform='translateY(0)';
+    }
   },{passive:true});
 })();
 
-// Показываем/скрываем бейдж при переключении таба
-const _origGoTab = goTab;
-window.goTab = function(tab, fromSwipe) {
-  _origGoTab(tab, fromSwipe);
-  const badge = document.getElementById('l2badge');
-  if(tab==='sett') badge.classList.add('hidden');
-  else badge.classList.remove('hidden');
-};
+// бейдж скрывается внутри goTab
 
 // После renderCal обновляем маркеры layer2
 const _origRenderCal = renderCal;
