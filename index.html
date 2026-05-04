@@ -1113,27 +1113,18 @@ function renderCal() {
     else if (isP)   { cls += ' past'; }
     else            { cls += ' future'; }
     if (dd) cls += ' has';
-    h += `<div class="${cls}" style="${sty}"
-      ontouchstart="ts(event,'${dk}')"
-      ontouchend="te(event,'${dk}')"
+    h += `<div class="${cls}" style="${sty}" data-dk="${dk}"
       onmousedown="ms(event,'${dk}')"
       onmouseup="mu(event,'${dk}')"
 ><div class="dnum">${d}</div><div class="pip"></div></div>`;
   }
   document.getElementById('grid').innerHTML = h;
-  // non-passive чтобы можно было вызвать preventDefault во время drag
-  document.getElementById('grid')._tmBound && document.getElementById('grid').removeEventListener('touchmove', document.getElementById('grid')._tmBound);
-  const _tmHandler = e => {
-    if (_drag) { e.preventDefault(); }
-    tm(e);
-  };
-  document.getElementById('grid')._tmBound = _tmHandler;
-  document.getElementById('grid').addEventListener('touchmove', _tmHandler, { passive: false });
 }
 
 // ── TOUCH ──
-let _t0 = 0, _mv = false, _lpt = null;
+let _t0 = 0, _lpt = null;
 let _lastTap = 0, _lastDk = null, _dtTimer = null;
+let _tsX = 0, _tsY = 0, _tsDk = null, _tsEl = null;
 
 // ── DRAG STATE ──
 let _drag = false, _dragDk = null, _dragGhost = null, _dragOver = null;
@@ -1216,70 +1207,82 @@ function _dragEnd(x, y) {
   _dragDk = null; _dragOver = null;
 }
 
-let _dragPending = null;
-const DRAG_THRESH = 8;
+const DRAG_THRESH = 10;
 
-let _tsX = 0, _tsY = 0;
+// Централизованный обработчик touch на #grid
+document.addEventListener('DOMContentLoaded', () => {
+  const grid = document.getElementById('grid');
 
-function ts(e, dk) {
-  _mv = false; _t0 = Date.now();
-  const el = e.currentTarget;
-  el.classList.add('press');
-  const t = e.touches[0];
-  _tsX = t.clientX; _tsY = t.clientY;
-  _dragPending = days[dk] ? { dk, el, x: _tsX, y: _tsY } : null;
-}
+  grid.addEventListener('touchstart', e => {
+    const dot = e.target.closest('.dot:not(.empty)');
+    if (!dot) return;
+    const dk = dot.dataset.dk;
+    if (!dk) return;
+    _t0 = Date.now();
+    _tsX = e.touches[0].clientX;
+    _tsY = e.touches[0].clientY;
+    _tsDk = dk; _tsEl = dot;
+    dot.classList.add('press');
+  }, { passive: true });
 
-function tm(e) {
-  const t = e.touches[0];
-  const dx = t.clientX - _tsX, dy = t.clientY - _tsY;
-  const dist = Math.sqrt(dx*dx + dy*dy);
-  if (dist > 10) _mv = true;
-  document.querySelectorAll('#grid .dot.press').forEach(d => d.classList.remove('press'));
-  if (_drag) { _dragMove(t.clientX, t.clientY); return; }
-  if (_dragPending && dist > DRAG_THRESH) {
-    _dragStart(_dragPending.dk, _dragPending.el, t.clientX, t.clientY);
-    _dragPending = null;
-  }
-}
+  grid.addEventListener('touchmove', e => {
+    if (!_tsDk) return;
+    const t = e.touches[0];
+    const dx = t.clientX - _tsX, dy = t.clientY - _tsY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
 
-function te(e, dk) {
-  _dragPending = null;
-  e.currentTarget.classList.remove('press');
-  if (_drag) {
+    if (_drag) { e.preventDefault(); _dragMove(t.clientX, t.clientY); return; }
+
+    if (dist > DRAG_THRESH && days[_tsDk] && (Date.now() - _t0) >= 300) {
+      e.preventDefault();
+      document.querySelectorAll('#grid .dot.press').forEach(d => d.classList.remove('press'));
+      _dragStart(_tsDk, _tsEl, t.clientX, t.clientY);
+      _tsDk = null;
+    }
+  }, { passive: false });
+
+  grid.addEventListener('touchend', e => {
+    if (!_tsDk && !_drag) return;
     const t = e.changedTouches[0];
-    _dragEnd(t.clientX, t.clientY);
-    return;
-  }
 
-  const t = e.changedTouches[0];
-  const dx = t.clientX - _tsX, dy = t.clientY - _tsY;
-  const moved = Math.sqrt(dx*dx + dy*dy) > 10;
-  if (moved) return;
+    if (_drag) { _dragEnd(t.clientX, t.clientY); return; }
 
-  const held = (Date.now() - _t0) >= 500;
+    const dk = _tsDk;
+    const el = _tsEl;
+    _tsDk = null; _tsEl = null;
+    el && el.classList.remove('press');
 
-  if (held) {
-    navigator.vibrate && navigator.vibrate(28);
-    showCtxMenu(dk, e.currentTarget, t.clientX, t.clientY);
-    return;
-  }
+    const dx = t.clientX - _tsX, dy = t.clientY - _tsY;
+    if (Math.sqrt(dx*dx + dy*dy) > DRAG_THRESH) return;
 
-  // Двойной тап — удалить
-  const now = Date.now();
-  if (_lastDk === dk && now - _lastTap < 400) {
+    const held = (Date.now() - _t0) >= 500;
+    if (held) {
+      navigator.vibrate && navigator.vibrate(28);
+      showCtxMenu(dk, el, t.clientX, t.clientY);
+      return;
+    }
+
+    const now = Date.now();
+    if (_lastDk === dk && now - _lastTap < 400) {
+      clearTimeout(_dtTimer);
+      _lastTap = 0; _lastDk = null;
+      clrD(dk);
+      return;
+    }
+    _lastTap = now; _lastDk = dk;
     clearTimeout(_dtTimer);
-    _lastTap = 0; _lastDk = null;
-    clrD(dk);
-    return;
-  }
-  _lastTap = now; _lastDk = dk;
-  clearTimeout(_dtTimer);
-  _dtTimer = setTimeout(() => {
-    _lastTap = 0; _lastDk = null;
-    openModal(dk);
-  }, 400);
-}
+    _dtTimer = setTimeout(() => {
+      _lastTap = 0; _lastDk = null;
+      openModal(dk);
+    }, 400);
+  }, { passive: true });
+
+  grid.addEventListener('touchcancel', () => {
+    if (_drag) { _dragEnd(-999, -999); }
+    _tsDk = null; _tsEl = null;
+    document.querySelectorAll('#grid .dot.press').forEach(d => d.classList.remove('press'));
+  }, { passive: true });
+});
 function clrD(dk) {
   if (!days[dk]) return;
   navigator.vibrate && navigator.vibrate([20, 30, 20]);
