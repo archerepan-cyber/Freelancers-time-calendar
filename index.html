@@ -158,6 +158,26 @@ button { font-family: inherit; cursor: pointer; }
   #bar { height: 64px; gap: 80px; }
   .tbtn { font-size: 30px; }
 }
+/* ── LANDSCAPE PHONE: two-column layout like desktop ── */
+@media (orientation: landscape) and (max-height: 600px) {
+  #sMain {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+    column-gap: 24px;
+    align-items: start;
+  }
+  #sMain .big,
+  #sMain .bigrow,
+  #sMain .mnav,
+  #sMain .chdr,
+  #sMain .cgrid   { grid-column: 1; }
+  #sMain #rightCol { grid-column: 2; grid-row: 1 / 8; display: flex; flex-direction: column; }
+  .big { font-size: clamp(48px, 14vw, 80px); }
+  .cgrid { gap: 5px; }
+  .dot { max-width: 52px; max-height: 52px; justify-self: center; width: 100%; }
+  .scr { padding: calc(var(--st) + 14px) 20px 72px; }
+}
+
 
 .dot {
   aspect-ratio: 1; border-radius: 50%;
@@ -353,13 +373,13 @@ button { font-family: inherit; cursor: pointer; }
 .btno { flex: 2; padding: 14px; border-radius: 14px; background: var(--accent); border: none; font-size: 15px; font-weight: 600; color: #fff; touch-action: manipulation; }
 </style>
 <script>
-// Reset viewport scale on orientation change (iOS bug fix)
+// iOS: сброс масштаба при повороте экрана
 window.addEventListener('orientationchange', function() {
   var mv = document.querySelector('meta[name=viewport]');
   if (!mv) return;
-  var orig = mv.content;
-  mv.content = orig + ', minimum-scale=1.0';
-  setTimeout(function() { mv.content = orig; }, 300);
+  var c = mv.content;
+  mv.content = c + ',minimum-scale=1.0';
+  setTimeout(function() { mv.content = c; }, 50);
 });
 </script>
 </head>
