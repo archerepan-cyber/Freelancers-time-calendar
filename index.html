@@ -1219,27 +1219,27 @@ function _dragEnd(x, y) {
 let _dragPending = null;
 const DRAG_THRESH = 8;
 
+let _tsX = 0, _tsY = 0;
+
 function ts(e, dk) {
   _mv = false; _t0 = Date.now();
   const el = e.currentTarget;
   el.classList.add('press');
   const t = e.touches[0];
-  const startX = t.clientX, startY = t.clientY;
-  _dragPending = days[dk] ? { dk, el, x: startX, y: startY } : null;
+  _tsX = t.clientX; _tsY = t.clientY;
+  _dragPending = days[dk] ? { dk, el, x: _tsX, y: _tsY } : null;
 }
 
 function tm(e) {
-  _mv = true;
-  document.querySelectorAll('#grid .dot.press').forEach(d => d.classList.remove('press'));
   const t = e.touches[0];
+  const dx = t.clientX - _tsX, dy = t.clientY - _tsY;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  if (dist > 10) _mv = true;
+  document.querySelectorAll('#grid .dot.press').forEach(d => d.classList.remove('press'));
   if (_drag) { _dragMove(t.clientX, t.clientY); return; }
-  if (_dragPending) {
-    const dx = t.clientX - _dragPending.x;
-    const dy = t.clientY - _dragPending.y;
-    if (Math.sqrt(dx*dx + dy*dy) > DRAG_THRESH) {
-      _dragStart(_dragPending.dk, _dragPending.el, t.clientX, t.clientY);
-      _dragPending = null;
-    }
+  if (_dragPending && dist > DRAG_THRESH) {
+    _dragStart(_dragPending.dk, _dragPending.el, t.clientX, t.clientY);
+    _dragPending = null;
   }
 }
 
@@ -1251,10 +1251,13 @@ function te(e, dk) {
     _dragEnd(t.clientX, t.clientY);
     return;
   }
-  if (_mv) return;
+
+  const t = e.changedTouches[0];
+  const dx = t.clientX - _tsX, dy = t.clientY - _tsY;
+  const moved = Math.sqrt(dx*dx + dy*dy) > 10;
+  if (moved) return;
 
   const held = (Date.now() - _t0) >= 500;
-  const t = e.changedTouches[0];
 
   if (held) {
     navigator.vibrate && navigator.vibrate(28);
