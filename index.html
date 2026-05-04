@@ -1278,26 +1278,31 @@ function tm(e) {
 }
 
 function te(e, dk) {
-  clearTimeout(_lpt);
   _dragPending = null;
   e.currentTarget.classList.remove('press');
   if (_drag) {
+    clearTimeout(_lpt);
     const t = e.changedTouches[0];
     _dragEnd(t.clientX, t.clientY);
     return;
   }
-  if (_mv) return;
-  // Таймер уже сработал и показал меню — ничего не делаем
-  if (_lptFired) return;
+  if (_mv) { clearTimeout(_lpt); return; }
 
-  // Если есть буфер — любое нажатие показывает Вставить
+  const held = (Date.now() - _t0) >= 480; // чуть меньше 500 для надёжности
+  clearTimeout(_lpt);
+
+  // Долгое нажатие — меню уже показано таймером, просто выходим
+  if (held) return;
+
+  // Короткое нажатие с буфером → показываем Вставить
   if (_clipboard) {
-    showCtxMenu(dk, e.currentTarget, e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+    const t = e.changedTouches[0];
+    showCtxMenu(dk, e.currentTarget, t.clientX, t.clientY);
     return;
   }
 
-  const now = Date.now();
   // Двойной тап — удалить день
+  const now = Date.now();
   if (_lastDk === dk && now - _lastTap < 350) {
     clearTimeout(_dtTimer);
     _lastTap = 0; _lastDk = null;
