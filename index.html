@@ -407,8 +407,6 @@ button { font-family: inherit; cursor: pointer; }
 }
 .dc-cw span { pointer-events: none; font-size: 11px; }
 .dc-cw input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
-/* Два ряда максимум */
-.dcs { max-height: 76px; overflow: hidden; }
 /* Меню редактирования кастомного цвета */
 #color-ctx {
   position: fixed; z-index: 999; min-width: 160px;
@@ -1113,7 +1111,10 @@ function renderCal() {
     else if (isP)   { cls += ' past'; }
     else            { cls += ' future'; }
     if (dd) cls += ' has';
-    h += `<div class="${cls}" style="${sty}" data-dk="${dk}"
+    h += `<div class="${cls}" style="${sty}"
+      ontouchstart="ts(event,'${dk}')"
+      ontouchmove="tm(event)"
+      ontouchend="te(event,'${dk}')"
       onmousedown="ms(event,'${dk}')"
       onmouseup="mu(event,'${dk}')"
 ><div class="dnum">${d}</div><div class="pip"></div></div>`;
@@ -1122,9 +1123,8 @@ function renderCal() {
 }
 
 // ── TOUCH ──
-let _t0 = 0, _lpt = null;
+let _t0 = 0, _mv = false, _lpt = null;
 let _lastTap = 0, _lastDk = null, _dtTimer = null;
-let _tsX = 0, _tsY = 0, _tsDk = null, _tsEl = null;
 
 // ── DRAG STATE ──
 let _drag = false, _dragDk = null, _dragGhost = null, _dragOver = null;
@@ -1207,82 +1207,72 @@ function _dragEnd(x, y) {
   _dragDk = null; _dragOver = null;
 }
 
-const DRAG_THRESH = 10;
+function ts(e, dk) {
+  _mv = false; _t0 = Date.now();
+  const el = e.currentTarget;
+  el.classList.add('press');
+  const t = e.touches[0];
+  const startX = t.clientX, startY = t.clientY;
+  _lpt = setTimeout(() => {
+    el.classList.remove('press');
+    navigator.vibrate && navigator.vibrate(28);
+    // Долгое нажатие: показываем контекстное меню
+    showCtxMenu(dk, el, startX, startY);
+  }, 500);
+  // Drag запускается только если палец движется во время удержания
+  _dragPending = { dk, el, x: startX, y: startY };
+}
+let _dragPending = null;
+const DRAG_THRESH = 8; // px движения чтобы начать drag вместо меню
 
-// Централизованный обработчик touch на #grid
-document.addEventListener('DOMContentLoaded', () => {
-  const grid = document.getElementById('grid');
-
-  grid.addEventListener('touchstart', e => {
-    const dot = e.target.closest('.dot:not(.empty)');
-    if (!dot) return;
-    const dk = dot.dataset.dk;
-    if (!dk) return;
-    _t0 = Date.now();
-    _tsX = e.touches[0].clientX;
-    _tsY = e.touches[0].clientY;
-    _tsDk = dk; _tsEl = dot;
-    dot.classList.add('press');
-  }, { passive: true });
-
-  grid.addEventListener('touchmove', e => {
-    if (!_tsDk) return;
-    const t = e.touches[0];
-    const dx = t.clientX - _tsX, dy = t.clientY - _tsY;
-    const dist = Math.sqrt(dx*dx + dy*dy);
-
-    if (_drag) { e.preventDefault(); _dragMove(t.clientX, t.clientY); return; }
-
-    if (dist > DRAG_THRESH && days[_tsDk] && (Date.now() - _t0) >= 300) {
-      e.preventDefault();
-      document.querySelectorAll('#grid .dot.press').forEach(d => d.classList.remove('press'));
-      _dragStart(_tsDk, _tsEl, t.clientX, t.clientY);
-      _tsDk = null;
+function tm(e) {
+  _mv = true;
+  document.querySelectorAll('#grid .dot.press').forEach(d => d.classList.remove('press'));
+  const t = e.touches[0];
+  if (_drag) {
+    clearTimeout(_lpt);
+    _dragMove(t.clientX, t.clientY);
+    return;
+  }
+  // Если палец сдвинулся достаточно — начинаем drag (и отменяем меню)
+  if (_dragPending && days[_dragPending.dk]) {
+    const dx = t.clientX - _dragPending.x;
+    const dy = t.clientY - _dragPending.y;
+    if (Math.sqrt(dx*dx + dy*dy) > DRAG_THRESH) {
+      clearTimeout(_lpt);
+      _dragStart(_dragPending.dk, _dragPending.el, t.clientX, t.clientY);
+      _dragPending = null;
     }
-  }, { passive: false });
-
-  grid.addEventListener('touchend', e => {
-    if (!_tsDk && !_drag) return;
+  } else {
+    clearTimeout(_lpt);
+  }
+}
+function te(e, dk) {
+  clearTimeout(_lpt);
+  _dragPending = null;
+  e.currentTarget.classList.remove('press');
+  if (_drag) {
     const t = e.changedTouches[0];
-
-    if (_drag) { _dragEnd(t.clientX, t.clientY); return; }
-
-    const dk = _tsDk;
-    const el = _tsEl;
-    _tsDk = null; _tsEl = null;
-    el && el.classList.remove('press');
-
-    const dx = t.clientX - _tsX, dy = t.clientY - _tsY;
-    if (Math.sqrt(dx*dx + dy*dy) > DRAG_THRESH) return;
-
-    const held = (Date.now() - _t0) >= 500;
-    if (held) {
-      navigator.vibrate && navigator.vibrate(28);
-      showCtxMenu(dk, el, t.clientX, t.clientY);
-      return;
-    }
-
-    const now = Date.now();
-    if (_lastDk === dk && now - _lastTap < 400) {
-      clearTimeout(_dtTimer);
-      _lastTap = 0; _lastDk = null;
-      clrD(dk);
-      return;
-    }
-    _lastTap = now; _lastDk = dk;
+    _dragEnd(t.clientX, t.clientY);
+    return;
+  }
+  if (_mv) return;
+  if (Date.now() - _t0 >= 500) return;
+  const now = Date.now();
+  if (_lastDk === dk && now - _lastTap < 350) {
     clearTimeout(_dtTimer);
-    _dtTimer = setTimeout(() => {
-      _lastTap = 0; _lastDk = null;
-      openModal(dk);
-    }, 400);
-  }, { passive: true });
-
-  grid.addEventListener('touchcancel', () => {
-    if (_drag) { _dragEnd(-999, -999); }
-    _tsDk = null; _tsEl = null;
-    document.querySelectorAll('#grid .dot.press').forEach(d => d.classList.remove('press'));
-  }, { passive: true });
-});
+    _lastTap = 0; _lastDk = null;
+    clrD(dk);
+    return;
+  }
+  _lastTap = now;
+  _lastDk = dk;
+  clearTimeout(_dtTimer);
+  _dtTimer = setTimeout(() => {
+    _lastTap = 0; _lastDk = null;
+    openModal(dk);
+  }, 350);
+}
 function clrD(dk) {
   if (!days[dk]) return;
   navigator.vibrate && navigator.vibrate([20, 30, 20]);
@@ -1372,14 +1362,11 @@ function renderDcs() {
       ontouchend="dcLongEnd()"
       onmousedown="dcMouseLong(event,${i})"></div>`;
   });
-  // Кнопка добавить (скрываем если достигнут лимит: 9 пользовательских)
-  const maxCustom = 9;
-  if ((cfg.myColors || []).length < maxCustom) {
-    h += `<div class="dc-cw dc-add" title="Добавить цвет">
-      <span style="font-size:18px;font-weight:300;color:#fff;line-height:1;">+</span>
-      <input type="color" value="${dc || '#324E44'}" onchange="addMyColor(this.value)"/>
-    </div>`;
-  }
+  // Кнопка добавить
+  h += `<div class="dc-cw dc-add" title="Добавить цвет">
+    <span style="font-size:18px;font-weight:300;color:#fff;line-height:1;">+</span>
+    <input type="color" value="${dc || '#324E44'}" oninput="addMyColor(this.value)" onchange="addMyColor(this.value)"/>
+  </div>`;
   dcs.innerHTML = h;
 }
 
@@ -1395,6 +1382,7 @@ function pickCHex(c) {
 
 function addMyColor(c) {
   if (!cfg.myColors) cfg.myColors = [];
+  // Не добавляем дубли
   if (!cfg.myColors.includes(c)) {
     cfg.myColors.push(c);
     saveC();
@@ -1455,12 +1443,11 @@ function cctxApplyEdit(c) {
   renderDcs();
 }
 function cctxDelete() {
-  if (_cctxIdx === null) { closeColorCtx(); return; }
-  const idx = _cctxIdx; // сохраняем до закрытия
-  cfg.myColors.splice(idx, 1);
+  closeColorCtx();
+  if (_cctxIdx === null) return;
+  cfg.myColors.splice(_cctxIdx, 1);
   saveC();
   renderDcs();
-  closeColorCtx();
 }
 function addX(amount = '', comment = '') {
   const div = document.createElement('div');
@@ -1707,7 +1694,6 @@ function goTab(tab, fromSwipe = false) {
   wrap.addEventListener('touchstart', e => {
     if (document.getElementById('modal').classList.contains('on')) return;
     if (e.target.type === 'range') return;
-    if (_drag) return;
     const t = e.touches[0];
     sx = t.clientX; sy = t.clientY;
     lastX = sx; lastT = Date.now(); velocity = 0;
@@ -1717,7 +1703,6 @@ function goTab(tab, fromSwipe = false) {
 
   wrap.addEventListener('touchmove', e => {
     if (document.getElementById('modal').classList.contains('on')) return;
-    if (_drag) return;
     const t = e.touches[0];
     const dx = t.clientX - sx, dy = t.clientY - sy;
     if (!axis && (Math.abs(dx) > 8 || Math.abs(dy) > 8))
@@ -1731,7 +1716,6 @@ function goTab(tab, fromSwipe = false) {
   }, { passive: true });
 
   wrap.addEventListener('touchend', e => {
-    if (_drag) return;
     if (!dragging) return;
     dragging = false;
     settle(e.changedTouches[0].clientX - sx);
@@ -2265,19 +2249,19 @@ function showCtxMenu(dk, el, x, y) {
   _ctxDk = dk; _ctxEl = el;
   const menu = document.getElementById('ctx-menu');
   const hasDat = !!days[dk];
-  const hasCb  = !!_clipboard;
 
-  // Нет буфера: показываем «Копировать» только если день заполнен
-  // Есть буфер: показываем «Вставить» всегда (можно вставить и поверх)
-  if (!hasDat && !hasCb) {
-    // Пустой день и нет буфера — открываем модал как обычно
+  document.getElementById('ctx-edit').style.display  = hasDat ? '' : 'none';
+  document.getElementById('ctx-copy').style.display  = hasDat ? '' : 'none';
+  document.getElementById('ctx-clear').style.display = hasDat ? '' : 'none';
+  document.getElementById('ctx-paste').style.display = (_clipboard && !hasDat) ? '' : 'none';
+
+  // Если нет данных и нет буфера — не показываем меню
+  if (!hasDat && !_clipboard) {
     openModal(dk); return;
   }
 
-  document.getElementById('ctx-copy').style.display  = !hasCb ? '' : 'none';
-  document.getElementById('ctx-paste').style.display = hasCb  ? '' : 'none';
-
-  const mw = 190, mh = 56;
+  // Позиция: стараемся не вылезти за края
+  const mw = 200, mh = 160;
   let lx = x, ly = y + 12;
   if (lx + mw > window.innerWidth  - 12) lx = window.innerWidth  - mw - 12;
   if (ly + mh > window.innerHeight - 12) ly = y - mh - 12;
@@ -2285,6 +2269,7 @@ function showCtxMenu(dk, el, x, y) {
   menu.style.top  = ly + 'px';
   menu.classList.add('on');
 
+  // Закрываем по тапу вне меню
   setTimeout(() => {
     document.addEventListener('touchstart', closeCtxMenu, { once: true, passive: true });
     document.addEventListener('mousedown',  closeCtxMenu, { once: true });
@@ -2293,10 +2278,6 @@ function showCtxMenu(dk, el, x, y) {
 
 function closeCtxMenu() {
   document.getElementById('ctx-menu').classList.remove('on');
-}
-function ctxEdit() {
-  closeCtxMenu();
-  setTimeout(() => openModal(_ctxDk), 180);
 }
 
 function ctxEdit() {
@@ -2318,6 +2299,9 @@ function ctxPaste() {
   if (!_clipboard || !_ctxDk) return;
   days[_ctxDk] = JSON.parse(JSON.stringify(_clipboard));
   saveD(); renderCal(); renderEnt(); updateL2Markers();
+  // Сбрасываем буфер и подсветку
+  _clipboard = null;
+  document.querySelectorAll('#grid .dot.copied').forEach(e => e.classList.remove('copied'));
   closeCtxMenu();
 }
 
@@ -2500,14 +2484,17 @@ window.fbSignOut = async function() {
 
 <!-- COLOR EDIT CTX -->
 <div id="color-ctx">
+  <div class="cctx-item" id="cctx-edit" onclick="cctxEdit()">✏️ &nbsp;Изменить цвет</div>
   <div class="cctx-item danger" onclick="cctxDelete()">🗑 &nbsp;Удалить</div>
 </div>
 <input type="color" id="cctx-input" style="position:fixed;opacity:0;pointer-events:none;width:0;height:0;" oninput="cctxApplyEdit(this.value)"/>
 
 <!-- CONTEXT MENU -->
 <div id="ctx-menu">
-  <div class="ctx-item" id="ctx-copy"  onclick="ctxCopy()">Копировать</div>
-  <div class="ctx-item paste-item" id="ctx-paste" onclick="ctxPaste()" style="display:none">Вставить</div>
+  <div class="ctx-item" id="ctx-edit"    onclick="ctxEdit()">  <span class="ctx-icon">✏️</span> Изменить</div>
+  <div class="ctx-item" id="ctx-copy"    onclick="ctxCopy()">  <span class="ctx-icon">📋</span> Копировать</div>
+  <div class="ctx-item paste-item" id="ctx-paste" onclick="ctxPaste()" style="display:none"><span class="ctx-icon">📌</span> Вставить</div>
+  <div class="ctx-item danger" id="ctx-clear"   onclick="ctxClear()" style="display:none"><span class="ctx-icon">🗑</span> Удалить</div>
 </div>
 </body>
 </html>
