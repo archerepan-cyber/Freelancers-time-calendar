@@ -356,7 +356,7 @@ button { font-family: inherit; cursor: pointer; }
 
 /* ── LAYER 2 BADGE ── */
 #l2btn {
-  position: absolute; top: calc(env(safe-area-inset-top) + 16px); right: 16px;
+  position: fixed; top: calc(env(safe-area-inset-top) + 16px); right: 16px;
   z-index: 50; width: 30px; height: 30px; border-radius: 50%;
   background: var(--accent); border: none; color: #fff;
   font-size: 14px; font-weight: 700; cursor: pointer;
@@ -417,8 +417,6 @@ button { font-family: inherit; cursor: pointer; }
 
 <div id="app">
   <div id="wrap">
-
-    <button id="l2btn" onclick="l2show()" aria-label="Слой 2">2</button>
 
     <!-- MAIN -->
     <div class="scr" id="sMain">
@@ -531,6 +529,8 @@ button { font-family: inherit; cursor: pointer; }
     </div>
 
   </div><!-- /wrap -->
+
+  <button id="l2btn" onclick="l2show()" aria-label="Слой 2">2</button>
 
   <div id="bar">
     <button class="tbtn on" id="tbM" onclick="goTab('main')">📅</button>
