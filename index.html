@@ -33,7 +33,7 @@
 
 /* ── RESET ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; overflow: hidden; }
+html, body { height: 100%; overflow: hidden; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); }
 input, textarea, select { font-family: inherit; user-select: text; -webkit-user-select: text; }
 button { font-family: inherit; cursor: pointer; }
@@ -375,11 +375,16 @@ button { font-family: inherit; cursor: pointer; }
 <script>
 // iOS: сброс масштаба при повороте экрана
 window.addEventListener('orientationchange', function() {
-  var mv = document.querySelector('meta[name=viewport]');
-  if (!mv) return;
-  var c = mv.content;
-  mv.content = c + ',minimum-scale=1.0';
-  setTimeout(function() { mv.content = c; }, 50);
+  // iOS: принудительно сбрасываем масштаб после поворота
+  setTimeout(function() {
+    var mv = document.querySelector('meta[name=viewport]');
+    if (!mv) return;
+    mv.content = 'width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover';
+  }, 300);
+});
+// Также слушаем resize — на некоторых устройствах orientationchange не срабатывает
+window.addEventListener('resize', function() {
+  document.body.style.zoom = 1;
 });
 </script>
 </head>
