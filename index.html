@@ -1284,8 +1284,19 @@ function te(e, dk) {
     return;
   }
   if (_mv) return;
-  if (Date.now() - _t0 >= 500) return;
+  const held = Date.now() - _t0 >= 500;
+  // Долгое нажатие уже обработал таймер (меню) — выходим
+  if (held) return;
+
+  // Короткое нажатие:
+  // Если есть буфер — показываем Вставить (не открываем модал)
+  if (_clipboard) {
+    showCtxMenu(dk, e.currentTarget, e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+    return;
+  }
+
   const now = Date.now();
+  // Двойной тап — удалить день
   if (_lastDk === dk && now - _lastTap < 350) {
     clearTimeout(_dtTimer);
     _lastTap = 0; _lastDk = null;
