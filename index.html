@@ -132,9 +132,10 @@ button { font-family: inherit; cursor: pointer; }
   #sMain .mnav,
   #sMain .chdr,
   #sMain .cgrid   { grid-column: 1; }
-  /* Right column: entWrap on top, totWrap below */
-  #sMain #entWrap { grid-column: 2; grid-row: 1 / 5; align-self: start; }
-  #sMain #totWrap { grid-column: 2; grid-row: 5; align-self: start; }
+  /* Right column: single grid cell, flex column so totWrap hugs entWrap */
+  #sMain #rightCol { grid-column: 2; grid-row: 1 / 6; align-self: start; display: flex; flex-direction: column; }
+  #sMain #entWrap { flex: 0 0 auto; }
+  #sMain #totWrap { flex: 0 0 auto; }
 
   /* Calendar dots larger on desktop */
   .cgrid { gap: 8px; }
@@ -382,8 +383,7 @@ button { font-family: inherit; cursor: pointer; }
       </div>
       <div class="cgrid" id="grid"></div>
 
-      <div id="entWrap"></div>
-      <div id="totWrap"></div>
+      <div id="rightCol"><div id="entWrap"></div><div id="totWrap"></div></div>
     </div>
 
     <!-- SETTINGS -->
