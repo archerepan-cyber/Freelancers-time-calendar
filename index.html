@@ -1124,7 +1124,7 @@ function renderCal() {
   // non-passive чтобы можно было вызвать preventDefault во время drag
   document.getElementById('grid')._tmBound && document.getElementById('grid').removeEventListener('touchmove', document.getElementById('grid')._tmBound);
   const _tmHandler = e => {
-    if (_drag || _dragPending) { e.preventDefault(); }
+    if (_drag) { e.preventDefault(); }
     tm(e);
   };
   document.getElementById('grid')._tmBound = _tmHandler;
@@ -1225,52 +1225,21 @@ function ts(e, dk) {
   el.classList.add('press');
   const t = e.touches[0];
   const startX = t.clientX, startY = t.clientY;
-
-  _menuShown = false;
-  if (days[dk]) {
-    _dragPending = { dk, el, x: startX, y: startY };
-    _lpt = setTimeout(() => {
-      if (!_drag) {
-        _menuShown = true;
-        el.classList.remove('press');
-        _dragPending = null;
-        navigator.vibrate && navigator.vibrate(28);
-        showCtxMenu(dk, el, startX, startY);
-      }
-    }, 500);
-  } else {
-    _dragPending = null;
-    _lpt = setTimeout(() => {
-      _menuShown = true;
-      el.classList.remove('press');
-      navigator.vibrate && navigator.vibrate(28);
-      showCtxMenu(dk, el, startX, startY);
-    }, 500);
-  }
+  _dragPending = days[dk] ? { dk, el, x: startX, y: startY } : null;
 }
 
 function tm(e) {
   _mv = true;
   document.querySelectorAll('#grid .dot.press').forEach(d => d.classList.remove('press'));
   const t = e.touches[0];
-
-  if (_drag) {
-    // Уже тащим — двигаем ghost
-    _dragMove(t.clientX, t.clientY);
-    return;
-  }
-
+  if (_drag) { _dragMove(t.clientX, t.clientY); return; }
   if (_dragPending) {
     const dx = t.clientX - _dragPending.x;
     const dy = t.clientY - _dragPending.y;
     if (Math.sqrt(dx*dx + dy*dy) > DRAG_THRESH) {
-      // Начинаем drag, отменяем меню
-      clearTimeout(_lpt);
       _dragStart(_dragPending.dk, _dragPending.el, t.clientX, t.clientY);
       _dragPending = null;
     }
-    // Блокируем скролл пока есть dragPending на заполненном дне
-    // (preventDefault уже вызван в non-passive handler на #grid)
   }
 }
 
@@ -1278,25 +1247,35 @@ function te(e, dk) {
   _dragPending = null;
   e.currentTarget.classList.remove('press');
   if (_drag) {
-    clearTimeout(_lpt);
     const t = e.changedTouches[0];
     _dragEnd(t.clientX, t.clientY);
     return;
   }
-  if (_mv) { clearTimeout(_lpt); return; }
-  if (_menuShown) { clearTimeout(_lpt); return; }
-  clearTimeout(_lpt);
+  if (_mv) return;
 
+  const held = (Date.now() - _t0) >= 500;
   const t = e.changedTouches[0];
 
-  // Если есть буфер — показываем Вставить
-  if (_clipboard) {
+  if (held) {
+    navigator.vibrate && navigator.vibrate(28);
     showCtxMenu(dk, e.currentTarget, t.clientX, t.clientY);
     return;
   }
 
-  // Любой день: короткий тап → открыть модал
-  openModal(dk);
+  // Двойной тап — удалить
+  const now = Date.now();
+  if (_lastDk === dk && now - _lastTap < 400) {
+    clearTimeout(_dtTimer);
+    _lastTap = 0; _lastDk = null;
+    clrD(dk);
+    return;
+  }
+  _lastTap = now; _lastDk = dk;
+  clearTimeout(_dtTimer);
+  _dtTimer = setTimeout(() => {
+    _lastTap = 0; _lastDk = null;
+    openModal(dk);
+  }, 400);
 }
 function clrD(dk) {
   if (!days[dk]) return;
