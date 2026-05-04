@@ -1596,246 +1596,6 @@ function applyCfg() {
   window.renderEnt = renderEnt;
   window.fbInit = function(){};
 }
-</script>
-
-<!-- FIREBASE -->
-<script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, doc, setDoc, onSnapshot }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-
-const firebaseConfig = {
-  apiKey: "AIzaSyAhu9apuPi0o7Zwi_YbPikO3f5vKetNvi8",
-  authDomain: "freelancers-time-calendar.firebaseapp.com",
-  projectId: "freelancers-time-calendar",
-  storageBucket: "freelancers-time-calendar.firebasestorage.app",
-  messagingSenderId: "270890748637",
-  appId: "1:270890748637:web:e58fa74466758043c2e934"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-let _fbUid = null, _fbUnsub = null, _fbSaving = false;
-
-function fbStatus(msg) {
-  const el = document.getElementById('fbSyncStatus');
-  if (el) el.textContent = msg;
-}
-
-async function fbSave() {
-  if (!_fbUid || _fbSaving) return;
-  _fbSaving = true;
-  try {
-    await setDoc(doc(db, 'users', _fbUid, 'data', 'main'), {
-      days: JSON.stringify(window.days),
-      cfg: JSON.stringify(window.cfg),
-      ts: Date.now()
-    });
-    fbStatus('✓ Сохранено в облако');
-  } catch(e) { fbStatus('⚠ Ошибка сохранения'); }
-  _fbSaving = false;
-}
-
-function fbListen() {
-  if (_fbUnsub) _fbUnsub();
-  _fbUnsub = onSnapshot(doc(db, 'users', _fbUid, 'data', 'main'), snap => {
-    if (!snap.exists()) { fbSave(); return; }
-    const d = snap.data();
-    try {
-      const remoteDays = JSON.parse(d.days || '{}');
-      const remoteCfg  = JSON.parse(d.cfg  || '{}');
-      window.days = remoteDays;
-      Object.assign(window.cfg, remoteCfg);
-      window.saveD(); window.saveC();
-      window.applyCfg();
-      window.renderCal();
-      window.renderEnt();
-      fbStatus('✓ Синхронизировано');
-    } catch(e) {}
-  });
-}
-
-function fbUpdateUI(user) {
-  const signInBtn = document.getElementById('fbSignInBtn');
-  const userInfo  = document.getElementById('fbUserInfo');
-  if (!signInBtn || !userInfo) return;
-  if (user) {
-    signInBtn.style.display = 'none';
-    userInfo.style.display = 'block';
-    document.getElementById('fbAvatar').src = user.photoURL || '';
-    document.getElementById('fbName').textContent = user.displayName || '';
-    document.getElementById('fbEmail').textContent = user.email || '';
-  } else {
-    signInBtn.style.display = '';
-    userInfo.style.display = 'none';
-  }
-}
-
-onAuthStateChanged(auth, user => {
-  if (user) {
-    _fbUid = user.uid;
-    fbUpdateUI(user);
-    fbListen();
-    // Перехватываем saveD и saveC для автосинхронизации
-    const _origSaveD = window.saveD;
-    const _origSaveC = window.saveC;
-    window.saveD = function() { _origSaveD.call(this); fbSave(); };
-    window.saveC = function() { _origSaveC.call(this); fbSave(); };
-  } else {
-    _fbUid = null;
-    if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
-    fbUpdateUI(null);
-  }
-});
-
-window.fbSignIn = async function() {
-  try {
-    await signInWithPopup(auth, new GoogleAuthProvider());
-  } catch(e) { console.error(e); }
-};
-window.fbSignOut = async function() {
-  if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
-  await signOut(auth);
-};
-</script>
-
-<!-- LAYER 2 BADGE -->
-<div id="l2badge" onclick="openLayer2()">
-  <div class="l2dot">2</div>
-</div>
-
-<!-- LAYER 2 OVERLAY -->
-<div id="layer2">
-  <div id="l2header">
-    <div id="l2title">Второй слой</div>
-    <button id="l2close" onclick="closeLayer2()">✕</button>
-  </div>
-  <div id="l2body">
-    <div class="mnav">
-      <button class="marr" onclick="l2chM(-1)">‹</button>
-      <div class="mlbl" id="l2mLbl">Май 2026</div>
-      <button class="marr" onclick="l2chM(1)">›</button>
-    </div>
-    <div class="chdr">
-      <span>П</span><span>В</span><span>С</span><span>Ч</span><span>П</span>
-      <span class="we">С</span><span class="we">В</span>
-    </div>
-    <div class="cgrid" id="l2grid"></div>
-    <div id="l2entWrap"></div>
-  </div>
-</div>
-
-</body>
-</html>
-<script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, doc, setDoc, getDoc, onSnapshot }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-
-const firebaseConfig = {
-  apiKey: "AIzaSyAhu9apuPi0o7Zwi_YbPikO3f5vKetNvi8",
-  authDomain: "freelancers-time-calendar.firebaseapp.com",
-  projectId: "freelancers-time-calendar",
-  storageBucket: "freelancers-time-calendar.firebasestorage.app",
-  messagingSenderId: "270890748637",
-  appId: "1:270890748637:web:e58fa74466758043c2e934"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-let _fbUid = null, _fbUnsub = null, _fbSaving = false;
-
-function fbStatus(msg) {
-  const el = document.getElementById('fbSyncStatus');
-  if (el) el.textContent = msg;
-}
-
-async function fbSave() {
-  if (!_fbUid || _fbSaving) return;
-  _fbSaving = true;
-  try {
-    await setDoc(doc(db, 'users', _fbUid, 'data', 'main'), {
-      days: JSON.stringify(days),
-      cfg: JSON.stringify(cfg),
-      ts: Date.now()
-    });
-    fbStatus('✓ Сохранено в облако');
-  } catch(e) { fbStatus('⚠ Ошибка сохранения'); }
-  _fbSaving = false;
-}
-
-function fbListen() {
-  if (_fbUnsub) _fbUnsub();
-  _fbUnsub = onSnapshot(doc(db, 'users', _fbUid, 'data', 'main'), snap => {
-    if (!snap.exists()) return;
-    const d = snap.data();
-    const remoteDays = JSON.parse(d.days || '{}');
-    const remoteCfg  = JSON.parse(d.cfg  || '{}');
-    // Мёржим — берём более свежие данные
-    days = remoteDays;
-    Object.assign(cfg, remoteCfg);
-    saveD(); saveC();
-    applyCfg();
-    renderCal();
-    renderEnt();
-    fbStatus('✓ Данные синхронизированы');
-  });
-}
-
-function fbUpdateUI(user) {
-  const signInBtn  = document.getElementById('fbSignInBtn');
-  const userInfo   = document.getElementById('fbUserInfo');
-  if (!signInBtn || !userInfo) return;
-  if (user) {
-    signInBtn.style.display = 'none';
-    userInfo.style.display = 'block';
-    document.getElementById('fbAvatar').src = user.photoURL || '';
-    document.getElementById('fbName').textContent = user.displayName || '';
-    document.getElementById('fbEmail').textContent = user.email || '';
-  } else {
-    signInBtn.style.display = '';
-    userInfo.style.display = 'none';
-  }
-}
-
-onAuthStateChanged(auth, user => {
-  if (user) {
-    _fbUid = user.uid;
-    fbUpdateUI(user);
-    fbListen();
-    // Патчим saveD и saveC чтобы автосохранять в облако
-    const _origSaveD = window.saveD;
-    const _origSaveC = window.saveC;
-    window.saveD = function() { _origSaveD(); fbSave(); };
-    window.saveC = function() { _origSaveC(); fbSave(); };
-  } else {
-    _fbUid = null;
-    if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
-    fbUpdateUI(null);
-  }
-});
-
-window.fbInit = function() {}; // уже инициализировано через onAuthStateChanged
-
-window.fbSignIn = async function() {
-  try {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
-  } catch(e) { console.error('Sign in error', e); }
-};
-
-window.fbSignOut = async function() {
-  if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
-  await signOut(auth);
-};
 
 // ── LAYER 2 ──
 const l2days_key = 'ftc_d2';
@@ -2093,6 +1853,248 @@ const _origRenderCal = renderCal;
 window.renderCal = function() {
   _origRenderCal();
   updateL2Markers();
+};
+
+
+</script>
+
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, doc, setDoc, onSnapshot }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAhu9apuPi0o7Zwi_YbPikO3f5vKetNvi8",
+  authDomain: "freelancers-time-calendar.firebaseapp.com",
+  projectId: "freelancers-time-calendar",
+  storageBucket: "freelancers-time-calendar.firebasestorage.app",
+  messagingSenderId: "270890748637",
+  appId: "1:270890748637:web:e58fa74466758043c2e934"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let _fbUid = null, _fbUnsub = null, _fbSaving = false;
+
+function fbStatus(msg) {
+  const el = document.getElementById('fbSyncStatus');
+  if (el) el.textContent = msg;
+}
+
+async function fbSave() {
+  if (!_fbUid || _fbSaving) return;
+  _fbSaving = true;
+  try {
+    await setDoc(doc(db, 'users', _fbUid, 'data', 'main'), {
+      days: JSON.stringify(window.days),
+      cfg: JSON.stringify(window.cfg),
+      ts: Date.now()
+    });
+    fbStatus('✓ Сохранено в облако');
+  } catch(e) { fbStatus('⚠ Ошибка сохранения'); }
+  _fbSaving = false;
+}
+
+function fbListen() {
+  if (_fbUnsub) _fbUnsub();
+  _fbUnsub = onSnapshot(doc(db, 'users', _fbUid, 'data', 'main'), snap => {
+    if (!snap.exists()) { fbSave(); return; }
+    const d = snap.data();
+    try {
+      const remoteDays = JSON.parse(d.days || '{}');
+      const remoteCfg  = JSON.parse(d.cfg  || '{}');
+      window.days = remoteDays;
+      Object.assign(window.cfg, remoteCfg);
+      window.saveD(); window.saveC();
+      window.applyCfg();
+      window.renderCal();
+      window.renderEnt();
+      fbStatus('✓ Синхронизировано');
+    } catch(e) {}
+  });
+}
+
+function fbUpdateUI(user) {
+  const signInBtn = document.getElementById('fbSignInBtn');
+  const userInfo  = document.getElementById('fbUserInfo');
+  if (!signInBtn || !userInfo) return;
+  if (user) {
+    signInBtn.style.display = 'none';
+    userInfo.style.display = 'block';
+    document.getElementById('fbAvatar').src = user.photoURL || '';
+    document.getElementById('fbName').textContent = user.displayName || '';
+    document.getElementById('fbEmail').textContent = user.email || '';
+  } else {
+    signInBtn.style.display = '';
+    userInfo.style.display = 'none';
+  }
+}
+
+onAuthStateChanged(auth, user => {
+  if (user) {
+    _fbUid = user.uid;
+    fbUpdateUI(user);
+    fbListen();
+    // Перехватываем saveD и saveC для автосинхронизации
+    const _origSaveD = window.saveD;
+    const _origSaveC = window.saveC;
+    window.saveD = function() { _origSaveD.call(this); fbSave(); };
+    window.saveC = function() { _origSaveC.call(this); fbSave(); };
+  } else {
+    _fbUid = null;
+    if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
+    fbUpdateUI(null);
+  }
+});
+
+window.fbSignIn = async function() {
+  try {
+    await signInWithPopup(auth, new GoogleAuthProvider());
+  } catch(e) { console.error(e); }
+};
+window.fbSignOut = async function() {
+  if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
+  await signOut(auth);
+};
+</script>
+
+<!-- LAYER 2 BADGE -->
+<div id="l2badge" onclick="openLayer2()">
+  <div class="l2dot">2</div>
+</div>
+
+<!-- LAYER 2 OVERLAY -->
+<div id="layer2">
+  <div id="l2header">
+    <div id="l2title">Второй слой</div>
+    <button id="l2close" onclick="closeLayer2()">✕</button>
+  </div>
+  <div id="l2body">
+    <div class="mnav">
+      <button class="marr" onclick="l2chM(-1)">‹</button>
+      <div class="mlbl" id="l2mLbl">Май 2026</div>
+      <button class="marr" onclick="l2chM(1)">›</button>
+    </div>
+    <div class="chdr">
+      <span>П</span><span>В</span><span>С</span><span>Ч</span><span>П</span>
+      <span class="we">С</span><span class="we">В</span>
+    </div>
+    <div class="cgrid" id="l2grid"></div>
+    <div id="l2entWrap"></div>
+  </div>
+</div>
+
+</body>
+</html>
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, doc, setDoc, getDoc, onSnapshot }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAhu9apuPi0o7Zwi_YbPikO3f5vKetNvi8",
+  authDomain: "freelancers-time-calendar.firebaseapp.com",
+  projectId: "freelancers-time-calendar",
+  storageBucket: "freelancers-time-calendar.firebasestorage.app",
+  messagingSenderId: "270890748637",
+  appId: "1:270890748637:web:e58fa74466758043c2e934"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let _fbUid = null, _fbUnsub = null, _fbSaving = false;
+
+function fbStatus(msg) {
+  const el = document.getElementById('fbSyncStatus');
+  if (el) el.textContent = msg;
+}
+
+async function fbSave() {
+  if (!_fbUid || _fbSaving) return;
+  _fbSaving = true;
+  try {
+    await setDoc(doc(db, 'users', _fbUid, 'data', 'main'), {
+      days: JSON.stringify(days),
+      cfg: JSON.stringify(cfg),
+      ts: Date.now()
+    });
+    fbStatus('✓ Сохранено в облако');
+  } catch(e) { fbStatus('⚠ Ошибка сохранения'); }
+  _fbSaving = false;
+}
+
+function fbListen() {
+  if (_fbUnsub) _fbUnsub();
+  _fbUnsub = onSnapshot(doc(db, 'users', _fbUid, 'data', 'main'), snap => {
+    if (!snap.exists()) return;
+    const d = snap.data();
+    const remoteDays = JSON.parse(d.days || '{}');
+    const remoteCfg  = JSON.parse(d.cfg  || '{}');
+    // Мёржим — берём более свежие данные
+    days = remoteDays;
+    Object.assign(cfg, remoteCfg);
+    saveD(); saveC();
+    applyCfg();
+    renderCal();
+    renderEnt();
+    fbStatus('✓ Данные синхронизированы');
+  });
+}
+
+function fbUpdateUI(user) {
+  const signInBtn  = document.getElementById('fbSignInBtn');
+  const userInfo   = document.getElementById('fbUserInfo');
+  if (!signInBtn || !userInfo) return;
+  if (user) {
+    signInBtn.style.display = 'none';
+    userInfo.style.display = 'block';
+    document.getElementById('fbAvatar').src = user.photoURL || '';
+    document.getElementById('fbName').textContent = user.displayName || '';
+    document.getElementById('fbEmail').textContent = user.email || '';
+  } else {
+    signInBtn.style.display = '';
+    userInfo.style.display = 'none';
+  }
+}
+
+onAuthStateChanged(auth, user => {
+  if (user) {
+    _fbUid = user.uid;
+    fbUpdateUI(user);
+    fbListen();
+    // Патчим saveD и saveC чтобы автосохранять в облако
+    const _origSaveD = window.saveD;
+    const _origSaveC = window.saveC;
+    window.saveD = function() { _origSaveD(); fbSave(); };
+    window.saveC = function() { _origSaveC(); fbSave(); };
+  } else {
+    _fbUid = null;
+    if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
+    fbUpdateUI(null);
+  }
+});
+
+window.fbInit = function() {}; // уже инициализировано через onAuthStateChanged
+
+window.fbSignIn = async function() {
+  try {
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
+  } catch(e) { console.error('Sign in error', e); }
+};
+
+window.fbSignOut = async function() {
+  if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
+  await signOut(auth);
 };
 
 </script>
