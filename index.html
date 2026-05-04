@@ -1362,11 +1362,14 @@ function renderDcs() {
       ontouchend="dcLongEnd()"
       onmousedown="dcMouseLong(event,${i})"></div>`;
   });
-  // Кнопка добавить
-  h += `<div class="dc-cw dc-add" title="Добавить цвет">
-    <span style="font-size:18px;font-weight:300;color:#fff;line-height:1;">+</span>
-    <input type="color" value="${dc || '#324E44'}" oninput="addMyColor(this.value)" onchange="addMyColor(this.value)"/>
-  </div>`;
+  // Кнопка добавить (скрываем если достигнут лимит: 17 - 7 встроенных - 1 кнопка = 9 пользовательских)
+  const maxCustom = 9;
+  if ((cfg.myColors || []).length < maxCustom) {
+    h += `<div class="dc-cw dc-add" title="Добавить цвет">
+      <span style="font-size:18px;font-weight:300;color:#fff;line-height:1;">+</span>
+      <input type="color" value="${dc || '#324E44'}" onchange="addMyColor(this.value)"/>
+    </div>`;
+  }
   dcs.innerHTML = h;
 }
 
@@ -1694,6 +1697,7 @@ function goTab(tab, fromSwipe = false) {
   wrap.addEventListener('touchstart', e => {
     if (document.getElementById('modal').classList.contains('on')) return;
     if (e.target.type === 'range') return;
+    if (_drag) return;
     const t = e.touches[0];
     sx = t.clientX; sy = t.clientY;
     lastX = sx; lastT = Date.now(); velocity = 0;
@@ -1703,6 +1707,7 @@ function goTab(tab, fromSwipe = false) {
 
   wrap.addEventListener('touchmove', e => {
     if (document.getElementById('modal').classList.contains('on')) return;
+    if (_drag) return;
     const t = e.touches[0];
     const dx = t.clientX - sx, dy = t.clientY - sy;
     if (!axis && (Math.abs(dx) > 8 || Math.abs(dy) > 8))
@@ -1716,6 +1721,7 @@ function goTab(tab, fromSwipe = false) {
   }, { passive: true });
 
   wrap.addEventListener('touchend', e => {
+    if (_drag) return;
     if (!dragging) return;
     dragging = false;
     settle(e.changedTouches[0].clientX - sx);
@@ -2249,19 +2255,19 @@ function showCtxMenu(dk, el, x, y) {
   _ctxDk = dk; _ctxEl = el;
   const menu = document.getElementById('ctx-menu');
   const hasDat = !!days[dk];
+  const hasCb  = !!_clipboard;
 
-  document.getElementById('ctx-edit').style.display  = hasDat ? '' : 'none';
-  document.getElementById('ctx-copy').style.display  = hasDat ? '' : 'none';
-  document.getElementById('ctx-clear').style.display = hasDat ? '' : 'none';
-  document.getElementById('ctx-paste').style.display = (_clipboard && !hasDat) ? '' : 'none';
-
-  // Если нет данных и нет буфера — не показываем меню
-  if (!hasDat && !_clipboard) {
+  // Нет буфера: показываем «Копировать» только если день заполнен
+  // Есть буфер: показываем «Вставить» всегда (можно вставить и поверх)
+  if (!hasDat && !hasCb) {
+    // Пустой день и нет буфера — открываем модал как обычно
     openModal(dk); return;
   }
 
-  // Позиция: стараемся не вылезти за края
-  const mw = 200, mh = 160;
+  document.getElementById('ctx-copy').style.display  = !hasCb ? '' : 'none';
+  document.getElementById('ctx-paste').style.display = hasCb  ? '' : 'none';
+
+  const mw = 190, mh = 56;
   let lx = x, ly = y + 12;
   if (lx + mw > window.innerWidth  - 12) lx = window.innerWidth  - mw - 12;
   if (ly + mh > window.innerHeight - 12) ly = y - mh - 12;
@@ -2269,7 +2275,6 @@ function showCtxMenu(dk, el, x, y) {
   menu.style.top  = ly + 'px';
   menu.classList.add('on');
 
-  // Закрываем по тапу вне меню
   setTimeout(() => {
     document.addEventListener('touchstart', closeCtxMenu, { once: true, passive: true });
     document.addEventListener('mousedown',  closeCtxMenu, { once: true });
@@ -2299,9 +2304,6 @@ function ctxPaste() {
   if (!_clipboard || !_ctxDk) return;
   days[_ctxDk] = JSON.parse(JSON.stringify(_clipboard));
   saveD(); renderCal(); renderEnt(); updateL2Markers();
-  // Сбрасываем буфер и подсветку
-  _clipboard = null;
-  document.querySelectorAll('#grid .dot.copied').forEach(e => e.classList.remove('copied'));
   closeCtxMenu();
 }
 
@@ -2484,17 +2486,14 @@ window.fbSignOut = async function() {
 
 <!-- COLOR EDIT CTX -->
 <div id="color-ctx">
-  <div class="cctx-item" id="cctx-edit" onclick="cctxEdit()">✏️ &nbsp;Изменить цвет</div>
   <div class="cctx-item danger" onclick="cctxDelete()">🗑 &nbsp;Удалить</div>
 </div>
 <input type="color" id="cctx-input" style="position:fixed;opacity:0;pointer-events:none;width:0;height:0;" oninput="cctxApplyEdit(this.value)"/>
 
 <!-- CONTEXT MENU -->
 <div id="ctx-menu">
-  <div class="ctx-item" id="ctx-edit"    onclick="ctxEdit()">  <span class="ctx-icon">✏️</span> Изменить</div>
-  <div class="ctx-item" id="ctx-copy"    onclick="ctxCopy()">  <span class="ctx-icon">📋</span> Копировать</div>
+  <div class="ctx-item" id="ctx-copy"  onclick="ctxCopy()"><span class="ctx-icon">📋</span> Копировать</div>
   <div class="ctx-item paste-item" id="ctx-paste" onclick="ctxPaste()" style="display:none"><span class="ctx-icon">📌</span> Вставить</div>
-  <div class="ctx-item danger" id="ctx-clear"   onclick="ctxClear()" style="display:none"><span class="ctx-icon">🗑</span> Удалить</div>
 </div>
 </body>
 </html>
