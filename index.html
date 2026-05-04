@@ -100,7 +100,10 @@ button { font-family: inherit; cursor: pointer; }
 .tbtn.on { opacity: 1; }
 
 /* ── BIG DATE ── */
-.big { font-family: 'DM Serif Display', serif; font-size: clamp(96px, 26vw, 144px); line-height: .88; letter-spacing: -3px; color: var(--text); }
+.big { font-family: 'DM Serif Display', serif; font-size: clamp(72px, 20dvmin, 144px); line-height: .88; letter-spacing: -3px; color: var(--text); }
+@media (orientation: landscape) {
+  .big { font-size: clamp(48px, 12dvh, 96px); }
+}
 .bigrow { display: flex; justify-content: space-between; align-items: baseline; margin: 8px 0 26px; }
 .bigmon { font-size: 16px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--text); }
 .bigyr  { font-size: 13px; color: var(--text3); margin-left: 6px; }
@@ -116,7 +119,7 @@ button { font-family: inherit; cursor: pointer; }
 .chdr { display: grid; grid-template-columns: repeat(7,1fr); margin-bottom: 8px; }
 .chdr span { text-align: center; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text3); }
 .chdr .we { color: var(--accent); }
-.cgrid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; }
+.cgrid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; width: 100%; }
 @media (hover: hover) and (pointer: fine) {
   /* Wider shell */
   #app { max-width: 1100px; margin: 0 auto; }
@@ -175,6 +178,7 @@ button { font-family: inherit; cursor: pointer; }
   transition: transform .12s ease;
   cursor: pointer;
   background: var(--dot-bg, rgba(0,0,0,.08));
+  max-width: 52px; max-height: 52px; width: 100%; justify-self: center;
 }
 .dot.past   { background: var(--dot-past, rgba(0,0,0,.1)); }
 .dot.today  { background: var(--dot-today-bg, rgba(0,0,0,0.12)); box-shadow: 0 0 0 2px var(--dot-today, var(--accent)); }
@@ -969,31 +973,27 @@ renderBig();
 renderCal();
 renderEnt();
 
-// Фикс поворота экрана на iOS: принудительно задаём размеры через JS
+// Фикс поворота экрана: форсируем reflow grid-а после поворота
 (function() {
-  var app = document.getElementById('app');
-  function fixSize() {
-    // Используем visualViewport если доступен — он даёт реальные размеры после поворота
-    var vvp = window.visualViewport;
-    var w = vvp ? vvp.width  : window.innerWidth;
-    var h = vvp ? vvp.height : window.innerHeight;
-    app.style.width  = w + 'px';
-    app.style.height = h + 'px';
-    app.style.top    = (vvp ? vvp.offsetTop  : 0) + 'px';
-    app.style.left   = (vvp ? vvp.offsetLeft : 0) + 'px';
-    app.style.position = 'fixed';
+  function forceReflow() {
+    var grid = document.getElementById('grid');
+    var l2grid = document.getElementById('l2grid');
+    // Скрываем и показываем grid — это сбрасывает закешированные размеры ячеек
+    [grid, l2grid].forEach(function(g) {
+      if (!g) return;
+      g.style.display = 'none';
+      void g.offsetHeight; // trigger reflow
+      g.style.display = '';
+    });
   }
-  fixSize();
-  window.addEventListener('resize', fixSize);
   window.addEventListener('orientationchange', function() {
-    // Двойная задержка: iOS анимирует поворот ~300ms
-    setTimeout(fixSize, 50);
-    setTimeout(fixSize, 350);
+    setTimeout(forceReflow, 100);
+    setTimeout(forceReflow, 400);
   });
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', fixSize);
-    window.visualViewport.addEventListener('scroll', fixSize);
-  }
+  window.addEventListener('resize', function() {
+    clearTimeout(window._rfTimer);
+    window._rfTimer = setTimeout(forceReflow, 150);
+  });
 })();
 
 // ── BIG DATE ──
