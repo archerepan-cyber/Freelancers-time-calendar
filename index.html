@@ -122,8 +122,23 @@ button { font-family: inherit; cursor: pointer; }
 .dot.work   { /* color set via inline style */ }
 .dot.empty  { background: transparent; pointer-events: none; }
 .dot.press  { transform: scale(.82); }
-.dot .pip { position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); width: 3px; height: 3px; border-radius: 50%; background: rgba(255,255,255,.8); display: none; }
+.dot .pip { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 3px; height: 3px; border-radius: 50%; background: rgba(255,255,255,.8); display: none; }
 .dot.has .pip { display: block; }
+.dot .dnum {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding-bottom: 6px;
+  font-size: clamp(8px, 2.6vw, 13px);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text);
+  opacity: .55;
+  pointer-events: none;
+  letter-spacing: 0;
+}
+.dot.work .dnum  { color: #fff; opacity: .82; }
+.dot.today .dnum { color: var(--text); opacity: .75; }
+.dot.past .dnum  { opacity: .38; }
 
 /* ── ENTRIES ── */
 .slbl { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); margin: 26px 0 10px; }
@@ -892,6 +907,7 @@ function renderCal() {
       ontouchend="te(event,'${dk}')"
 >
       <div class="pip"></div>
+      <div class="dnum">${d}</div>
     </div>`;
   }
   document.getElementById('grid').innerHTML = h;
