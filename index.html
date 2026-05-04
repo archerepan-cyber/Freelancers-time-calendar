@@ -347,10 +347,10 @@ button { font-family: inherit; cursor: pointer; }
 <!-- CONTEXT MENU -->
 <div id="ctxMenu">
   <button class="ctx-item" id="ctxCopy" onclick="ctxDoCopy()">
-    <span class="ctx-icon">📋</span> Копировать
+    Копировать
   </button>
   <button class="ctx-item paste" id="ctxPaste" onclick="ctxDoPaste()">
-    <span class="ctx-icon">📌</span> Вставить
+    Вставить
   </button>
 </div>
 
@@ -907,13 +907,14 @@ function showCtxMenu(e, dk, showCopy, showPaste) {
   document.getElementById('ctxCopy').style.display  = showCopy  ? '' : 'none';
   document.getElementById('ctxPaste').style.display = showPaste ? '' : 'none';
 
-  // Position near the touched dot, keep inside viewport
+  // Position above the touched dot, keep inside viewport
   const touch = e.changedTouches ? e.changedTouches[0] : e.touches[0];
   const vw = window.innerWidth, vh = window.innerHeight;
-  let x = touch.clientX - 80, y = touch.clientY + 16;
+  const menuH = 96; // approx height of menu
+  let x = touch.clientX - 80, y = touch.clientY - menuH - 14;
   if (x < 10) x = 10;
   if (x + 170 > vw) x = vw - 178;
-  if (y + 110 > vh) y = touch.clientY - 120;
+  if (y < 8) y = touch.clientY + 14; // fallback below if too close to top
   menu.style.left = x + 'px';
   menu.style.top  = y + 'px';
   menu.classList.add('on');
