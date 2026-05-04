@@ -34,6 +34,10 @@
 /* ── RESET ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 html, body { height: 100%; overflow: hidden; }
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); }
 input, textarea, select { font-family: inherit; user-select: text; -webkit-user-select: text; }
 button { font-family: inherit; cursor: pointer; }
@@ -960,6 +964,37 @@ renderBig();
 renderCal();
 renderEnt();
 
+// Сброс масштаба при повороте экрана (iOS увеличивает viewport)
+(function() {
+  function resetViewport() {
+    const mv = document.querySelector('meta[name=viewport]');
+    if (!mv) return;
+    // Временно разрешаем масштабирование, потом снова блокируем — это сбрасывает zoom
+    mv.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+    // Принудительно сбрасываем через небольшую задержку после поворота
+    setTimeout(() => {
+      mv.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+      document.documentElement.style.zoom = '1';
+    }, 300);
+  }
+  window.addEventListener('orientationchange', resetViewport);
+  window.addEventListener('resize', () => {
+    // Сбрасываем если масштаб стал больше 1 (визуально экран "увеличен")
+    if (window.visualViewport && window.visualViewport.scale > 1.01) {
+      document.documentElement.style.zoom = '1';
+      resetViewport();
+    }
+  });
+  // visualViewport API — самый надёжный способ поймать нежелательный zoom
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+      if (window.visualViewport.scale > 1.01) {
+        resetViewport();
+      }
+    });
+  }
+})();
+
 // ── BIG DATE ──
 function renderBig() {
   const t = new Date();
@@ -1614,6 +1649,7 @@ function saveL2() { localStorage.setItem(l2days_key, JSON.stringify(l2days)); }
 function openLayer2() {
   _l2open = true;
   document.getElementById('layer2').classList.add('open');
+  document.getElementById('l2badge').classList.add('hidden');
   l2vy = vy; l2vm = vm; // синхронизируем месяц с главным
   renderL2Cal();
   renderL2Ent();
@@ -1626,6 +1662,7 @@ function closeLayer2() {
   el.classList.add('closing');
   el.addEventListener('transitionend', () => {
     el.classList.remove('open', 'closing');
+    document.getElementById('l2badge').classList.remove('hidden');
   }, { once: true });
 }
 
@@ -1863,6 +1900,7 @@ document.addEventListener('DOMContentLoaded', function(){
         l2el.classList.remove('open','closing');
         l2el.style.transform='';
         l2el.style.transition='';
+        document.getElementById('l2badge').classList.remove('hidden');
       }, {once:true});
     } else {
       l2el.style.transform='translateY(0)';
