@@ -294,6 +294,22 @@ button { font-family: inherit; cursor: pointer; }
 .te-reset { flex: 1; padding: 14px; border-radius: 14px; background: var(--bg3); border: none; font-size: 15px; font-weight: 600; color: var(--text2); touch-action: manipulation; }
 .te-save  { flex: 2; padding: 14px; border-radius: 14px; background: var(--accent); border: none; font-size: 15px; font-weight: 600; color: #fff; touch-action: manipulation; }
 
+/* ── COPY/PASTE TOAST ── */
+#cpToast {
+  position: fixed; z-index: 999;
+  bottom: calc(var(--sb) + 80px); left: 50%; transform: translateX(-50%) translateY(12px);
+  background: var(--text); color: var(--bg);
+  font-size: 14px; font-weight: 600; letter-spacing: .3px;
+  padding: 10px 22px; border-radius: 100px;
+  pointer-events: none; opacity: 0;
+  transition: opacity .22s, transform .22s;
+  white-space: nowrap;
+}
+#cpToast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.dot.copy-src {
+  box-shadow: 0 0 0 3px var(--accent), 0 0 0 5.5px rgba(208,57,27,.25) !important;
+}
+
 /* ── MODAL ── */
 .mover {
   position: fixed; inset: 0; z-index: 300;
@@ -480,6 +496,9 @@ button { font-family: inherit; cursor: pointer; }
     <button class="tbtn" id="tbS" onclick="goTab('sett')">⚙️</button>
   </div>
 </div>
+
+<!-- COPY/PASTE TOAST -->
+<div id="cpToast"></div>
 
 <!-- DAY MODAL -->
 <div class="mover" id="modal" onclick="if(event.target===this)closeModal()">
@@ -928,7 +947,7 @@ function renderCal() {
     else if (isP)   { cls += ' past'; }
     else            { cls += ' future'; }
     if (dd) cls += ' has';
-    h += `<div class="${cls}" style="${sty}"
+    h += `<div class="${cls}" style="${sty}" data-dk="${dk}"
       ontouchstart="ts(event,'${dk}')"
       ontouchmove="tm()"
       ontouchend="te(event,'${dk}')"
@@ -939,6 +958,56 @@ function renderCal() {
     </div>`;
   }
   document.getElementById('grid').innerHTML = h;
+  // Restore copy-src highlight if clipboard is active
+  if (_cpClip) setCopySrc(_cpClip.dk);
+}
+
+// ── COPY / PASTE ──
+let _cpClip = null; // { dk, data } — скопированный день
+
+function showToast(msg, dur = 1800) {
+  const t = document.getElementById('cpToast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), dur);
+}
+
+function setCopySrc(dk) {
+  document.querySelectorAll('.dot.copy-src').forEach(e => e.classList.remove('copy-src'));
+  if (dk) {
+    document.querySelectorAll('#grid .dot[data-dk]').forEach(el => {
+      if (el.dataset.dk === dk) el.classList.add('copy-src');
+    });
+  }
+}
+
+function longPressAction(dk) {
+  navigator.vibrate && navigator.vibrate(32);
+  if (!_cpClip) {
+    // Первый long-press — копировать (только если день заполнен)
+    if (!days[dk]) {
+      showToast('День пустой — нечего копировать');
+      return;
+    }
+    _cpClip = { dk, data: JSON.parse(JSON.stringify(days[dk])) };
+    setCopySrc(dk);
+    showToast('📋 Скопировано', 2500);
+  } else if (_cpClip.dk === dk) {
+    // Long-press на тот же день — отмена
+    _cpClip = null;
+    setCopySrc(null);
+    showToast('Копирование отменено');
+  } else {
+    // Второй long-press на другой день — вставить
+    days[dk] = JSON.parse(JSON.stringify(_cpClip.data));
+    saveD(); renderCal(); renderEnt();
+    const src = _cpClip.dk;
+    _cpClip = null;
+    setCopySrc(null);
+    navigator.vibrate && navigator.vibrate([18, 25, 18]);
+    showToast('✅ Вставлено');
+  }
 }
 
 // ── TOUCH ──
@@ -951,8 +1020,7 @@ function ts(e, dk) {
   el.classList.add('press');
   _lpt = setTimeout(() => {
     el.classList.remove('press');
-    navigator.vibrate && navigator.vibrate(28);
-    openModal(dk);
+    longPressAction(dk);
   }, 500);
 }
 function tm() {
@@ -965,6 +1033,16 @@ function te(e, dk) {
   e.currentTarget.classList.remove('press');
   if (_mv) return;
   if (Date.now() - _t0 >= 500) return;
+  // Если режим вставки — одиночный тап тоже вставляет
+  if (_cpClip && _cpClip.dk !== dk) {
+    days[dk] = JSON.parse(JSON.stringify(_cpClip.data));
+    saveD(); renderCal(); renderEnt();
+    navigator.vibrate && navigator.vibrate([18, 25, 18]);
+    _cpClip = null;
+    setCopySrc(null);
+    showToast('✅ Вставлено');
+    return;
+  }
   const now = Date.now();
   if (_lastDk === dk && now - _lastTap < 350) {
     clearTimeout(_dtTimer);
@@ -1006,7 +1084,7 @@ function ms(e, dk) {
   el.classList.add('press');
   _msLpt = setTimeout(() => {
     el.classList.remove('press');
-    openModal(dk);
+    longPressAction(dk);
   }, 500);
 }
 function mu(e, dk) {
@@ -1014,6 +1092,15 @@ function mu(e, dk) {
   clearTimeout(_msLpt);
   e.currentTarget.classList.remove('press');
   if (Date.now() - _ms0 >= 500) return;
+  // Если режим вставки — одиночный клик тоже вставляет
+  if (_cpClip && _cpClip.dk !== dk) {
+    days[dk] = JSON.parse(JSON.stringify(_cpClip.data));
+    saveD(); renderCal(); renderEnt();
+    _cpClip = null;
+    setCopySrc(null);
+    showToast('✅ Вставлено');
+    return;
+  }
   const now = Date.now();
   if (_mLastDk === dk && now - _mLastTap < 350) {
     clearTimeout(_mDtTimer);
