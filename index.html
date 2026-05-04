@@ -34,15 +34,6 @@
 /* ── RESET ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 html, body { height: 100%; overflow: hidden; }
-html {
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
-/* На мобиле используем dvh чтобы корректно обрабатывать поворот */
-@supports (height: 100dvh) {
-  html, body { height: 100dvh; }
-  #app { height: 100dvh; }
-}
 body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); }
 input, textarea, select { font-family: inherit; user-select: text; -webkit-user-select: text; }
 button { font-family: inherit; cursor: pointer; }
@@ -100,10 +91,7 @@ button { font-family: inherit; cursor: pointer; }
 .tbtn.on { opacity: 1; }
 
 /* ── BIG DATE ── */
-.big { font-family: 'DM Serif Display', serif; font-size: clamp(72px, 20dvmin, 144px); line-height: .88; letter-spacing: -3px; color: var(--text); }
-@media (orientation: landscape) {
-  .big { font-size: clamp(48px, 12dvh, 96px); }
-}
+.big { font-family: 'DM Serif Display', serif; font-size: clamp(96px, 26vw, 144px); line-height: .88; letter-spacing: -3px; color: var(--text); }
 .bigrow { display: flex; justify-content: space-between; align-items: baseline; margin: 8px 0 26px; }
 .bigmon { font-size: 16px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--text); }
 .bigyr  { font-size: 13px; color: var(--text3); margin-left: 6px; }
@@ -119,7 +107,7 @@ button { font-family: inherit; cursor: pointer; }
 .chdr { display: grid; grid-template-columns: repeat(7,1fr); margin-bottom: 8px; }
 .chdr span { text-align: center; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text3); }
 .chdr .we { color: var(--accent); }
-.cgrid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; width: 100%; }
+.cgrid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; }
 @media (hover: hover) and (pointer: fine) {
   /* Wider shell */
   #app { max-width: 1100px; margin: 0 auto; }
@@ -178,7 +166,6 @@ button { font-family: inherit; cursor: pointer; }
   transition: transform .12s ease;
   cursor: pointer;
   background: var(--dot-bg, rgba(0,0,0,.08));
-  max-width: 52px; max-height: 52px; width: 100%; justify-self: center;
 }
 .dot.past   { background: var(--dot-past, rgba(0,0,0,.1)); }
 .dot.today  { background: var(--dot-today-bg, rgba(0,0,0,0.12)); box-shadow: 0 0 0 2px var(--dot-today, var(--accent)); }
@@ -186,58 +173,8 @@ button { font-family: inherit; cursor: pointer; }
 .dot.work   { /* color set via inline style */ }
 .dot.empty  { background: transparent; pointer-events: none; }
 .dot.press  { transform: scale(.82); }
-.dot.drag-src { opacity: .35; transform: scale(.9); }
-/* Context menu */
-#ctx-menu {
-  position: fixed; z-index: 998; min-width: 180px;
-  background: var(--bg2); border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0,0,0,.22), 0 0 0 .5px rgba(0,0,0,.08);
-  overflow: hidden;
-  opacity: 0; transform: scale(.85); pointer-events: none;
-  transition: opacity .18s ease, transform .18s ease;
-  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-}
-#ctx-menu.on { opacity: 1; transform: scale(1); pointer-events: auto; }
-.ctx-item {
-  display: flex; align-items: center; gap: 12px;
-  padding: 15px 18px; font-size: 15px; font-weight: 500;
-  color: var(--text); cursor: pointer; touch-action: manipulation;
-  border-bottom: .5px solid var(--sep);
-}
-.ctx-item:last-child { border-bottom: none; }
-.ctx-item:active { background: var(--bg3); }
-.ctx-item .ctx-icon { font-size: 18px; width: 22px; text-align: center; }
-.ctx-item.paste-item .ctx-icon { color: var(--accent); }
-.ctx-item.paste-item { color: var(--accent); }
-.ctx-item.danger { color: #c0392b; }
-/* Подсветка дня в буфере */
-.dot.copied { box-shadow: 0 0 0 3px var(--accent); }
-.dot.drag-over { transform: scale(1.12); box-shadow: 0 0 0 3px var(--accent); }
-#drag-ghost {
-  position: fixed; z-index: 999; pointer-events: none;
-  border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 700; color: #fff;
-  box-shadow: 0 8px 24px rgba(0,0,0,.28);
-  transform: translate(-50%,-50%) scale(1.15);
-  transition: none;
-  opacity: .92;
-}
-.dot .dnum {
-  position: absolute; inset: 0;
-  display: flex; align-items: center; justify-content: center;
-  font-size: clamp(9px, 2.8vw, 14px);
-  font-weight: 600;
-  color: var(--text);
-  line-height: 1;
-  pointer-events: none;
-  user-select: none;
-}
-.dot.work .dnum  { color: rgba(255,255,255,.9); }
-.dot.today .dnum { color: var(--text); }
-.dot.future .dnum { color: var(--text3); }
-.dot.past .dnum  { color: var(--text3); }
 .dot .pip { position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); width: 3px; height: 3px; border-radius: 50%; background: rgba(255,255,255,.8); display: none; }
-.dot.has .pip { display: none; }
+.dot.has .pip { display: block; }
 
 /* ── ENTRIES ── */
 .slbl { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); margin: 26px 0 10px; }
@@ -407,145 +344,14 @@ button { font-family: inherit; cursor: pointer; }
 }
 .dc-cw span { pointer-events: none; font-size: 11px; }
 .dc-cw input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
-/* Два ряда максимум */
-.dcs { max-height: 76px; overflow: hidden; }
-/* Кнопка подтверждения нового цвета */
-#color-confirm {
-  display: none; align-items: center; gap: 8px; margin-top: 8px;
-}
-#color-confirm .cc-swatch {
-  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
-  border: 2px solid var(--sep);
-}
-#color-confirm .cc-btn {
-  flex: 1; padding: 7px 12px; border-radius: 9px; border: none;
-  background: var(--accent); color: #fff; font-size: 13px; font-weight: 600;
-  touch-action: manipulation; cursor: pointer;
-}
-#color-confirm .cc-cancel {
-  padding: 7px 10px; border-radius: 9px; border: none;
-  background: var(--bg3); color: var(--text2); font-size: 13px;
-  touch-action: manipulation; cursor: pointer;
-}
-/* Меню редактирования кастомного цвета */
-#color-ctx {
-  position: fixed; z-index: 999; min-width: 160px;
-  background: var(--bg2); border-radius: 14px;
-  box-shadow: 0 8px 28px rgba(0,0,0,.2), 0 0 0 .5px rgba(0,0,0,.08);
-  overflow: hidden; opacity: 0; transform: scale(.85);
-  pointer-events: none; transition: opacity .15s, transform .15s;
-  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-}
-#color-ctx.on { opacity: 1; transform: scale(1); pointer-events: auto; }
-.cctx-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 13px 16px; font-size: 14px; font-weight: 500; color: var(--text);
-  cursor: pointer; touch-action: manipulation;
-  border-bottom: .5px solid var(--sep);
-}
-.cctx-item:last-child { border-bottom: none; }
-.cctx-item:active { background: var(--bg3); }
-.cctx-item.danger { color: #c0392b; }
-/* Кружок «добавить свой» теперь всегда последний */
-.dc-add { opacity: .7; }
 
 .xlist .xrow2 { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
 .xlist .xrow2 input { flex: 1; min-width: 0; }
 .xlist .xrow2 .xdel { background: none; border: none; font-size: 20px; color: var(--text3); touch-action: manipulation; flex-shrink: 0; padding: 4px; }
 .addx { width: 100%; padding: 10px; border-radius: 10px; border: 1.5px dashed var(--text3); background: none; font-size: 13px; color: var(--text3); touch-action: manipulation; margin-bottom: 14px; }
-.sum-btn {
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 9px 14px; border-radius: 10px; border: none;
-  background: var(--bg3); color: var(--text2); font-size: 12px; font-weight: 600;
-  touch-action: manipulation; cursor: pointer; margin-top: 8px;
-  transition: background .12s; white-space: nowrap;
-}
-.sum-btn:active { background: var(--sep); }
-#combined-wrap { margin-top: 16px; padding-bottom: 20px; }
-#combined-wrap .slbl { margin-bottom: 8px; }
-.layer-tag {
-  display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 1px;
-  padding: 2px 5px; border-radius: 5px; margin-left: 4px;
-  background: var(--bg3); color: var(--text3); vertical-align: middle;
-}
 .mact { display: flex; gap: 10px; margin-top: 16px; }
 .btnc { flex: 1; padding: 14px; border-radius: 14px; background: var(--bg3); border: none; font-size: 15px; font-weight: 600; color: var(--text2); touch-action: manipulation; }
 .btno { flex: 2; padding: 14px; border-radius: 14px; background: var(--accent); border: none; font-size: 15px; font-weight: 600; color: #fff; touch-action: manipulation; }
-
-/* ── LAYER 2 ── */
-#layer2 {
-  position: fixed; inset: 0; z-index: 10;
-  background: var(--bg);
-  display: flex; flex-direction: column;
-  transform: translateY(100%);
-  transition: transform .42s cubic-bezier(.25,0.46,0.45,0.94);
-  -webkit-backface-visibility: hidden;
-}
-#layer2.open { transform: translateY(0); }
-#layer2.closing { transform: translateY(100%); }
-
-#l2header {
-  flex-shrink: 0;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: calc(var(--st) + 16px) 22px 8px;
-  background: var(--bg2);
-  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-  border-bottom: .5px solid var(--sep);
-}
-#l2title { font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text2); }
-#l2close {
-  width: 34px; height: 34px; border-radius: 50%; border: none;
-  background: var(--bg3); color: var(--text2); font-size: 18px;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; touch-action: manipulation; flex-shrink: 0;
-}
-#l2body {
-  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-  padding: 20px 22px 40px;
-}
-
-/* Layer2 calendar reuses main styles — just wrap */
-#l2body .cgrid { margin-top: 0; }
-
-/* Маркер второго слоя на кружке-дне: цветная точка в северо-восточном углу */
-.dot .l2pip {
-  position: absolute; top: 2px; right: 2px;
-  width: 11px; height: 11px; border-radius: 50%;
-  border: 2px solid var(--bg);
-  display: none; z-index: 1;
-  box-shadow: 0 1px 3px rgba(0,0,0,.25);
-}
-.dot.l2has .l2pip { display: block; }
-
-/* Кружок «2» в правом верхнем углу экрана */
-#l2badge {
-  position: fixed; top: calc(var(--st) + 14px); right: 18px; z-index: 8;
-  display: flex; align-items: center; gap: 6px;
-  cursor: pointer; touch-action: manipulation;
-  opacity: 1; transition: opacity .25s;
-  pointer-events: auto;
-}
-#l2badge.hidden { opacity: 0; pointer-events: none; }
-#l2badge .l2dot {
-  width: 28px; height: 28px; border-radius: 50%;
-  background: var(--accent); color: #fff;
-  font-size: 13px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,.18);
-}
-#l2badge .l2num {
-  font-size: 13px; font-weight: 700;
-  color: var(--accent);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  #l2body { padding: calc(var(--st) + 20px) 48px 96px; }
-  #l2header { padding: calc(var(--st) + 16px) 48px 8px; }
-  #l2badge { right: calc(50% - 550px + 18px); }
-  #l2badge { right: 18px; } /* fallback simple */
-}
-
 </style>
 </head>
 <body>
@@ -683,11 +489,18 @@ button { font-family: inherit; cursor: pointer; }
 
     <div class="fg">
       <label class="fl">Цвет дня</label>
-      <div class="dcs" id="dcs"></div>
-      <div id="color-confirm">
-        <div class="cc-swatch" id="cc-swatch"></div>
-        <button class="cc-btn" onclick="confirmMyColor()">Добавить</button>
-        <button class="cc-cancel" onclick="cancelMyColor()">✕</button>
+      <div class="dcs" id="dcs">
+        <div class="dc on" style="background:#324E44;" data-c="#324E44" onclick="pickC('#324E44',this)"></div>
+        <div class="dc" style="background:#D0391B;" data-c="#D0391B" onclick="pickC('#D0391B',this)"></div>
+        <div class="dc" style="background:#FBC359;" data-c="#FBC359" onclick="pickC('#FBC359',this)"></div>
+        <div class="dc" style="background:#7BA7AF;" data-c="#7BA7AF" onclick="pickC('#7BA7AF',this)"></div>
+        <div class="dc" style="background:#9F4125;" data-c="#9F4125" onclick="pickC('#9F4125',this)"></div>
+        <div class="dc" style="background:#73A642;" data-c="#73A642" onclick="pickC('#73A642',this)"></div>
+        <div class="dc" style="background:#4E6851;" data-c="#4E6851" onclick="pickC('#4E6851',this)"></div>
+        <div class="dc-cw" title="Свой цвет">
+          <span style="font-size:18px;font-weight:300;color:#fff;line-height:1;">+</span>
+          <input type="color" value="#324E44" oninput="pickCHex(this.value)"/>
+        </div>
       </div>
     </div>
 
@@ -1072,27 +885,6 @@ renderBig();
 renderCal();
 renderEnt();
 
-// Фикс поворота экрана в PWA: перерисовываем календарь после поворота
-(function() {
-  var lastW = window.innerWidth;
-  function onRotate() {
-    var newW = window.innerWidth;
-    if (newW === lastW) return; // реального поворота не было
-    lastW = newW;
-    // Перерисовываем календарь — это пересчитывает grid без display:none
-    renderCal();
-    if (typeof renderL2Cal === 'function') renderL2Cal();
-  }
-  window.addEventListener('orientationchange', function() {
-    setTimeout(onRotate, 350);
-  });
-  if (window.screen && window.screen.orientation) {
-    window.screen.orientation.addEventListener('change', function() {
-      setTimeout(onRotate, 350);
-    });
-  }
-})();
-
 // ── BIG DATE ──
 function renderBig() {
   const t = new Date();
@@ -1138,156 +930,39 @@ function renderCal() {
     if (dd) cls += ' has';
     h += `<div class="${cls}" style="${sty}"
       ontouchstart="ts(event,'${dk}')"
+      ontouchmove="tm()"
       ontouchend="te(event,'${dk}')"
       onmousedown="ms(event,'${dk}')"
       onmouseup="mu(event,'${dk}')"
-><div class="dnum">${d}</div><div class="pip"></div></div>`;
+>
+      <div class="pip"></div>
+    </div>`;
   }
   document.getElementById('grid').innerHTML = h;
-  // non-passive чтобы можно было вызвать preventDefault во время drag
-  document.getElementById('grid')._tmBound && document.getElementById('grid').removeEventListener('touchmove', document.getElementById('grid')._tmBound);
-  const _tmHandler = e => {
-    if (_drag) { e.preventDefault(); }
-    tm(e);
-  };
-  document.getElementById('grid')._tmBound = _tmHandler;
-  document.getElementById('grid').addEventListener('touchmove', _tmHandler, { passive: false });
 }
 
 // ── TOUCH ──
 let _t0 = 0, _mv = false, _lpt = null;
 let _lastTap = 0, _lastDk = null, _dtTimer = null;
 
-// ── DRAG STATE ──
-let _drag = false, _dragDk = null, _dragGhost = null, _dragOver = null;
-
-function _dotFromPoint(x, y) {
-  // Временно скрываем ghost чтобы elementFromPoint нашёл dot под ним
-  if (_dragGhost) _dragGhost.style.display = 'none';
-  const el = document.elementFromPoint(x, y);
-  if (_dragGhost) _dragGhost.style.display = '';
-  if (!el) return null;
-  return el.closest('#grid .dot:not(.empty)');
-}
-
-function _dragStart(dk, el, x, y) {
-  if (!days[dk]) return; // тащить можно только заполненный день
-  _drag = true; _dragDk = dk;
-  el.classList.add('drag-src');
-  navigator.vibrate && navigator.vibrate([15, 30, 15]);
-  // Ghost
-  const size = el.offsetWidth;
-  const ghost = document.createElement('div');
-  ghost.id = 'drag-ghost';
-  ghost.style.cssText = `width:${size}px;height:${size}px;background:${days[dk].color||'#888'};left:${x}px;top:${y}px;`;
-  const num = dk.split('-')[2];
-  ghost.textContent = parseInt(num, 10);
-  document.body.appendChild(ghost);
-  _dragGhost = ghost;
-}
-
-function _dragMove(x, y) {
-  if (!_drag) return;
-  _dragGhost.style.left = x + 'px';
-  _dragGhost.style.top  = y + 'px';
-  const target = _dotFromPoint(x, y);
-  if (_dragOver && _dragOver !== target) _dragOver.classList.remove('drag-over');
-  if (target && target !== document.querySelector(`#grid .dot.drag-src`)) {
-    target.classList.add('drag-over');
-    _dragOver = target;
-  } else {
-    _dragOver = null;
-  }
-}
-
-function _dragEnd(x, y) {
-  if (!_drag) return;
-  _drag = false;
-  // Убираем ghost
-  if (_dragGhost) { _dragGhost.remove(); _dragGhost = null; }
-  // Убираем классы
-  document.querySelectorAll('#grid .dot.drag-src').forEach(e => e.classList.remove('drag-src'));
-  if (_dragOver) _dragOver.classList.remove('drag-over');
-
-  const target = _dotFromPoint(x, y);
-  if (target) {
-    // Находим dk цели по индексу в grid
-    const grid = document.getElementById('grid');
-    const allDots = Array.from(grid.querySelectorAll('.dot'));
-    let dayNum = 0;
-    let targetDk = null;
-    for (const d of allDots) {
-      if (d.classList.contains('empty')) continue;
-      dayNum++;
-      if (d === target) { targetDk = dkey(vy, vm, dayNum); break; }
-    }
-    if (targetDk && targetDk !== _dragDk) {
-      navigator.vibrate && navigator.vibrate(20);
-      // Переносим данные
-      if (days[targetDk]) {
-        // Если цель занята — меняем местами
-        const tmp = days[targetDk];
-        days[targetDk] = days[_dragDk];
-        days[_dragDk] = tmp;
-      } else {
-        days[targetDk] = days[_dragDk];
-        delete days[_dragDk];
-      }
-      saveD(); renderCal(); renderEnt(); updateL2Markers();
-    }
-  }
-  _dragDk = null; _dragOver = null;
-}
-
 function ts(e, dk) {
   _mv = false; _t0 = Date.now();
   const el = e.currentTarget;
   el.classList.add('press');
-  const t = e.touches[0];
-  const startX = t.clientX, startY = t.clientY;
   _lpt = setTimeout(() => {
     el.classList.remove('press');
     navigator.vibrate && navigator.vibrate(28);
-    // Долгое нажатие: показываем контекстное меню
-    showCtxMenu(dk, el, startX, startY);
+    openModal(dk);
   }, 500);
-  // Drag запускается только если палец движется во время удержания
-  _dragPending = { dk, el, x: startX, y: startY };
 }
-let _dragPending = null;
-const DRAG_THRESH = 8; // px движения чтобы начать drag вместо меню
-
-function tm(e) {
+function tm() {
   _mv = true;
-  document.querySelectorAll('#grid .dot.press').forEach(d => d.classList.remove('press'));
-  const t = e.touches[0];
-  if (_drag) {
-    clearTimeout(_lpt);
-    _dragMove(t.clientX, t.clientY);
-    return;
-  }
-  // Если палец сдвинулся достаточно — начинаем drag (и отменяем меню)
-  if (_dragPending && days[_dragPending.dk]) {
-    const dx = t.clientX - _dragPending.x;
-    const dy = t.clientY - _dragPending.y;
-    if (Math.sqrt(dx*dx + dy*dy) > DRAG_THRESH) {
-      clearTimeout(_lpt);
-      _dragStart(_dragPending.dk, _dragPending.el, t.clientX, t.clientY);
-      _dragPending = null;
-    }
-  } else if (!_dragPending) {
-    clearTimeout(_lpt);
-  }
+  clearTimeout(_lpt);
+  document.querySelectorAll('.dot.press').forEach(e => e.classList.remove('press'));
 }
 function te(e, dk) {
   clearTimeout(_lpt);
-  _dragPending = null;
   e.currentTarget.classList.remove('press');
-  if (_drag) {
-    const t = e.changedTouches[0];
-    _dragEnd(t.clientX, t.clientY);
-    return;
-  }
   if (_mv) return;
   if (Date.now() - _t0 >= 500) return;
   const now = Date.now();
@@ -1361,7 +1036,7 @@ function openModal(dk) {
   document.getElementById('mTit').textContent = `${d} ${MONG[m-1]}`;
   const dd = days[dk] || {};
   dc = dd.color || cfg.acc || '#324E44';
-  renderDcs();
+  document.querySelectorAll('#dcs .dc').forEach(el => el.classList.toggle('on', el.dataset.c === dc));
   document.getElementById('fLbl').value   = dd.label || '';
   document.getElementById('fS').value     = dd.timeStart || '';
   document.getElementById('fE').value     = dd.timeEnd || '';
@@ -1374,36 +1049,6 @@ function closeModal() {
   document.getElementById('modal').classList.remove('on');
   eDk = null;
 }
-// ── BUILT-IN COLORS ──
-const BUILTIN_COLORS = ['#324E44','#D0391B','#FBC359','#7BA7AF','#9F4125','#73A642','#4E6851'];
-
-function renderDcs() {
-  const dcs = document.getElementById('dcs');
-  let h = '';
-  // Встроенные
-  BUILTIN_COLORS.forEach(c => {
-    const on = (dc === c) ? ' on' : '';
-    h += `<div class="dc${on}" style="background:${c}" data-c="${c}" onclick="pickC('${c}',this)"></div>`;
-  });
-  // Пользовательские
-  (cfg.myColors || []).forEach((c, i) => {
-    const on = (dc === c) ? ' on' : '';
-    h += `<div class="dc${on}" style="background:${c}" data-c="${c}"
-      onclick="pickC('${c}',this)"
-      ontouchstart="dcLongStart(event,${i})"
-      ontouchend="dcLongEnd()"
-      onmousedown="dcMouseLong(event,${i})"></div>`;
-  });
-  // Кнопка добавить (скрываем если достигнут лимит: 9 пользовательских)
-  const maxCustom = 9;
-  if ((cfg.myColors || []).length < maxCustom) {
-    h += `<div class="dc-cw dc-add" title="Добавить цвет" onclick="openColorPicker()">
-      <span style="font-size:18px;font-weight:300;color:#fff;line-height:1;">+</span>
-    </div>`;
-  }
-  dcs.innerHTML = h;
-}
-
 function pickC(c, el) {
   dc = c;
   document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
@@ -1412,117 +1057,6 @@ function pickC(c, el) {
 function pickCHex(c) {
   dc = c;
   document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
-}
-
-let _pendingColor = null;
-let _colorPickerInput = null;
-
-function openColorPicker() {
-  // Создаём скрытый input для выбора цвета
-  if (!_colorPickerInput) {
-    _colorPickerInput = document.createElement('input');
-    _colorPickerInput.type = 'color';
-    _colorPickerInput.style.cssText = 'position:fixed;opacity:0;pointer-events:none;width:0;height:0;';
-    document.body.appendChild(_colorPickerInput);
-    _colorPickerInput.addEventListener('input', e => {
-      _pendingColor = e.target.value;
-      const sw = document.getElementById('cc-swatch');
-      if (sw) sw.style.background = _pendingColor;
-    });
-    _colorPickerInput.addEventListener('change', e => {
-      // На iOS change = окончательный выбор, показываем кнопку подтверждения
-      _pendingColor = e.target.value;
-      showColorConfirm(_pendingColor);
-    });
-  }
-  _pendingColor = null;
-  _colorPickerInput.value = '#4a90d9';
-  _colorPickerInput.click();
-}
-
-function showColorConfirm(c) {
-  const cc = document.getElementById('color-confirm');
-  const sw = document.getElementById('cc-swatch');
-  sw.style.background = c;
-  cc.style.display = 'flex';
-}
-
-function confirmMyColor() {
-  if (!_pendingColor) return;
-  if (!cfg.myColors) cfg.myColors = [];
-  if (!cfg.myColors.includes(_pendingColor)) {
-    cfg.myColors.push(_pendingColor);
-    saveC();
-  }
-  dc = _pendingColor;
-  _pendingColor = null;
-  document.getElementById('color-confirm').style.display = 'none';
-  renderDcs();
-}
-
-function cancelMyColor() {
-  _pendingColor = null;
-  document.getElementById('color-confirm').style.display = 'none';
-}
-
-// ── Долгое нажатие на кастомный цвет ──
-let _dcLptTimer = null, _dcLptIdx = null, _dcLptEvent = null;
-
-function dcLongStart(e, idx) {
-  _dcLptIdx = idx;
-  _dcLptEvent = e;
-  _dcLptTimer = setTimeout(() => {
-    navigator.vibrate && navigator.vibrate(22);
-    showColorCtx(idx, e.touches[0].clientX, e.touches[0].clientY);
-  }, 500);
-}
-function dcLongEnd() { clearTimeout(_dcLptTimer); }
-function dcMouseLong(e, idx) {
-  if (e.button !== 0) return;
-  _dcLptIdx = idx;
-  _dcLptTimer = setTimeout(() => showColorCtx(idx, e.clientX, e.clientY), 500);
-  document.addEventListener('mouseup', () => clearTimeout(_dcLptTimer), { once: true });
-}
-
-let _cctxIdx = null;
-function showColorCtx(idx, x, y) {
-  _cctxIdx = idx;
-  const menu = document.getElementById('color-ctx');
-  let lx = x, ly = y + 10;
-  if (lx + 170 > window.innerWidth - 12) lx = window.innerWidth - 180;
-  if (ly + 100 > window.innerHeight - 12) ly = y - 110;
-  menu.style.left = lx + 'px';
-  menu.style.top  = ly + 'px';
-  menu.classList.add('on');
-  setTimeout(() => {
-    document.addEventListener('touchstart', closeColorCtx, { once: true, passive: true });
-    document.addEventListener('mousedown', closeColorCtx, { once: true });
-  }, 50);
-}
-function closeColorCtx() {
-  document.getElementById('color-ctx').classList.remove('on');
-}
-function cctxEdit() {
-  closeColorCtx();
-  // Открываем color picker на текущем цвете
-  const inp = document.getElementById('cctx-input');
-  inp.value = cfg.myColors[_cctxIdx] || '#000000';
-  inp.click();
-}
-function cctxApplyEdit(c) {
-  if (_cctxIdx === null) return;
-  cfg.myColors[_cctxIdx] = c;
-  dc = c;
-  saveC();
-  renderDcs();
-}
-function cctxDelete() {
-  if (_cctxIdx === null) { closeColorCtx(); return; }
-  const idx = _cctxIdx; // сохраняем до закрытия
-  cfg.myColors.splice(idx, 1);
-  saveC();
-  renderDcs();
-  closeColorCtx();
 }
 function addX(amount = '', comment = '') {
   const div = document.createElement('div');
@@ -1550,7 +1084,7 @@ function saveDay() {
     earned:    parseFloat(document.getElementById('fEarn').value) || 0,
     expenses:  xs
   };
-  saveD(); closeModal(); renderCal(); renderEnt(); updateL2Markers();
+  saveD(); closeModal(); renderCal(); renderEnt();
 }
 
 // ── ENTRIES ──
@@ -1695,8 +1229,6 @@ function goTab(tab, fromSwipe = false) {
   curTab_ref.v = tab;
   document.getElementById('tbM').classList.toggle('on', tab === 'main');
   document.getElementById('tbS').classList.toggle('on', tab === 'sett');
-  const _badge = document.getElementById('l2badge');
-  if (_badge) { if(tab==='sett') _badge.classList.add('hidden'); else _badge.classList.remove('hidden'); }
   if (fromSwipe) {
     // After swipe: panels are already in motion — just set final position with animation
     m.style.transition = EASE;
@@ -1769,7 +1301,6 @@ function goTab(tab, fromSwipe = false) {
   wrap.addEventListener('touchstart', e => {
     if (document.getElementById('modal').classList.contains('on')) return;
     if (e.target.type === 'range') return;
-    if (_drag) return;
     const t = e.touches[0];
     sx = t.clientX; sy = t.clientY;
     lastX = sx; lastT = Date.now(); velocity = 0;
@@ -1779,7 +1310,6 @@ function goTab(tab, fromSwipe = false) {
 
   wrap.addEventListener('touchmove', e => {
     if (document.getElementById('modal').classList.contains('on')) return;
-    if (_drag) return;
     const t = e.touches[0];
     const dx = t.clientX - sx, dy = t.clientY - sy;
     if (!axis && (Math.abs(dx) > 8 || Math.abs(dy) > 8))
@@ -1793,7 +1323,6 @@ function goTab(tab, fromSwipe = false) {
   }, { passive: true });
 
   wrap.addEventListener('touchend', e => {
-    if (_drag) return;
     if (!dragging) return;
     dragging = false;
     settle(e.changedTouches[0].clientX - sx);
@@ -1993,435 +1522,6 @@ function applyCfg() {
   window.renderEnt = renderEnt;
   window.fbInit = function(){};
 }
-
-// ── LAYER 2 ──
-const l2days_key = 'ftc_d2';
-let l2days = {};
-let l2vy = new Date().getFullYear(), l2vm = new Date().getMonth();
-let l2eDk = null, l2dc = '#324E44';
-let _l2open = false;
-
-try { l2days = JSON.parse(localStorage.getItem(l2days_key) || '{}'); } catch { l2days = {}; }
-
-function saveL2() { localStorage.setItem(l2days_key, JSON.stringify(l2days)); }
-
-function openLayer2() {
-  _l2open = true;
-  document.getElementById('layer2').classList.add('open');
-  document.getElementById('l2badge').classList.add('hidden');
-  l2vy = vy; l2vm = vm; // синхронизируем месяц с главным
-  renderL2Cal();
-  renderL2Ent();
-  document.getElementById('l2mLbl').textContent = MON[l2vm] + ' ' + l2vy;
-}
-
-function closeLayer2() {
-  _l2open = false;
-  const el = document.getElementById('layer2');
-  el.classList.add('closing');
-  el.addEventListener('transitionend', () => {
-    el.classList.remove('open', 'closing');
-    document.getElementById('l2badge').classList.remove('hidden');
-  }, { once: true });
-}
-
-function l2chM(d) {
-  l2vm += d;
-  if (l2vm < 0) { l2vm = 11; l2vy--; }
-  if (l2vm > 11) { l2vm = 0; l2vy++; }
-  document.getElementById('l2mLbl').textContent = MON[l2vm] + ' ' + l2vy;
-  renderL2Cal();
-  renderL2Ent();
-}
-
-function renderL2Cal() {
-  const t = new Date();
-  const tdk = dkey(t.getFullYear(), t.getMonth(), t.getDate());
-  const fd = (new Date(l2vy, l2vm, 1).getDay() + 6) % 7;
-  const dim = new Date(l2vy, l2vm+1, 0).getDate();
-  let h = '';
-  for (let i = 0; i < fd; i++) h += '<div class="dot empty"></div>';
-  for (let d = 1; d <= dim; d++) {
-    const dk = dkey(l2vy, l2vm, d);
-    const dd = l2days[dk];
-    const dt = new Date(l2vy, l2vm, d);
-    const isT = dk === tdk;
-    const isP = dt < new Date(t.getFullYear(), t.getMonth(), t.getDate());
-    let cls = 'dot';
-    let sty = '';
-    if (dd && dd.color) {
-      sty = `background:${dd.color};`;
-      cls += ' work';
-      if (isT) cls += ' today-w';
-    } else if (isT) { cls += ' today'; }
-    else if (isP)   { cls += ' past'; }
-    else            { cls += ' future'; }
-    if (dd) cls += ' has';
-    h += `<div class="${cls}" style="${sty}"
-      ontouchstart="l2ts(event,'${dk}')"
-      ontouchmove="l2tm()"
-      ontouchend="l2te(event,'${dk}')"
-      onmousedown="l2ms(event,'${dk}')"
-      onmouseup="l2mu(event,'${dk}')"
-    ><div class="dnum">${d}</div><div class="pip"></div></div>`;
-  }
-  document.getElementById('l2grid').innerHTML = h;
-  // Обновляем маркеры на главном календаре
-  updateL2Markers();
-}
-
-function updateL2Markers() {
-  const grid = document.getElementById('grid');
-  if (!grid) return;
-  let dayNum = 0;
-  grid.querySelectorAll('.dot').forEach((dot) => {
-    if (dot.classList.contains('empty')) return;
-    dayNum++;
-    const dk = dkey(vy, vm, dayNum);
-    const hasL2 = !!l2days[dk];
-    dot.classList.toggle('l2has', hasL2);
-    let pip = dot.querySelector('.l2pip');
-    if (hasL2) {
-      if (!pip) {
-        pip = document.createElement('div');
-        pip.className = 'l2pip';
-        dot.appendChild(pip);
-      }
-      pip.style.background = l2days[dk].color || cfg.acc || '#7BA7AF';
-    } else if (pip) {
-      pip.remove();
-    }
-  });
-}
-
-function renderL2Ent() {
-  const items = [];
-  for (let d = 1; d <= 31; d++) {
-    const dk = dkey(l2vy, l2vm, d);
-    const dt = new Date(l2vy, l2vm, d);
-    if (dt.getMonth() !== l2vm) break;
-    if (l2days[dk]) items.push({ dk, d, dd: l2days[dk] });
-  }
-  const ew = document.getElementById('l2entWrap');
-  if (!items.length) { ew.innerHTML = ''; return; }
-  const cur = cfg.cur;
-  let html = `<div class="slbl" style="margin-top:20px;">${MON[l2vm]} ${l2vy}</div>`;
-  let te = 0; const ax = [];
-  items.forEach((it, i) => {
-    const dd = it.dd;
-    te += dd.earned || 0;
-    (dd.expenses || []).forEach(x => ax.push({ ...x, day: it.d }));
-    const ts = dd.timeStart && dd.timeEnd ? `${dd.timeStart}–${dd.timeEnd}` : '';
-    const es = dd.earned ? `+${cur}${dd.earned.toLocaleString()}` : '';
-    const xt = (dd.expenses || []).reduce((s, x) => s + (x.amount || 0), 0);
-    const xs = xt ? `−${cur}${xt.toLocaleString()}` : '';
-    html += `<div class="ecard" onclick="l2openModal('${it.dk}')">
-      <div class="etop">
-        <div class="enum">${i+1}</div>
-        <div class="einfo">
-          <div class="edate">${it.d} ${MONG[l2vm]}</div>
-          ${dd.label ? `<div class="ename">${dd.label}</div>` : ''}
-        </div>
-        <div class="edot" style="background:${dd.color || cfg.acc};"></div>
-      </div>
-      <div class="enums">
-        ${ts ? `<span style="color:var(--text3);">🕐 ${ts}</span>` : ''}
-        ${es ? `<span style="color:var(--accent);font-weight:600;">${es}</span>` : ''}
-        ${xs ? `<span style="color:var(--text2);">${xs}</span>` : ''}
-      </div>
-    </div>`;
-  });
-  const tx = ax.reduce((s, x) => s + (x.amount || 0), 0);
-  const net = te - tx;
-  let th = '';
-  const grouped = {};
-  ax.forEach(x => { const key = (x.comment || 'Затрата').trim(); grouped[key] = (grouped[key] || 0) + (x.amount || 0); });
-  Object.entries(grouped).forEach(([name, total]) => {
-    th += `<div class="xrow"><span>${name}</span><span style="color:var(--accent);">−${cur}${total.toLocaleString()}</span></div>`;
-  });
-  th += `<div class="trow" style="align-items:flex-start;">
-    <div>
-      <div class="tlbl" style="padding-top:10px;">Итого</div>
-      <button class="sum-btn" onclick="showCombined(${l2vy},${l2vm})">⊕ Суммировать слои</button>
-    </div>
-    <div style="text-align:right;"><div class="tamt" style="color:${net >= 0 ? 'var(--accent)' : '#c0392b'};">${net >= 0 ? '+' : ''}${cur}${Math.abs(net).toLocaleString()}</div></div>
-  </div>`;
-  html += `<div class="tcard" style="margin-top:16px;">${th}</div>`;
-  ew.innerHTML = html;
-  const cw = document.getElementById('combined-wrap');
-  if (cw && cw.innerHTML) showCombined(l2vy, l2vm);
-}
-
-// ── LAYER 2 TOUCH/MOUSE ──
-let _l2t0=0, _l2mv=false, _l2lpt=null, _l2lastTap=0, _l2lastDk=null, _l2dtTimer=null;
-function l2ts(e,dk){ _l2mv=false;_l2t0=Date.now();const el=e.currentTarget;el.classList.add('press');_l2lpt=setTimeout(()=>{el.classList.remove('press');navigator.vibrate&&navigator.vibrate(28);l2openModal(dk);},500);}
-function l2tm(){ _l2mv=true;clearTimeout(_l2lpt);document.querySelectorAll('#l2grid .dot.press').forEach(e=>e.classList.remove('press'));}
-function l2te(e,dk){ clearTimeout(_l2lpt);e.currentTarget.classList.remove('press');if(_l2mv)return;if(Date.now()-_l2t0>=500)return;const now=Date.now();if(_l2lastDk===dk&&now-_l2lastTap<350){clearTimeout(_l2dtTimer);_l2lastTap=0;_l2lastDk=null;l2clrD(dk);return;}_l2lastTap=now;_l2lastDk=dk;clearTimeout(_l2dtTimer);_l2dtTimer=setTimeout(()=>{_l2lastTap=0;_l2lastDk=null;l2openModal(dk);},350);}
-function l2clrD(dk){if(!l2days[dk])return;navigator.vibrate&&navigator.vibrate([20,30,20]);delete l2days[dk];saveL2();renderL2Cal();renderL2Ent();updateL2Markers();}
-let _l2ms0=0,_l2msLpt=null,_l2mLastTap=0,_l2mLastDk=null,_l2mDtTimer=null;
-function l2ms(e,dk){if(_recentTouch)return;if(e.button!==0)return;_l2ms0=Date.now();const el=e.currentTarget;el.classList.add('press');_l2msLpt=setTimeout(()=>{el.classList.remove('press');l2openModal(dk);},500);}
-function l2mu(e,dk){if(_recentTouch)return;clearTimeout(_l2msLpt);e.currentTarget.classList.remove('press');if(Date.now()-_l2ms0>=500)return;const now=Date.now();if(_l2mLastDk===dk&&now-_l2mLastTap<350){clearTimeout(_l2mDtTimer);_l2mLastTap=0;_l2mLastDk=null;l2clrD(dk);return;}_l2mLastTap=now;_l2mLastDk=dk;clearTimeout(_l2mDtTimer);_l2mDtTimer=setTimeout(()=>{_l2mLastTap=0;_l2mLastDk=null;l2openModal(dk);},350);}
-
-// ── LAYER 2 MODAL (reuses main modal) ──
-let _l2modalActive = false;
-function l2openModal(dk) {
-  _l2modalActive = true;
-  l2eDk = dk;
-  const [y,m,d] = dk.split('-').map(Number);
-  document.getElementById('mTit').textContent = `${d} ${MONG[m-1]} · слой 2`;
-  const dd = l2days[dk] || {};
-  l2dc = dd.color || cfg.acc || '#324E44';
-  document.querySelectorAll('#dcs .dc').forEach(el=>el.classList.toggle('on',el.dataset.c===l2dc));
-  document.getElementById('fLbl').value  = dd.label||'';
-  document.getElementById('fS').value   = dd.timeStart||'';
-  document.getElementById('fE').value   = dd.timeEnd||'';
-  document.getElementById('fEarn').value= dd.earned||'';
-  document.getElementById('xList').innerHTML='';
-  (dd.expenses||[]).forEach(x=>addX(x.amount,x.comment));
-  document.getElementById('modal').classList.add('on');
-}
-// Перехватываем saveDay чтобы знать куда сохранять
-const _origSaveDay = saveDay;
-window.saveDay = function() {
-  if (_l2modalActive) {
-    if (!l2eDk) return;
-    const xs=[];
-    document.querySelectorAll('#xList .xrow2').forEach(r=>{const ins=r.querySelectorAll('input');const a=parseFloat(ins[0].value)||0;const c=ins[1].value.trim();if(a>0||c)xs.push({amount:a,comment:c});});
-    l2days[l2eDk]={color:l2dc,label:document.getElementById('fLbl').value.trim(),timeStart:document.getElementById('fS').value,timeEnd:document.getElementById('fE').value,earned:parseFloat(document.getElementById('fEarn').value)||0,expenses:xs};
-    saveL2();
-    document.getElementById('modal').classList.remove('on');
-    l2eDk=null; _l2modalActive=false;
-    renderL2Cal(); renderL2Ent(); updateL2Markers();
-  } else {
-    _origSaveDay();
-  }
-};
-const _origCloseModal = closeModal;
-window.closeModal = function() {
-  _l2modalActive = false; l2eDk = null;
-  _origCloseModal();
-};
-
-// Цвет в модале для layer2 тоже пишем в l2dc
-const _origPickC = pickC;
-window.pickC = function(c, el) {
-  if (_l2modalActive) { l2dc=c; document.querySelectorAll('#dcs .dc').forEach(d=>d.classList.remove('on'));if(el)el.classList.add('on'); }
-  else { _origPickC(c,el); }
-};
-const _origPickCHex = pickCHex;
-window.pickCHex = function(c) {
-  if (_l2modalActive) { l2dc=c; document.querySelectorAll('#dcs .dc').forEach(d=>d.classList.remove('on')); }
-  else { _origPickCHex(c); }
-};
-
-// ── LAYER 2 SWIPE DOWN TO CLOSE ──
-document.addEventListener('DOMContentLoaded', function(){
-  const l2el  = document.getElementById('layer2');
-  const l2body = document.getElementById('l2body');
-  const EASE      = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
-  const EASE_FAST = 'transform .28s cubic-bezier(.25,0.46,0.45,0.94)';
-
-  let sy0=0, lastY=0, lastT=0, velocity=0;
-  let pulling=false, decided=false;
-
-  function onStart(clientX, clientY, target) {
-    if(document.getElementById('modal').classList.contains('on')) return;
-    sy0=clientY; lastY=clientY; lastT=Date.now(); velocity=0;
-    pulling=false; decided=false;
-    l2el.style.transition='none';
-  }
-
-  function onMove(clientX, clientY) {
-    if(document.getElementById('modal').classList.contains('on')) return;
-    const dy = clientY - sy0;
-    const now = Date.now(), dt = now - lastT;
-    if(dt>0) velocity = (clientY - lastY) / dt;
-    lastY=clientY; lastT=now;
-
-    if(!decided) {
-      // Решаем: свайп-закрытие только если тянем ВНИЗ и body в самом верху
-      if(dy > 6 && l2body.scrollTop <= 1) { pulling=true; decided=true; }
-      else if(Math.abs(dy) > 6)           { pulling=false; decided=true; }
-      else return;
-    }
-    if(!pulling) return;
-
-    // Блокируем нативный скролл пока тянем
-    l2body.style.overflowY='hidden';
-    const clamp = Math.max(0, dy);
-    l2el.style.transform = `translateY(${clamp}px)`;
-  }
-
-  function onEnd(clientY) {
-    l2body.style.overflowY='';
-    if(!pulling) { l2el.style.transition=EASE; l2el.style.transform='translateY(0)'; return; }
-    pulling=false;
-    const dy = clientY - sy0;
-    const flick = velocity > 0.3;
-    const half  = dy > window.innerHeight * 0.25;
-    l2el.style.transition = flick ? EASE_FAST : EASE;
-    if(flick || half) {
-      l2el.style.transform='translateY(100%)';
-      _l2open=false;
-      l2el.addEventListener('transitionend', () => {
-        l2el.classList.remove('open','closing');
-        l2el.style.transform='';
-        l2el.style.transition='';
-        document.getElementById('l2badge').classList.remove('hidden');
-      }, {once:true});
-    } else {
-      l2el.style.transform='translateY(0)';
-    }
-  }
-
-  // Вешаем на l2body (скроллящийся контейнер) — не passive чтобы можно было блокировать
-  l2body.addEventListener('touchstart', e => {
-    if(e.touches.length!==1) return;
-    onStart(e.touches[0].clientX, e.touches[0].clientY, e.target);
-  }, {passive:true});
-
-  l2body.addEventListener('touchmove', e => {
-    if(e.touches.length!==1) return;
-    onMove(e.touches[0].clientX, e.touches[0].clientY);
-    // Если тянем вниз для закрытия — не даём скроллить
-    if(pulling) e.preventDefault();
-  }, {passive:false});
-
-  l2body.addEventListener('touchend', e => {
-    onEnd(e.changedTouches[0].clientY);
-  }, {passive:true});
-
-  // Шапка — отдельно (там нет скролла)
-  document.getElementById('l2header').addEventListener('touchstart', e => {
-    if(e.touches.length!==1) return;
-    onStart(e.touches[0].clientX, e.touches[0].clientY, e.target);
-  }, {passive:true});
-  document.getElementById('l2header').addEventListener('touchmove', e => {
-    if(e.touches.length!==1) return;
-    onMove(e.touches[0].clientX, e.touches[0].clientY);
-    if(pulling) e.preventDefault();
-  }, {passive:false});
-  document.getElementById('l2header').addEventListener('touchend', e => {
-    onEnd(e.changedTouches[0].clientY);
-  }, {passive:true});
-});
-
-// бейдж скрывается внутри goTab
-
-// После renderCal обновляем маркеры layer2
-const _origRenderCal = renderCal;
-window.renderCal = function() {
-  _origRenderCal();
-  updateL2Markers();
-};
-
-
-
-
-// ── COPY / PASTE CONTEXT MENU ──
-let _clipboard = null;   // скопированные данные дня
-let _ctxDk = null;       // dk для которого открыто меню
-let _ctxEl = null;
-
-function showCtxMenu(dk, el, x, y) {
-  _ctxDk = dk; _ctxEl = el;
-  const menu = document.getElementById('ctx-menu');
-  const hasDat = !!days[dk];
-  const hasCb  = !!_clipboard;
-
-  // Нет буфера: показываем «Копировать» только если день заполнен
-  // Есть буфер: показываем «Вставить» всегда (можно вставить и поверх)
-  if (!hasDat && !hasCb) {
-    // Пустой день и нет буфера — открываем модал как обычно
-    openModal(dk); return;
-  }
-
-  document.getElementById('ctx-copy').style.display  = !hasCb ? '' : 'none';
-  document.getElementById('ctx-paste').style.display = hasCb  ? '' : 'none';
-
-  const mw = 190, mh = 56;
-  let lx = x, ly = y + 12;
-  if (lx + mw > window.innerWidth  - 12) lx = window.innerWidth  - mw - 12;
-  if (ly + mh > window.innerHeight - 12) ly = y - mh - 12;
-  menu.style.left = lx + 'px';
-  menu.style.top  = ly + 'px';
-  menu.classList.add('on');
-
-  setTimeout(() => {
-    document.addEventListener('touchstart', closeCtxMenu, { once: true, passive: true });
-    document.addEventListener('mousedown',  closeCtxMenu, { once: true });
-  }, 50);
-}
-
-function closeCtxMenu() {
-  document.getElementById('ctx-menu').classList.remove('on');
-}
-
-function ctxEdit() {
-  closeCtxMenu();
-  setTimeout(() => openModal(_ctxDk), 180);
-}
-
-function ctxCopy() {
-  if (!days[_ctxDk]) return;
-  _clipboard = JSON.parse(JSON.stringify(days[_ctxDk]));
-  // Подсвечиваем скопированный кружок
-  document.querySelectorAll('#grid .dot.copied').forEach(e => e.classList.remove('copied'));
-  if (_ctxEl) _ctxEl.classList.add('copied');
-  navigator.vibrate && navigator.vibrate(18);
-  closeCtxMenu();
-}
-
-function ctxPaste() {
-  if (!_clipboard || !_ctxDk) return;
-  days[_ctxDk] = JSON.parse(JSON.stringify(_clipboard));
-  saveD(); renderCal(); renderEnt(); updateL2Markers();
-  closeCtxMenu();
-}
-
-function ctxClear() {
-  if (!_ctxDk) return;
-  clrD(_ctxDk);
-  closeCtxMenu();
-}
-
-
-// ── COMBINED TOTALS ──
-function showCombined(y, m) {
-  const cw = document.getElementById('combined-wrap');
-  const cur = cfg.cur;
-  let te1=0, ax1=[], te2=0, ax2=[];
-  for (let d=1; d<=31; d++) {
-    const dt = new Date(y, m, d);
-    if (dt.getMonth() !== m) break;
-    const dk = dkey(y, m, d);
-    const d1 = days[dk], d2 = l2days[dk];
-    if (d1) { te1 += d1.earned||0; (d1.expenses||[]).forEach(x=>ax1.push({...x})); }
-    if (d2) { te2 += d2.earned||0; (d2.expenses||[]).forEach(x=>ax2.push({...x})); }
-  }
-  const tx1 = ax1.reduce((s,x)=>s+(x.amount||0),0);
-  const tx2 = ax2.reduce((s,x)=>s+(x.amount||0),0);
-  const totalNet = (te1+te2) - (tx1+tx2);
-
-  const grouped = {};
-  [...ax1,...ax2].forEach(x => {
-    const k=(x.comment||'Затрата').trim();
-    grouped[k]=(grouped[k]||0)+(x.amount||0);
-  });
-
-  let th='';
-  th+=`<div class="xrow"><span>Доход · слой 1<span class="layer-tag">1</span></span><span style="color:var(--accent);">+${cur}${te1.toLocaleString()}</span></div>`;
-  th+=`<div class="xrow"><span>Доход · слой 2<span class="layer-tag">2</span></span><span style="color:var(--accent);">+${cur}${te2.toLocaleString()}</span></div>`;
-  Object.entries(grouped).forEach(([name,total])=>{
-    th+=`<div class="xrow"><span>${name}</span><span style="color:var(--text2);">−${cur}${total.toLocaleString()}</span></div>`;
-  });
-  th+=`<div class="trow" style="align-items:flex-start;margin-top:6px;">
-    <div class="tlbl" style="padding-top:6px;">Сумма</div>
-    <div style="text-align:right;"><div class="tamt" style="color:${totalNet>=0?'var(--accent)':'#c0392b'};">${totalNet>=0?'+':''}${cur}${Math.abs(totalNet).toLocaleString()}</div></div>
-  </div>`;
-  cw.innerHTML=`<div class="slbl">${MON[m]} ${y} · оба слоя</div><div class="tcard">${th}</div>`;
-}
-
 </script>
 
 <!-- FIREBASE -->
@@ -2528,45 +1628,6 @@ window.fbSignOut = async function() {
   await signOut(auth);
 };
 </script>
-
-<!-- LAYER 2 BADGE -->
-<div id="l2badge" onclick="openLayer2()">
-  <div class="l2dot">2</div>
-</div>
-
-<!-- LAYER 2 OVERLAY -->
-<div id="layer2">
-  <div id="l2header">
-    <div id="l2title">Второй слой</div>
-    <button id="l2close" onclick="closeLayer2()">✕</button>
-  </div>
-  <div id="l2body">
-    <div class="mnav">
-      <button class="marr" onclick="l2chM(-1)">‹</button>
-      <div class="mlbl" id="l2mLbl">Май 2026</div>
-      <button class="marr" onclick="l2chM(1)">›</button>
-    </div>
-    <div class="chdr">
-      <span>П</span><span>В</span><span>С</span><span>Ч</span><span>П</span>
-      <span class="we">С</span><span class="we">В</span>
-    </div>
-    <div class="cgrid" id="l2grid"></div>
-    <div id="l2entWrap"></div>
-    <div id="combined-wrap"></div>
-  </div>
-</div>
-
-<!-- COLOR EDIT CTX -->
-<div id="color-ctx">
-  <div class="cctx-item danger" onclick="cctxDelete()">🗑 &nbsp;Удалить</div>
-</div>
-<input type="color" id="cctx-input" style="position:fixed;opacity:0;pointer-events:none;width:0;height:0;" oninput="cctxApplyEdit(this.value)"/>
-
-<!-- CONTEXT MENU -->
-<div id="ctx-menu">
-  <div class="ctx-item" id="ctx-copy"  onclick="ctxCopy()">Копировать</div>
-  <div class="ctx-item paste-item" id="ctx-paste" onclick="ctxPaste()" style="display:none">Вставить</div>
-</div>
 </body>
 </html>
 <script type="module">
@@ -2674,5 +1735,4 @@ window.fbSignOut = async function() {
   if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
   await signOut(auth);
 };
-
 </script>
