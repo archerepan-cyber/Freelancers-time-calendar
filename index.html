@@ -407,6 +407,26 @@ button { font-family: inherit; cursor: pointer; }
 }
 .dc-cw span { pointer-events: none; font-size: 11px; }
 .dc-cw input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+/* Два ряда максимум */
+.dcs { max-height: 76px; overflow: hidden; }
+/* Кнопка подтверждения нового цвета */
+#color-confirm {
+  display: none; align-items: center; gap: 8px; margin-top: 8px;
+}
+#color-confirm .cc-swatch {
+  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid var(--sep);
+}
+#color-confirm .cc-btn {
+  flex: 1; padding: 7px 12px; border-radius: 9px; border: none;
+  background: var(--accent); color: #fff; font-size: 13px; font-weight: 600;
+  touch-action: manipulation; cursor: pointer;
+}
+#color-confirm .cc-cancel {
+  padding: 7px 10px; border-radius: 9px; border: none;
+  background: var(--bg3); color: var(--text2); font-size: 13px;
+  touch-action: manipulation; cursor: pointer;
+}
 /* Меню редактирования кастомного цвета */
 #color-ctx {
   position: fixed; z-index: 999; min-width: 160px;
@@ -664,6 +684,11 @@ button { font-family: inherit; cursor: pointer; }
     <div class="fg">
       <label class="fl">Цвет дня</label>
       <div class="dcs" id="dcs"></div>
+      <div id="color-confirm">
+        <div class="cc-swatch" id="cc-swatch"></div>
+        <button class="cc-btn" onclick="confirmMyColor()">Добавить</button>
+        <button class="cc-cancel" onclick="cancelMyColor()">✕</button>
+      </div>
     </div>
 
     <div class="fg">
@@ -1113,13 +1138,20 @@ function renderCal() {
     if (dd) cls += ' has';
     h += `<div class="${cls}" style="${sty}"
       ontouchstart="ts(event,'${dk}')"
-      ontouchmove="tm(event)"
       ontouchend="te(event,'${dk}')"
       onmousedown="ms(event,'${dk}')"
       onmouseup="mu(event,'${dk}')"
 ><div class="dnum">${d}</div><div class="pip"></div></div>`;
   }
   document.getElementById('grid').innerHTML = h;
+  // non-passive чтобы можно было вызвать preventDefault во время drag
+  document.getElementById('grid')._tmBound && document.getElementById('grid').removeEventListener('touchmove', document.getElementById('grid')._tmBound);
+  const _tmHandler = e => {
+    if (_drag) { e.preventDefault(); }
+    tm(e);
+  };
+  document.getElementById('grid')._tmBound = _tmHandler;
+  document.getElementById('grid').addEventListener('touchmove', _tmHandler, { passive: false });
 }
 
 // ── TOUCH ──
@@ -1243,7 +1275,7 @@ function tm(e) {
       _dragStart(_dragPending.dk, _dragPending.el, t.clientX, t.clientY);
       _dragPending = null;
     }
-  } else {
+  } else if (!_dragPending) {
     clearTimeout(_lpt);
   }
 }
@@ -1362,12 +1394,11 @@ function renderDcs() {
       ontouchend="dcLongEnd()"
       onmousedown="dcMouseLong(event,${i})"></div>`;
   });
-  // Кнопка добавить (скрываем если достигнут лимит: 17 - 7 встроенных - 1 кнопка = 9 пользовательских)
+  // Кнопка добавить (скрываем если достигнут лимит: 9 пользовательских)
   const maxCustom = 9;
   if ((cfg.myColors || []).length < maxCustom) {
-    h += `<div class="dc-cw dc-add" title="Добавить цвет">
+    h += `<div class="dc-cw dc-add" title="Добавить цвет" onclick="openColorPicker()">
       <span style="font-size:18px;font-weight:300;color:#fff;line-height:1;">+</span>
-      <input type="color" value="${dc || '#324E44'}" onchange="addMyColor(this.value)"/>
     </div>`;
   }
   dcs.innerHTML = h;
@@ -1383,15 +1414,55 @@ function pickCHex(c) {
   document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
 }
 
-function addMyColor(c) {
+let _pendingColor = null;
+let _colorPickerInput = null;
+
+function openColorPicker() {
+  // Создаём скрытый input для выбора цвета
+  if (!_colorPickerInput) {
+    _colorPickerInput = document.createElement('input');
+    _colorPickerInput.type = 'color';
+    _colorPickerInput.style.cssText = 'position:fixed;opacity:0;pointer-events:none;width:0;height:0;';
+    document.body.appendChild(_colorPickerInput);
+    _colorPickerInput.addEventListener('input', e => {
+      _pendingColor = e.target.value;
+      const sw = document.getElementById('cc-swatch');
+      if (sw) sw.style.background = _pendingColor;
+    });
+    _colorPickerInput.addEventListener('change', e => {
+      // На iOS change = окончательный выбор, показываем кнопку подтверждения
+      _pendingColor = e.target.value;
+      showColorConfirm(_pendingColor);
+    });
+  }
+  _pendingColor = null;
+  _colorPickerInput.value = '#4a90d9';
+  _colorPickerInput.click();
+}
+
+function showColorConfirm(c) {
+  const cc = document.getElementById('color-confirm');
+  const sw = document.getElementById('cc-swatch');
+  sw.style.background = c;
+  cc.style.display = 'flex';
+}
+
+function confirmMyColor() {
+  if (!_pendingColor) return;
   if (!cfg.myColors) cfg.myColors = [];
-  // Не добавляем дубли
-  if (!cfg.myColors.includes(c)) {
-    cfg.myColors.push(c);
+  if (!cfg.myColors.includes(_pendingColor)) {
+    cfg.myColors.push(_pendingColor);
     saveC();
   }
-  dc = c;
+  dc = _pendingColor;
+  _pendingColor = null;
+  document.getElementById('color-confirm').style.display = 'none';
   renderDcs();
+}
+
+function cancelMyColor() {
+  _pendingColor = null;
+  document.getElementById('color-confirm').style.display = 'none';
 }
 
 // ── Долгое нажатие на кастомный цвет ──
@@ -1446,11 +1517,12 @@ function cctxApplyEdit(c) {
   renderDcs();
 }
 function cctxDelete() {
-  closeColorCtx();
-  if (_cctxIdx === null) return;
-  cfg.myColors.splice(_cctxIdx, 1);
+  if (_cctxIdx === null) { closeColorCtx(); return; }
+  const idx = _cctxIdx; // сохраняем до закрытия
+  cfg.myColors.splice(idx, 1);
   saveC();
   renderDcs();
+  closeColorCtx();
 }
 function addX(amount = '', comment = '') {
   const div = document.createElement('div');
@@ -2492,8 +2564,8 @@ window.fbSignOut = async function() {
 
 <!-- CONTEXT MENU -->
 <div id="ctx-menu">
-  <div class="ctx-item" id="ctx-copy"  onclick="ctxCopy()"><span class="ctx-icon">📋</span> Копировать</div>
-  <div class="ctx-item paste-item" id="ctx-paste" onclick="ctxPaste()" style="display:none"><span class="ctx-icon">📌</span> Вставить</div>
+  <div class="ctx-item" id="ctx-copy"  onclick="ctxCopy()">Копировать</div>
+  <div class="ctx-item paste-item" id="ctx-paste" onclick="ctxPaste()" style="display:none">Вставить</div>
 </div>
 </body>
 </html>
