@@ -1811,7 +1811,7 @@ window.pickCHex = function(c) {
 };
 
 // ── LAYER 2 SWIPE DOWN TO CLOSE ──
-(function(){
+document.addEventListener('DOMContentLoaded', function(){
   const l2el  = document.getElementById('layer2');
   const l2body = document.getElementById('l2body');
   const EASE      = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
@@ -1899,7 +1899,7 @@ window.pickCHex = function(c) {
   document.getElementById('l2header').addEventListener('touchend', e => {
     onEnd(e.changedTouches[0].clientY);
   }, {passive:true});
-})();
+});
 
 // бейдж скрывается внутри goTab
 
