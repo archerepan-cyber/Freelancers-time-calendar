@@ -973,27 +973,25 @@ renderBig();
 renderCal();
 renderEnt();
 
-// Фикс поворота экрана: форсируем reflow grid-а после поворота
+// Фикс поворота экрана в PWA: перерисовываем календарь после поворота
 (function() {
-  function forceReflow() {
-    var grid = document.getElementById('grid');
-    var l2grid = document.getElementById('l2grid');
-    // Скрываем и показываем grid — это сбрасывает закешированные размеры ячеек
-    [grid, l2grid].forEach(function(g) {
-      if (!g) return;
-      g.style.display = 'none';
-      void g.offsetHeight; // trigger reflow
-      g.style.display = '';
-    });
+  var lastW = window.innerWidth;
+  function onRotate() {
+    var newW = window.innerWidth;
+    if (newW === lastW) return; // реального поворота не было
+    lastW = newW;
+    // Перерисовываем календарь — это пересчитывает grid без display:none
+    renderCal();
+    if (typeof renderL2Cal === 'function') renderL2Cal();
   }
   window.addEventListener('orientationchange', function() {
-    setTimeout(forceReflow, 100);
-    setTimeout(forceReflow, 400);
+    setTimeout(onRotate, 350);
   });
-  window.addEventListener('resize', function() {
-    clearTimeout(window._rfTimer);
-    window._rfTimer = setTimeout(forceReflow, 150);
-  });
+  if (window.screen && window.screen.orientation) {
+    window.screen.orientation.addEventListener('change', function() {
+      setTimeout(onRotate, 350);
+    });
+  }
 })();
 
 // ── BIG DATE ──
