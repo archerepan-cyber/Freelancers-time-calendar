@@ -186,6 +186,56 @@ button { font-family: inherit; cursor: pointer; }
 .dot.work   { /* color set via inline style */ }
 .dot.empty  { background: transparent; pointer-events: none; }
 .dot.press  { transform: scale(.82); }
+.dot.drag-src { opacity: .35; transform: scale(.9); }
+/* Context menu */
+#ctx-menu {
+  position: fixed; z-index: 998; min-width: 180px;
+  background: var(--bg2); border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.22), 0 0 0 .5px rgba(0,0,0,.08);
+  overflow: hidden;
+  opacity: 0; transform: scale(.85); pointer-events: none;
+  transition: opacity .18s ease, transform .18s ease;
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+}
+#ctx-menu.on { opacity: 1; transform: scale(1); pointer-events: auto; }
+.ctx-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 15px 18px; font-size: 15px; font-weight: 500;
+  color: var(--text); cursor: pointer; touch-action: manipulation;
+  border-bottom: .5px solid var(--sep);
+}
+.ctx-item:last-child { border-bottom: none; }
+.ctx-item:active { background: var(--bg3); }
+.ctx-item .ctx-icon { font-size: 18px; width: 22px; text-align: center; }
+.ctx-item.paste-item .ctx-icon { color: var(--accent); }
+.ctx-item.paste-item { color: var(--accent); }
+.ctx-item.danger { color: #c0392b; }
+/* Подсветка дня в буфере */
+.dot.copied { box-shadow: 0 0 0 3px var(--accent); }
+.dot.drag-over { transform: scale(1.12); box-shadow: 0 0 0 3px var(--accent); }
+#drag-ghost {
+  position: fixed; z-index: 999; pointer-events: none;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: #fff;
+  box-shadow: 0 8px 24px rgba(0,0,0,.28);
+  transform: translate(-50%,-50%) scale(1.15);
+  transition: none;
+  opacity: .92;
+}
+.dot .dnum {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: clamp(9px, 2.8vw, 14px);
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+}
+.dot.work .dnum  { color: rgba(255,255,255,.9); }
+.dot.today .dnum { color: var(--text); }
+.dot.future .dnum { color: var(--text3); }
+.dot.past .dnum  { color: var(--text3); }
 .dot .pip { position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); width: 3px; height: 3px; border-radius: 50%; background: rgba(255,255,255,.8); display: none; }
 .dot.has .pip { display: none; }
 
@@ -357,11 +407,47 @@ button { font-family: inherit; cursor: pointer; }
 }
 .dc-cw span { pointer-events: none; font-size: 11px; }
 .dc-cw input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+/* Меню редактирования кастомного цвета */
+#color-ctx {
+  position: fixed; z-index: 999; min-width: 160px;
+  background: var(--bg2); border-radius: 14px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.2), 0 0 0 .5px rgba(0,0,0,.08);
+  overflow: hidden; opacity: 0; transform: scale(.85);
+  pointer-events: none; transition: opacity .15s, transform .15s;
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+}
+#color-ctx.on { opacity: 1; transform: scale(1); pointer-events: auto; }
+.cctx-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 13px 16px; font-size: 14px; font-weight: 500; color: var(--text);
+  cursor: pointer; touch-action: manipulation;
+  border-bottom: .5px solid var(--sep);
+}
+.cctx-item:last-child { border-bottom: none; }
+.cctx-item:active { background: var(--bg3); }
+.cctx-item.danger { color: #c0392b; }
+/* Кружок «добавить свой» теперь всегда последний */
+.dc-add { opacity: .7; }
 
 .xlist .xrow2 { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
 .xlist .xrow2 input { flex: 1; min-width: 0; }
 .xlist .xrow2 .xdel { background: none; border: none; font-size: 20px; color: var(--text3); touch-action: manipulation; flex-shrink: 0; padding: 4px; }
 .addx { width: 100%; padding: 10px; border-radius: 10px; border: 1.5px dashed var(--text3); background: none; font-size: 13px; color: var(--text3); touch-action: manipulation; margin-bottom: 14px; }
+.sum-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 9px 14px; border-radius: 10px; border: none;
+  background: var(--bg3); color: var(--text2); font-size: 12px; font-weight: 600;
+  touch-action: manipulation; cursor: pointer; margin-top: 8px;
+  transition: background .12s; white-space: nowrap;
+}
+.sum-btn:active { background: var(--sep); }
+#combined-wrap { margin-top: 16px; padding-bottom: 20px; }
+#combined-wrap .slbl { margin-bottom: 8px; }
+.layer-tag {
+  display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 1px;
+  padding: 2px 5px; border-radius: 5px; margin-left: 4px;
+  background: var(--bg3); color: var(--text3); vertical-align: middle;
+}
 .mact { display: flex; gap: 10px; margin-top: 16px; }
 .btnc { flex: 1; padding: 14px; border-radius: 14px; background: var(--bg3); border: none; font-size: 15px; font-weight: 600; color: var(--text2); touch-action: manipulation; }
 .btno { flex: 2; padding: 14px; border-radius: 14px; background: var(--accent); border: none; font-size: 15px; font-weight: 600; color: #fff; touch-action: manipulation; }
@@ -577,19 +663,7 @@ button { font-family: inherit; cursor: pointer; }
 
     <div class="fg">
       <label class="fl">Цвет дня</label>
-      <div class="dcs" id="dcs">
-        <div class="dc on" style="background:#324E44;" data-c="#324E44" onclick="pickC('#324E44',this)"></div>
-        <div class="dc" style="background:#D0391B;" data-c="#D0391B" onclick="pickC('#D0391B',this)"></div>
-        <div class="dc" style="background:#FBC359;" data-c="#FBC359" onclick="pickC('#FBC359',this)"></div>
-        <div class="dc" style="background:#7BA7AF;" data-c="#7BA7AF" onclick="pickC('#7BA7AF',this)"></div>
-        <div class="dc" style="background:#9F4125;" data-c="#9F4125" onclick="pickC('#9F4125',this)"></div>
-        <div class="dc" style="background:#73A642;" data-c="#73A642" onclick="pickC('#73A642',this)"></div>
-        <div class="dc" style="background:#4E6851;" data-c="#4E6851" onclick="pickC('#4E6851',this)"></div>
-        <div class="dc-cw" title="Свой цвет">
-          <span style="font-size:18px;font-weight:300;color:#fff;line-height:1;">+</span>
-          <input type="color" value="#324E44" oninput="pickCHex(this.value)"/>
-        </div>
-      </div>
+      <div class="dcs" id="dcs"></div>
     </div>
 
     <div class="fg">
@@ -1039,13 +1113,11 @@ function renderCal() {
     if (dd) cls += ' has';
     h += `<div class="${cls}" style="${sty}"
       ontouchstart="ts(event,'${dk}')"
-      ontouchmove="tm()"
+      ontouchmove="tm(event)"
       ontouchend="te(event,'${dk}')"
       onmousedown="ms(event,'${dk}')"
       onmouseup="mu(event,'${dk}')"
->
-      <div class="pip"></div>
-    </div>`;
+><div class="dnum">${d}</div><div class="pip"></div></div>`;
   }
   document.getElementById('grid').innerHTML = h;
 }
@@ -1054,24 +1126,136 @@ function renderCal() {
 let _t0 = 0, _mv = false, _lpt = null;
 let _lastTap = 0, _lastDk = null, _dtTimer = null;
 
+// ── DRAG STATE ──
+let _drag = false, _dragDk = null, _dragGhost = null, _dragOver = null;
+
+function _dotFromPoint(x, y) {
+  // Временно скрываем ghost чтобы elementFromPoint нашёл dot под ним
+  if (_dragGhost) _dragGhost.style.display = 'none';
+  const el = document.elementFromPoint(x, y);
+  if (_dragGhost) _dragGhost.style.display = '';
+  if (!el) return null;
+  return el.closest('#grid .dot:not(.empty)');
+}
+
+function _dragStart(dk, el, x, y) {
+  if (!days[dk]) return; // тащить можно только заполненный день
+  _drag = true; _dragDk = dk;
+  el.classList.add('drag-src');
+  navigator.vibrate && navigator.vibrate([15, 30, 15]);
+  // Ghost
+  const size = el.offsetWidth;
+  const ghost = document.createElement('div');
+  ghost.id = 'drag-ghost';
+  ghost.style.cssText = `width:${size}px;height:${size}px;background:${days[dk].color||'#888'};left:${x}px;top:${y}px;`;
+  const num = dk.split('-')[2];
+  ghost.textContent = parseInt(num, 10);
+  document.body.appendChild(ghost);
+  _dragGhost = ghost;
+}
+
+function _dragMove(x, y) {
+  if (!_drag) return;
+  _dragGhost.style.left = x + 'px';
+  _dragGhost.style.top  = y + 'px';
+  const target = _dotFromPoint(x, y);
+  if (_dragOver && _dragOver !== target) _dragOver.classList.remove('drag-over');
+  if (target && target !== document.querySelector(`#grid .dot.drag-src`)) {
+    target.classList.add('drag-over');
+    _dragOver = target;
+  } else {
+    _dragOver = null;
+  }
+}
+
+function _dragEnd(x, y) {
+  if (!_drag) return;
+  _drag = false;
+  // Убираем ghost
+  if (_dragGhost) { _dragGhost.remove(); _dragGhost = null; }
+  // Убираем классы
+  document.querySelectorAll('#grid .dot.drag-src').forEach(e => e.classList.remove('drag-src'));
+  if (_dragOver) _dragOver.classList.remove('drag-over');
+
+  const target = _dotFromPoint(x, y);
+  if (target) {
+    // Находим dk цели по индексу в grid
+    const grid = document.getElementById('grid');
+    const allDots = Array.from(grid.querySelectorAll('.dot'));
+    let dayNum = 0;
+    let targetDk = null;
+    for (const d of allDots) {
+      if (d.classList.contains('empty')) continue;
+      dayNum++;
+      if (d === target) { targetDk = dkey(vy, vm, dayNum); break; }
+    }
+    if (targetDk && targetDk !== _dragDk) {
+      navigator.vibrate && navigator.vibrate(20);
+      // Переносим данные
+      if (days[targetDk]) {
+        // Если цель занята — меняем местами
+        const tmp = days[targetDk];
+        days[targetDk] = days[_dragDk];
+        days[_dragDk] = tmp;
+      } else {
+        days[targetDk] = days[_dragDk];
+        delete days[_dragDk];
+      }
+      saveD(); renderCal(); renderEnt(); updateL2Markers();
+    }
+  }
+  _dragDk = null; _dragOver = null;
+}
+
 function ts(e, dk) {
   _mv = false; _t0 = Date.now();
   const el = e.currentTarget;
   el.classList.add('press');
+  const t = e.touches[0];
+  const startX = t.clientX, startY = t.clientY;
   _lpt = setTimeout(() => {
     el.classList.remove('press');
     navigator.vibrate && navigator.vibrate(28);
-    openModal(dk);
+    // Долгое нажатие: показываем контекстное меню
+    showCtxMenu(dk, el, startX, startY);
   }, 500);
+  // Drag запускается только если палец движется во время удержания
+  _dragPending = { dk, el, x: startX, y: startY };
 }
-function tm() {
+let _dragPending = null;
+const DRAG_THRESH = 8; // px движения чтобы начать drag вместо меню
+
+function tm(e) {
   _mv = true;
-  clearTimeout(_lpt);
-  document.querySelectorAll('.dot.press').forEach(e => e.classList.remove('press'));
+  document.querySelectorAll('#grid .dot.press').forEach(d => d.classList.remove('press'));
+  const t = e.touches[0];
+  if (_drag) {
+    clearTimeout(_lpt);
+    _dragMove(t.clientX, t.clientY);
+    return;
+  }
+  // Если палец сдвинулся достаточно — начинаем drag (и отменяем меню)
+  if (_dragPending && days[_dragPending.dk]) {
+    const dx = t.clientX - _dragPending.x;
+    const dy = t.clientY - _dragPending.y;
+    if (Math.sqrt(dx*dx + dy*dy) > DRAG_THRESH) {
+      clearTimeout(_lpt);
+      _dragStart(_dragPending.dk, _dragPending.el, t.clientX, t.clientY);
+      _dragPending = null;
+    }
+  } else {
+    clearTimeout(_lpt);
+  }
 }
 function te(e, dk) {
   clearTimeout(_lpt);
+  _dragPending = null;
   e.currentTarget.classList.remove('press');
+  if (_drag) {
+    const t = e.changedTouches[0];
+    _dragEnd(t.clientX, t.clientY);
+    return;
+  }
   if (_mv) return;
   if (Date.now() - _t0 >= 500) return;
   const now = Date.now();
@@ -1145,7 +1329,7 @@ function openModal(dk) {
   document.getElementById('mTit').textContent = `${d} ${MONG[m-1]}`;
   const dd = days[dk] || {};
   dc = dd.color || cfg.acc || '#324E44';
-  document.querySelectorAll('#dcs .dc').forEach(el => el.classList.toggle('on', el.dataset.c === dc));
+  renderDcs();
   document.getElementById('fLbl').value   = dd.label || '';
   document.getElementById('fS').value     = dd.timeStart || '';
   document.getElementById('fE').value     = dd.timeEnd || '';
@@ -1158,6 +1342,34 @@ function closeModal() {
   document.getElementById('modal').classList.remove('on');
   eDk = null;
 }
+// ── BUILT-IN COLORS ──
+const BUILTIN_COLORS = ['#324E44','#D0391B','#FBC359','#7BA7AF','#9F4125','#73A642','#4E6851'];
+
+function renderDcs() {
+  const dcs = document.getElementById('dcs');
+  let h = '';
+  // Встроенные
+  BUILTIN_COLORS.forEach(c => {
+    const on = (dc === c) ? ' on' : '';
+    h += `<div class="dc${on}" style="background:${c}" data-c="${c}" onclick="pickC('${c}',this)"></div>`;
+  });
+  // Пользовательские
+  (cfg.myColors || []).forEach((c, i) => {
+    const on = (dc === c) ? ' on' : '';
+    h += `<div class="dc${on}" style="background:${c}" data-c="${c}"
+      onclick="pickC('${c}',this)"
+      ontouchstart="dcLongStart(event,${i})"
+      ontouchend="dcLongEnd()"
+      onmousedown="dcMouseLong(event,${i})"></div>`;
+  });
+  // Кнопка добавить
+  h += `<div class="dc-cw dc-add" title="Добавить цвет">
+    <span style="font-size:18px;font-weight:300;color:#fff;line-height:1;">+</span>
+    <input type="color" value="${dc || '#324E44'}" oninput="addMyColor(this.value)" onchange="addMyColor(this.value)"/>
+  </div>`;
+  dcs.innerHTML = h;
+}
+
 function pickC(c, el) {
   dc = c;
   document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
@@ -1166,6 +1378,76 @@ function pickC(c, el) {
 function pickCHex(c) {
   dc = c;
   document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
+}
+
+function addMyColor(c) {
+  if (!cfg.myColors) cfg.myColors = [];
+  // Не добавляем дубли
+  if (!cfg.myColors.includes(c)) {
+    cfg.myColors.push(c);
+    saveC();
+  }
+  dc = c;
+  renderDcs();
+}
+
+// ── Долгое нажатие на кастомный цвет ──
+let _dcLptTimer = null, _dcLptIdx = null, _dcLptEvent = null;
+
+function dcLongStart(e, idx) {
+  _dcLptIdx = idx;
+  _dcLptEvent = e;
+  _dcLptTimer = setTimeout(() => {
+    navigator.vibrate && navigator.vibrate(22);
+    showColorCtx(idx, e.touches[0].clientX, e.touches[0].clientY);
+  }, 500);
+}
+function dcLongEnd() { clearTimeout(_dcLptTimer); }
+function dcMouseLong(e, idx) {
+  if (e.button !== 0) return;
+  _dcLptIdx = idx;
+  _dcLptTimer = setTimeout(() => showColorCtx(idx, e.clientX, e.clientY), 500);
+  document.addEventListener('mouseup', () => clearTimeout(_dcLptTimer), { once: true });
+}
+
+let _cctxIdx = null;
+function showColorCtx(idx, x, y) {
+  _cctxIdx = idx;
+  const menu = document.getElementById('color-ctx');
+  let lx = x, ly = y + 10;
+  if (lx + 170 > window.innerWidth - 12) lx = window.innerWidth - 180;
+  if (ly + 100 > window.innerHeight - 12) ly = y - 110;
+  menu.style.left = lx + 'px';
+  menu.style.top  = ly + 'px';
+  menu.classList.add('on');
+  setTimeout(() => {
+    document.addEventListener('touchstart', closeColorCtx, { once: true, passive: true });
+    document.addEventListener('mousedown', closeColorCtx, { once: true });
+  }, 50);
+}
+function closeColorCtx() {
+  document.getElementById('color-ctx').classList.remove('on');
+}
+function cctxEdit() {
+  closeColorCtx();
+  // Открываем color picker на текущем цвете
+  const inp = document.getElementById('cctx-input');
+  inp.value = cfg.myColors[_cctxIdx] || '#000000';
+  inp.click();
+}
+function cctxApplyEdit(c) {
+  if (_cctxIdx === null) return;
+  cfg.myColors[_cctxIdx] = c;
+  dc = c;
+  saveC();
+  renderDcs();
+}
+function cctxDelete() {
+  closeColorCtx();
+  if (_cctxIdx === null) return;
+  cfg.myColors.splice(_cctxIdx, 1);
+  saveC();
+  renderDcs();
 }
 function addX(amount = '', comment = '') {
   const div = document.createElement('div');
@@ -1703,7 +1985,7 @@ function renderL2Cal() {
       ontouchend="l2te(event,'${dk}')"
       onmousedown="l2ms(event,'${dk}')"
       onmouseup="l2mu(event,'${dk}')"
-    ><div class="pip"></div></div>`;
+    ><div class="dnum">${d}</div><div class="pip"></div></div>`;
   }
   document.getElementById('l2grid').innerHTML = h;
   // Обновляем маркеры на главном календаре
@@ -1779,9 +2061,17 @@ function renderL2Ent() {
   Object.entries(grouped).forEach(([name, total]) => {
     th += `<div class="xrow"><span>${name}</span><span style="color:var(--accent);">−${cur}${total.toLocaleString()}</span></div>`;
   });
-  th += `<div class="trow" style="align-items:flex-start;"><div class="tlbl" style="padding-top:10px;">Итого</div><div style="text-align:right;"><div class="tamt" style="color:${net >= 0 ? 'var(--accent)' : '#c0392b'};">${net >= 0 ? '+' : ''}${cur}${Math.abs(net).toLocaleString()}</div></div></div>`;
+  th += `<div class="trow" style="align-items:flex-start;">
+    <div>
+      <div class="tlbl" style="padding-top:10px;">Итого</div>
+      <button class="sum-btn" onclick="showCombined(${l2vy},${l2vm})">⊕ Суммировать слои</button>
+    </div>
+    <div style="text-align:right;"><div class="tamt" style="color:${net >= 0 ? 'var(--accent)' : '#c0392b'};">${net >= 0 ? '+' : ''}${cur}${Math.abs(net).toLocaleString()}</div></div>
+  </div>`;
   html += `<div class="tcard" style="margin-top:16px;">${th}</div>`;
   ew.innerHTML = html;
+  const cw = document.getElementById('combined-wrap');
+  if (cw && cw.innerHTML) showCombined(l2vy, l2vm);
 }
 
 // ── LAYER 2 TOUCH/MOUSE ──
@@ -1948,6 +2238,116 @@ window.renderCal = function() {
 };
 
 
+
+
+// ── COPY / PASTE CONTEXT MENU ──
+let _clipboard = null;   // скопированные данные дня
+let _ctxDk = null;       // dk для которого открыто меню
+let _ctxEl = null;
+
+function showCtxMenu(dk, el, x, y) {
+  _ctxDk = dk; _ctxEl = el;
+  const menu = document.getElementById('ctx-menu');
+  const hasDat = !!days[dk];
+
+  document.getElementById('ctx-edit').style.display  = hasDat ? '' : 'none';
+  document.getElementById('ctx-copy').style.display  = hasDat ? '' : 'none';
+  document.getElementById('ctx-clear').style.display = hasDat ? '' : 'none';
+  document.getElementById('ctx-paste').style.display = (_clipboard && !hasDat) ? '' : 'none';
+
+  // Если нет данных и нет буфера — не показываем меню
+  if (!hasDat && !_clipboard) {
+    openModal(dk); return;
+  }
+
+  // Позиция: стараемся не вылезти за края
+  const mw = 200, mh = 160;
+  let lx = x, ly = y + 12;
+  if (lx + mw > window.innerWidth  - 12) lx = window.innerWidth  - mw - 12;
+  if (ly + mh > window.innerHeight - 12) ly = y - mh - 12;
+  menu.style.left = lx + 'px';
+  menu.style.top  = ly + 'px';
+  menu.classList.add('on');
+
+  // Закрываем по тапу вне меню
+  setTimeout(() => {
+    document.addEventListener('touchstart', closeCtxMenu, { once: true, passive: true });
+    document.addEventListener('mousedown',  closeCtxMenu, { once: true });
+  }, 50);
+}
+
+function closeCtxMenu() {
+  document.getElementById('ctx-menu').classList.remove('on');
+}
+
+function ctxEdit() {
+  closeCtxMenu();
+  setTimeout(() => openModal(_ctxDk), 180);
+}
+
+function ctxCopy() {
+  if (!days[_ctxDk]) return;
+  _clipboard = JSON.parse(JSON.stringify(days[_ctxDk]));
+  // Подсвечиваем скопированный кружок
+  document.querySelectorAll('#grid .dot.copied').forEach(e => e.classList.remove('copied'));
+  if (_ctxEl) _ctxEl.classList.add('copied');
+  navigator.vibrate && navigator.vibrate(18);
+  closeCtxMenu();
+}
+
+function ctxPaste() {
+  if (!_clipboard || !_ctxDk) return;
+  days[_ctxDk] = JSON.parse(JSON.stringify(_clipboard));
+  saveD(); renderCal(); renderEnt(); updateL2Markers();
+  // Сбрасываем буфер и подсветку
+  _clipboard = null;
+  document.querySelectorAll('#grid .dot.copied').forEach(e => e.classList.remove('copied'));
+  closeCtxMenu();
+}
+
+function ctxClear() {
+  if (!_ctxDk) return;
+  clrD(_ctxDk);
+  closeCtxMenu();
+}
+
+
+// ── COMBINED TOTALS ──
+function showCombined(y, m) {
+  const cw = document.getElementById('combined-wrap');
+  const cur = cfg.cur;
+  let te1=0, ax1=[], te2=0, ax2=[];
+  for (let d=1; d<=31; d++) {
+    const dt = new Date(y, m, d);
+    if (dt.getMonth() !== m) break;
+    const dk = dkey(y, m, d);
+    const d1 = days[dk], d2 = l2days[dk];
+    if (d1) { te1 += d1.earned||0; (d1.expenses||[]).forEach(x=>ax1.push({...x})); }
+    if (d2) { te2 += d2.earned||0; (d2.expenses||[]).forEach(x=>ax2.push({...x})); }
+  }
+  const tx1 = ax1.reduce((s,x)=>s+(x.amount||0),0);
+  const tx2 = ax2.reduce((s,x)=>s+(x.amount||0),0);
+  const totalNet = (te1+te2) - (tx1+tx2);
+
+  const grouped = {};
+  [...ax1,...ax2].forEach(x => {
+    const k=(x.comment||'Затрата').trim();
+    grouped[k]=(grouped[k]||0)+(x.amount||0);
+  });
+
+  let th='';
+  th+=`<div class="xrow"><span>Доход · слой 1<span class="layer-tag">1</span></span><span style="color:var(--accent);">+${cur}${te1.toLocaleString()}</span></div>`;
+  th+=`<div class="xrow"><span>Доход · слой 2<span class="layer-tag">2</span></span><span style="color:var(--accent);">+${cur}${te2.toLocaleString()}</span></div>`;
+  Object.entries(grouped).forEach(([name,total])=>{
+    th+=`<div class="xrow"><span>${name}</span><span style="color:var(--text2);">−${cur}${total.toLocaleString()}</span></div>`;
+  });
+  th+=`<div class="trow" style="align-items:flex-start;margin-top:6px;">
+    <div class="tlbl" style="padding-top:6px;">Сумма</div>
+    <div style="text-align:right;"><div class="tamt" style="color:${totalNet>=0?'var(--accent)':'#c0392b'};">${totalNet>=0?'+':''}${cur}${Math.abs(totalNet).toLocaleString()}</div></div>
+  </div>`;
+  cw.innerHTML=`<div class="slbl">${MON[m]} ${y} · оба слоя</div><div class="tcard">${th}</div>`;
+}
+
 </script>
 
 <!-- FIREBASE -->
@@ -2078,9 +2478,24 @@ window.fbSignOut = async function() {
     </div>
     <div class="cgrid" id="l2grid"></div>
     <div id="l2entWrap"></div>
+    <div id="combined-wrap"></div>
   </div>
 </div>
 
+<!-- COLOR EDIT CTX -->
+<div id="color-ctx">
+  <div class="cctx-item" id="cctx-edit" onclick="cctxEdit()">✏️ &nbsp;Изменить цвет</div>
+  <div class="cctx-item danger" onclick="cctxDelete()">🗑 &nbsp;Удалить</div>
+</div>
+<input type="color" id="cctx-input" style="position:fixed;opacity:0;pointer-events:none;width:0;height:0;" oninput="cctxApplyEdit(this.value)"/>
+
+<!-- CONTEXT MENU -->
+<div id="ctx-menu">
+  <div class="ctx-item" id="ctx-edit"    onclick="ctxEdit()">  <span class="ctx-icon">✏️</span> Изменить</div>
+  <div class="ctx-item" id="ctx-copy"    onclick="ctxCopy()">  <span class="ctx-icon">📋</span> Копировать</div>
+  <div class="ctx-item paste-item" id="ctx-paste" onclick="ctxPaste()" style="display:none"><span class="ctx-icon">📌</span> Вставить</div>
+  <div class="ctx-item danger" id="ctx-clear"   onclick="ctxClear()" style="display:none"><span class="ctx-icon">🗑</span> Удалить</div>
+</div>
 </body>
 </html>
 <script type="module">
