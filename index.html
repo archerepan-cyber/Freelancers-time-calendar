@@ -391,10 +391,11 @@ button { font-family: inherit; cursor: pointer; }
 
 /* Маркер второго слоя на кружке-дне: цветная точка в северо-восточном углу */
 .dot .l2pip {
-  position: absolute; top: 4px; right: 4px;
-  width: 8px; height: 8px; border-radius: 50%;
-  border: 1.5px solid var(--bg);
+  position: absolute; top: 2px; right: 2px;
+  width: 11px; height: 11px; border-radius: 50%;
+  border: 2px solid var(--bg);
   display: none; z-index: 1;
+  box-shadow: 0 1px 3px rgba(0,0,0,.25);
 }
 .dot.l2has .l2pip { display: block; }
 
@@ -1158,7 +1159,7 @@ function saveDay() {
     earned:    parseFloat(document.getElementById('fEarn').value) || 0,
     expenses:  xs
   };
-  saveD(); closeModal(); renderCal(); renderEnt();
+  saveD(); closeModal(); renderCal(); renderEnt(); updateL2Markers();
 }
 
 // ── ENTRIES ──
@@ -1672,14 +1673,13 @@ function renderL2Cal() {
 }
 
 function updateL2Markers() {
-  // Ставим/убираем l2has + l2pip на точках главного календаря
   const grid = document.getElementById('grid');
   if (!grid) return;
-  const dots = grid.querySelectorAll('.dot:not(.empty)');
-  const fd = (new Date(vy, vm, 1).getDay() + 6) % 7;
-  dots.forEach((dot, idx) => {
-    const d = idx + 1;
-    const dk = dkey(vy, vm, d);
+  let dayNum = 0;
+  grid.querySelectorAll('.dot').forEach((dot) => {
+    if (dot.classList.contains('empty')) return;
+    dayNum++;
+    const dk = dkey(vy, vm, dayNum);
     const hasL2 = !!l2days[dk];
     dot.classList.toggle('l2has', hasL2);
     let pip = dot.querySelector('.l2pip');
@@ -1708,10 +1708,15 @@ function renderL2Ent() {
   if (!items.length) { ew.innerHTML = ''; return; }
   const cur = cfg.cur;
   let html = `<div class="slbl" style="margin-top:20px;">${MON[l2vm]} ${l2vy}</div>`;
+  let te = 0; const ax = [];
   items.forEach((it, i) => {
     const dd = it.dd;
+    te += dd.earned || 0;
+    (dd.expenses || []).forEach(x => ax.push({ ...x, day: it.d }));
     const ts = dd.timeStart && dd.timeEnd ? `${dd.timeStart}–${dd.timeEnd}` : '';
     const es = dd.earned ? `+${cur}${dd.earned.toLocaleString()}` : '';
+    const xt = (dd.expenses || []).reduce((s, x) => s + (x.amount || 0), 0);
+    const xs = xt ? `−${cur}${xt.toLocaleString()}` : '';
     html += `<div class="ecard" onclick="l2openModal('${it.dk}')">
       <div class="etop">
         <div class="enum">${i+1}</div>
@@ -1724,9 +1729,20 @@ function renderL2Ent() {
       <div class="enums">
         ${ts ? `<span style="color:var(--text3);">🕐 ${ts}</span>` : ''}
         ${es ? `<span style="color:var(--accent);font-weight:600;">${es}</span>` : ''}
+        ${xs ? `<span style="color:var(--text2);">${xs}</span>` : ''}
       </div>
     </div>`;
   });
+  const tx = ax.reduce((s, x) => s + (x.amount || 0), 0);
+  const net = te - tx;
+  let th = '';
+  const grouped = {};
+  ax.forEach(x => { const key = (x.comment || 'Затрата').trim(); grouped[key] = (grouped[key] || 0) + (x.amount || 0); });
+  Object.entries(grouped).forEach(([name, total]) => {
+    th += `<div class="xrow"><span>${name}</span><span style="color:var(--accent);">−${cur}${total.toLocaleString()}</span></div>`;
+  });
+  th += `<div class="trow" style="align-items:flex-start;"><div class="tlbl" style="padding-top:10px;">Итого</div><div style="text-align:right;"><div class="tamt" style="color:${net >= 0 ? 'var(--accent)' : '#c0392b'};">${net >= 0 ? '+' : ''}${cur}${Math.abs(net).toLocaleString()}</div></div></div>`;
+  html += `<div class="tcard" style="margin-top:16px;">${th}</div>`;
   ew.innerHTML = html;
 }
 
@@ -1799,6 +1815,7 @@ window.pickCHex = function(c) {
   const EASE = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
   let sx=0,sy=0,axis=null,dragging=false,lastY=0,lastT=0,velocity=0;
 
+  let _l2swipeFromHeader = false;
   l2el.addEventListener('touchstart', e => {
     if(document.getElementById('modal').classList.contains('on'))return;
     if(e.target.type==='range')return;
@@ -1806,6 +1823,7 @@ window.pickCHex = function(c) {
     sx=t.clientX;sy=t.clientY;
     lastY=sy;lastT=Date.now();velocity=0;
     axis=null;dragging=false;
+    _l2swipeFromHeader = !!e.target.closest('#l2header');
     l2el.style.transition='none';
   },{passive:true});
 
@@ -1816,9 +1834,8 @@ window.pickCHex = function(c) {
     if(!axis&&(Math.abs(dx)>8||Math.abs(dy)>8))
       axis=Math.abs(dy)>Math.abs(dx)?'y':'x';
     if(axis!=='y')return;
-    // Только свайп вниз, и только если body скроллится в 0
     if(dy<0)return;
-    if(l2body.scrollTop>2)return;
+    if(l2body.scrollTop>2&&!_l2swipeFromHeader)return;
     dragging=true;
     const now=Date.now(),dt=now-lastT;
     if(dt>0)velocity=(t.clientY-lastY)/dt;
