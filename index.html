@@ -458,7 +458,7 @@ button { font-family: inherit; cursor: pointer; }
         <div class="sseclbl">Фон приложения</div>
         <label class="bgbtn">
           📷 Выбрать фото из галереи
-          <input type="file" accept="image/*,image/heic,image/heif" style="display:none" onchange="loadBg(event)"/>
+          <input type="file" accept="image/*" style="display:none" onchange="loadBg(event)"/>
         </label>
         <button class="bgbtn" onclick="clearBg()">✕ Убрать фото</button>
       </div>
@@ -543,7 +543,7 @@ button { font-family: inherit; cursor: pointer; }
     <div class="te-sub">Нажмите на кружок чтобы изменить цвет</div>
     <label class="bgbtn" style="margin-bottom:18px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;">
       Подобрать цвета из фото
-      <input type="file" accept="image/*,image/heic,image/heif" style="display:none" onchange="teFromPhoto(event)"/>
+      <input type="file" accept="image/*" style="display:none" onchange="teFromPhoto(event)"/>
     </label>
     <div id="tePhotoStatus" style="display:none;font-size:12px;color:var(--text3);text-align:center;margin:-10px 0 14px;"></div>
 
@@ -781,7 +781,17 @@ function teFromPhoto(e) {
     status.textContent = '✅ Цвета подобраны! Можно скорректировать вручную.';
     setTimeout(() => { status.style.display = 'none'; }, 3000);
     };
-    img.onerror = () => { status.textContent = '❌ Не удалось загрузить фото'; };
+    img.onerror = () => {
+      // HEIC fallback: try canvas via createImageBitmap
+      if (typeof createImageBitmap !== 'undefined') {
+        createImageBitmap(f).then(bmp => {
+          const cv2 = document.createElement('canvas');
+          cv2.width = bmp.width; cv2.height = bmp.height;
+          cv2.getContext('2d').drawImage(bmp, 0, 0);
+          img.src = cv2.toDataURL('image/jpeg', 0.85);
+        }).catch(() => { status.textContent = '❌ Не удалось загрузить фото'; });
+      } else { status.textContent = '❌ Не удалось загрузить фото'; }
+    };
     img.src = ev.target.result;
   };
   reader.onerror = () => { status.textContent = '❌ Не удалось прочитать файл'; };
@@ -1455,12 +1465,33 @@ function setOv(v) {
   document.getElementById('ov').style.background = `rgba(0,0,0,${v/100})`;
 }
 
+function fileToJpegDataUrl(file, maxPx, quality, cb) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if (maxPx && Math.max(w, h) > maxPx) {
+        const s = maxPx / Math.max(w, h); w = Math.round(w * s); h = Math.round(h * s);
+      }
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(img, 0, 0, w, h);
+      cb(cv.toDataURL('image/jpeg', quality || 0.85));
+    };
+    img.onerror = () => cb(null);
+    img.src = ev.target.result;
+  };
+  reader.onerror = () => cb(null);
+  reader.readAsDataURL(file);
+}
 function loadBg(e) {
   const f = e.target.files[0]; if (!f) return;
-  const r = new FileReader();
-  r.onload = ev => { cfg.bg = ev.target.result; cfg.bgMime = f.type; saveC(); applyBg(); };
-  r.readAsDataURL(f);
   e.target.value = '';
+  fileToJpegDataUrl(f, 2400, 0.85, jpeg => {
+    if (!jpeg) return;
+    cfg.bg = jpeg; cfg.bgMime = 'image/jpeg'; saveC(); applyBg();
+  });
 }
 function clearBg() { cfg.bg = ''; cfg.bgMime = ''; saveC(); applyBg(); }
 function applyBg() {
