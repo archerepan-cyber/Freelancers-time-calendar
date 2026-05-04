@@ -353,61 +353,6 @@ button { font-family: inherit; cursor: pointer; }
 .mact { display: flex; gap: 10px; margin-top: 16px; }
 .btnc { flex: 1; padding: 14px; border-radius: 14px; background: var(--bg3); border: none; font-size: 15px; font-weight: 600; color: var(--text2); touch-action: manipulation; }
 .btno { flex: 2; padding: 14px; border-radius: 14px; background: var(--accent); border: none; font-size: 15px; font-weight: 600; color: #fff; touch-action: manipulation; }
-
-/* ── LAYER 2 BADGE ── */
-#l2btn {
-  position: fixed; top: calc(env(safe-area-inset-top) + 16px); right: 16px;
-  z-index: 50; width: 30px; height: 30px; border-radius: 50%;
-  background: var(--accent); border: none; color: #fff;
-  font-size: 14px; font-weight: 700; cursor: pointer;
-  touch-action: manipulation; display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,.25); transition: transform .12s;
-}
-#l2btn:active { transform: scale(.85); }
-
-/* ── NE DOT on main calendar dots ── */
-.dot .nepip {
-  position: absolute; top: 1px; right: 1px;
-  width: 9px; height: 9px; border-radius: 50%;
-  background: #FBC359; border: 1.5px solid var(--bg);
-  display: none; pointer-events: none; z-index: 3;
-}
-.dot.hasl2 .nepip { display: block; }
-
-/* ── LAYER 2 FULLSCREEN ── */
-#l2scr {
-  position: fixed; inset: 0; z-index: 300;
-  background: var(--bg);
-  transform: translateY(100%);
-  transition: transform .42s cubic-bezier(.25,0.46,0.45,0.94);
-  display: flex; flex-direction: column;
-  pointer-events: none;
-}
-#l2scr.open { transform: translateY(0); pointer-events: all; }
-#l2top {
-  flex-shrink: 0;
-  padding: calc(env(safe-area-inset-top) + 14px) 20px 12px;
-  display: flex; align-items: center; justify-content: space-between;
-  background: var(--bg2); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-  border-bottom: .5px solid var(--sep);
-}
-#l2top .l2title { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--text); }
-#l2xbtn {
-  background: var(--bg3); border: none; border-radius: 50%;
-  width: 34px; height: 34px; font-size: 18px; color: var(--text2);
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; touch-action: manipulation;
-}
-#l2scroll {
-  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-  padding: 20px 22px 78px;
-}
-@media (hover: hover) and (pointer: fine) {
-  #l2scroll { padding: 32px 48px 96px; }
-  #l2scroll .cgrid { gap: 8px; }
-  #l2scroll .dot { max-width: 70px; max-height: 70px; justify-self: center; width: 100%; }
-}
 </style>
 </head>
 <body>
@@ -530,33 +475,9 @@ button { font-family: inherit; cursor: pointer; }
 
   </div><!-- /wrap -->
 
-  <button id="l2btn" onclick="l2show()" aria-label="Слой 2">2</button>
-
   <div id="bar">
     <button class="tbtn on" id="tbM" onclick="goTab('main')">📅</button>
     <button class="tbtn" id="tbS" onclick="goTab('sett')">⚙️</button>
-  </div>
-</div>
-
-<!-- LAYER 2 -->
-<div id="l2scr">
-  <div id="l2top">
-    <div class="l2title">Слой 2</div>
-    <button id="l2xbtn" onclick="l2hide()">✕</button>
-  </div>
-  <div id="l2scroll">
-    <div class="mnav">
-      <button class="marr" onclick="l2cm(-1)">‹</button>
-      <div class="mlbl" id="l2lbl"></div>
-      <button class="marr" onclick="l2cm(1)">›</button>
-    </div>
-    <div class="chdr">
-      <span>П</span><span>В</span><span>С</span><span>Ч</span><span>П</span>
-      <span class="we">С</span><span class="we">В</span>
-    </div>
-    <div class="cgrid" id="l2grid"></div>
-    <div id="l2ew"></div>
-    <div id="l2tw"></div>
   </div>
 </div>
 
@@ -1006,7 +927,6 @@ function renderCal() {
     else if (isP)   { cls += ' past'; }
     else            { cls += ' future'; }
     if (dd) cls += ' has';
-    if (l2d[dk]) cls += ' hasl2';
     h += `<div class="${cls}" style="${sty}"
       ontouchstart="ts(event,'${dk}')"
       ontouchmove="tm()"
@@ -1015,7 +935,6 @@ function renderCal() {
       onmouseup="mu(event,'${dk}')"
 >
       <div class="pip"></div>
-      <div class="nepip"></div>
     </div>`;
   }
   document.getElementById('grid').innerHTML = h;
@@ -1126,7 +1045,6 @@ function openModal(dk) {
   document.getElementById('modal').classList.add('on');
 }
 function closeModal() {
-  window._l2ctx = false;
   document.getElementById('modal').classList.remove('on');
   eDk = null;
 }
@@ -1157,7 +1075,7 @@ function saveDay() {
     const c = ins[1].value.trim();
     if (a > 0 || c) xs.push({ amount: a, comment: c });
   });
-  const _daydata = {
+  days[eDk] = {
     color:     dc,
     label:     document.getElementById('fLbl').value.trim(),
     timeStart: document.getElementById('fS').value,
@@ -1165,14 +1083,7 @@ function saveDay() {
     earned:    parseFloat(document.getElementById('fEarn').value) || 0,
     expenses:  xs
   };
-  if (window._l2ctx) {
-    l2d[eDk] = _daydata;
-    l2sv(); closeModal(); l2rc(); l2re(); renderCal();
-    window._l2ctx = false;
-  } else {
-    days[eDk] = _daydata;
-    saveD(); closeModal(); renderCal(); renderEnt();
-  }
+  saveD(); closeModal(); renderCal(); renderEnt();
 }
 
 // ── ENTRIES ──
@@ -1317,7 +1228,6 @@ function goTab(tab, fromSwipe = false) {
   curTab_ref.v = tab;
   document.getElementById('tbM').classList.toggle('on', tab === 'main');
   document.getElementById('tbS').classList.toggle('on', tab === 'sett');
-  const _b=document.getElementById('l2btn'); if(_b) _b.style.display = tab==='main' ? '' : 'none';
   if (fromSwipe) {
     // After swipe: panels are already in motion — just set final position with animation
     m.style.transition = EASE;
@@ -1632,145 +1542,6 @@ function applyCfg() {
   window.renderEnt = renderEnt;
   window.fbInit = function(){};
 }
-
-// ════════ LAYER 2 ════════
-const L2K = 'ftc_l2d';
-let l2d = {};
-try { l2d = JSON.parse(localStorage.getItem(L2K)||'{}'); } catch{}
-function l2sv() { localStorage.setItem(L2K, JSON.stringify(l2d)); }
-
-let l2y = new Date().getFullYear(), l2m = new Date().getMonth();
-let _l2open = false;
-window._l2ctx = false;
-
-function l2show() {
-  _l2open = true;
-  document.getElementById('l2scr').classList.add('open');
-  l2rc(); l2re();
-}
-function l2hide() {
-  document.getElementById('l2scr').classList.remove('open');
-  _l2open = false;
-}
-
-function l2cm(d) {
-  l2m += d;
-  if (l2m < 0) { l2m = 11; l2y--; }
-  if (l2m > 11) { l2m = 0; l2y++; }
-  l2rc(); l2re();
-}
-
-function l2rc() {
-  document.getElementById('l2lbl').textContent = MON[l2m] + ' ' + l2y;
-  const t = new Date(), tdk = dkey(t.getFullYear(), t.getMonth(), t.getDate());
-  const fd = (new Date(l2y, l2m, 1).getDay() + 6) % 7;
-  const dim = new Date(l2y, l2m+1, 0).getDate();
-  let h = '';
-  for (let i = 0; i < fd; i++) h += '<div class="dot empty"></div>';
-  for (let dd = 1; dd <= dim; dd++) {
-    const dk = dkey(l2y, l2m, dd);
-    const d2 = l2d[dk];
-    const dt = new Date(l2y, l2m, dd);
-    const isT = dk === tdk;
-    const isP = dt < new Date(t.getFullYear(), t.getMonth(), t.getDate());
-    let cls = 'dot', sty = '';
-    if (d2 && d2.color) { sty = `background:${d2.color};`; cls += ' work'; if(isT) cls+=' today-w'; }
-    else if (isT) cls += ' today';
-    else if (isP) cls += ' past';
-    else          cls += ' future';
-    if (d2) cls += ' has';
-    h += `<div class="${cls}" style="${sty}"
-      ontouchstart="l2ts(event,'${dk}')" ontouchmove="l2tm()" ontouchend="l2te(event,'${dk}')"
-      onmousedown="l2ms(event,'${dk}')" onmouseup="l2mu(event,'${dk}')">
-      <div class="pip"></div>
-    </div>`;
-  }
-  document.getElementById('l2grid').innerHTML = h;
-}
-
-// touch/click для l2 (полная копия механики)
-let _l2t0=0,_l2mv=false,_l2lp=null,_l2lt=0,_l2ld=null,_l2dt=null;
-function l2ts(e,dk){_l2mv=false;_l2t0=Date.now();const el=e.currentTarget;el.classList.add('press');_l2lp=setTimeout(()=>{el.classList.remove('press');navigator.vibrate&&navigator.vibrate(28);l2om(dk);},500);}
-function l2tm(){_l2mv=true;clearTimeout(_l2lp);document.querySelectorAll('#l2grid .press').forEach(e=>e.classList.remove('press'));}
-function l2te(e,dk){clearTimeout(_l2lp);e.currentTarget.classList.remove('press');if(_l2mv||Date.now()-_l2t0>=500)return;const n=Date.now();if(_l2ld===dk&&n-_l2lt<350){clearTimeout(_l2dt);_l2lt=0;_l2ld=null;l2cl(dk);return;}_l2lt=n;_l2ld=dk;clearTimeout(_l2dt);_l2dt=setTimeout(()=>{_l2lt=0;_l2ld=null;l2om(dk);},350);}
-function l2cl(dk){if(!l2d[dk])return;navigator.vibrate&&navigator.vibrate([20,30,20]);delete l2d[dk];l2sv();l2rc();l2re();renderCal();}
-let _l2ms0=0,_l2mlp=null,_l2mlt=0,_l2mld=null,_l2mdt=null;
-function l2ms(e,dk){if(_recentTouch||e.button!==0)return;_l2ms0=Date.now();const el=e.currentTarget;el.classList.add('press');_l2mlp=setTimeout(()=>{el.classList.remove('press');l2om(dk);},500);}
-function l2mu(e,dk){if(_recentTouch)return;clearTimeout(_l2mlp);e.currentTarget.classList.remove('press');if(Date.now()-_l2ms0>=500)return;const n=Date.now();if(_l2mld===dk&&n-_l2mlt<350){clearTimeout(_l2mdt);_l2mlt=0;_l2mld=null;l2cl(dk);return;}_l2mlt=n;_l2mld=dk;clearTimeout(_l2mdt);_l2mdt=setTimeout(()=>{_l2mlt=0;_l2mld=null;l2om(dk);},350);}
-
-function l2om(dk) {
-  window._l2ctx = true;
-  eDk = dk;
-  const [y,m,d] = dk.split('-').map(Number);
-  document.getElementById('mTit').textContent = `${d} ${MONG[m-1]}`;
-  const dd = l2d[dk] || {};
-  dc = dd.color || cfg.acc || '#324E44';
-  document.querySelectorAll('#dcs .dc').forEach(el=>el.classList.toggle('on', el.dataset.c===dc));
-  document.getElementById('fLbl').value   = dd.label||'';
-  document.getElementById('fS').value     = dd.timeStart||'';
-  document.getElementById('fE').value     = dd.timeEnd||'';
-  document.getElementById('fEarn').value  = dd.earned||'';
-  document.getElementById('xList').innerHTML = '';
-  (dd.expenses||[]).forEach(x=>addX(x.amount, x.comment));
-  document.getElementById('modal').classList.add('on');
-}
-
-function l2re() {
-  const items=[];
-  for(let d=1;d<=31;d++){
-    const dk=dkey(l2y,l2m,d);
-    if(new Date(l2y,l2m,d).getMonth()!==l2m) break;
-    if(l2d[dk]) items.push({dk,d,dd:l2d[dk]});
-  }
-  const ew=document.getElementById('l2ew'), tw=document.getElementById('l2tw');
-  if(!items.length){ew.innerHTML='';tw.innerHTML='';return;}
-  const cur=cfg.cur;
-  let html=`<div class="slbl">${MON[l2m]} ${l2y}</div>`;
-  let te=0; const ax=[];
-  items.forEach((it,i)=>{
-    const dd=it.dd; te+=dd.earned||0;
-    (dd.expenses||[]).forEach(x=>ax.push({...x}));
-    const ts=dd.timeStart&&dd.timeEnd?`${dd.timeStart}–${dd.timeEnd}`:'';
-    const es=dd.earned?`+${cur}${dd.earned.toLocaleString()}`:'';
-    const xt=(dd.expenses||[]).reduce((s,x)=>s+(x.amount||0),0);
-    const xs=xt?`−${cur}${xt.toLocaleString()}`:'';
-    html+=`<div class="ecard" onclick="l2om('${it.dk}')">
-      <div class="etop">
-        <div class="enum">${i+1}</div>
-        <div class="einfo">
-          <div class="edate">${it.d} ${MONG[l2m]}</div>
-          ${dd.label?`<div class="ename">${dd.label}</div>`:''}
-        </div>
-        <div class="edot" style="background:${dd.color||cfg.acc};"></div>
-      </div>
-      <div class="enums">
-        ${ts?`<span style="color:var(--text3);">🕐 ${ts}</span>`:''}
-        ${es?`<span style="color:var(--accent);font-weight:600;">${es}</span>`:''}
-        ${xs?`<span style="color:var(--text2);">${xs}</span>`:''}
-      </div>
-    </div>`;
-  });
-  ew.innerHTML=html;
-  const tx=ax.reduce((s,x)=>s+(x.amount||0),0), net=te-tx;
-  const g={};
-  ax.forEach(x=>{const k=(x.comment||'Затрата').trim();g[k]=(g[k]||0)+(x.amount||0);});
-  let th='';
-  Object.entries(g).forEach(([n,v])=>{th+=`<div class="xrow"><span>${n}</span><span style="color:var(--accent);">−${cur}${v.toLocaleString()}</span></div>`;});
-  th+=`<div class="trow" style="align-items:flex-start;"><div class="tlbl" style="padding-top:10px;">Итого</div><div style="text-align:right;"><div class="tamt" style="color:${net>=0?'var(--accent)':'#c0392b'};">${net>=0?'+':''}${cur}${Math.abs(net).toLocaleString()}</div></div></div>`;
-  tw.innerHTML=`<div class="tcard">${th}</div>`;
-}
-
-// свайп вниз — закрыть layer2
-(function(){
-  const sc=document.getElementById('l2scr'), bd=document.getElementById('l2scroll');
-  const EASE='transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
-  let sy=0, drag=false;
-  sc.addEventListener('touchstart',e=>{if(!_l2open)return;sy=e.touches[0].clientY;drag=false;sc.style.transition='none';},{passive:true});
-  sc.addEventListener('touchmove',e=>{if(!_l2open)return;if(bd.scrollTop>0)return;const dy=e.touches[0].clientY-sy;if(dy>8){drag=true;sc.style.transform=`translateY(${Math.min(dy,280)}px)`;}},{passive:true});
-  sc.addEventListener('touchend',e=>{if(!_l2open)return;sc.style.transition=EASE;const dy=e.changedTouches[0].clientY-sy;if(drag&&dy>90){l2hide();}else{sc.style.transform='';}drag=false;},{passive:true});
-})();
-// ════════ END LAYER 2 ════════
-
 </script>
 
 <!-- FIREBASE -->
