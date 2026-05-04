@@ -1217,6 +1217,7 @@ function _dragEnd(x, y) {
 }
 
 let _dragPending = null;
+let _lptFired = false;
 const DRAG_THRESH = 8;
 
 function ts(e, dk) {
@@ -1226,12 +1227,13 @@ function ts(e, dk) {
   const t = e.touches[0];
   const startX = t.clientX, startY = t.clientY;
 
+  _lptFired = false;
   if (days[dk]) {
     // Заполненный день: долгое нажатие = меню, движение = drag
     _dragPending = { dk, el, x: startX, y: startY };
     _lpt = setTimeout(() => {
-      // Таймер сработал без движения — показываем меню
       if (!_drag) {
+        _lptFired = true;
         el.classList.remove('press');
         _dragPending = null;
         navigator.vibrate && navigator.vibrate(28);
@@ -1242,6 +1244,7 @@ function ts(e, dk) {
     // Пустой день: долгое нажатие = меню (вставить если есть буфер)
     _dragPending = null;
     _lpt = setTimeout(() => {
+      _lptFired = true;
       el.classList.remove('press');
       navigator.vibrate && navigator.vibrate(28);
       showCtxMenu(dk, el, startX, startY);
@@ -1284,12 +1287,10 @@ function te(e, dk) {
     return;
   }
   if (_mv) return;
-  const held = Date.now() - _t0 >= 500;
-  // Долгое нажатие уже обработал таймер (меню) — выходим
-  if (held) return;
+  // Таймер уже сработал и показал меню — ничего не делаем
+  if (_lptFired) return;
 
-  // Короткое нажатие:
-  // Если есть буфер — показываем Вставить (не открываем модал)
+  // Если есть буфер — любое нажатие показывает Вставить
   if (_clipboard) {
     showCtxMenu(dk, e.currentTarget, e.changedTouches[0].clientX, e.changedTouches[0].clientY);
     return;
