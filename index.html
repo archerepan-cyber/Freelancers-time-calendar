@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="theme-color" content="#f5f0e8"/>
@@ -33,7 +33,7 @@
 
 /* ── RESET ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; overflow: hidden; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html, body { height: 100%; overflow: hidden; }
 body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); }
 input, textarea, select { font-family: inherit; user-select: text; -webkit-user-select: text; }
 button { font-family: inherit; cursor: pointer; }
@@ -132,8 +132,9 @@ button { font-family: inherit; cursor: pointer; }
   #sMain .mnav,
   #sMain .chdr,
   #sMain .cgrid   { grid-column: 1; }
-  /* Right column: single container, totals sit right below cards */
-  #sMain #rightCol { grid-column: 2; grid-row: 1 / 8; display: flex; flex-direction: column; }
+  /* Right column items stacked naturally */
+  #sMain #entWrap { grid-column: 2; grid-row: 1 / 8; }
+  #sMain #totWrap { grid-column: 2; grid-row: 8; }
 
   /* Calendar dots larger on desktop */
   .cgrid { gap: 8px; }
@@ -158,26 +159,6 @@ button { font-family: inherit; cursor: pointer; }
   #bar { height: 64px; gap: 80px; }
   .tbtn { font-size: 30px; }
 }
-/* ── LANDSCAPE PHONE: two-column layout like desktop ── */
-@media (orientation: landscape) and (max-height: 600px) {
-  #sMain {
-    display: grid;
-    grid-template-columns: minmax(0,1fr) minmax(0,1fr);
-    column-gap: 24px;
-    align-items: start;
-  }
-  #sMain .big,
-  #sMain .bigrow,
-  #sMain .mnav,
-  #sMain .chdr,
-  #sMain .cgrid   { grid-column: 1; }
-  #sMain #rightCol { grid-column: 2; grid-row: 1 / 8; display: flex; flex-direction: column; }
-  .big { font-size: clamp(48px, 14vw, 80px); }
-  .cgrid { gap: 5px; }
-  .dot { max-width: 52px; max-height: 52px; justify-self: center; width: 100%; }
-  .scr { padding: calc(var(--st) + 14px) 20px 72px; }
-}
-
 
 .dot {
   aspect-ratio: 1; border-radius: 50%;
@@ -372,21 +353,6 @@ button { font-family: inherit; cursor: pointer; }
 .btnc { flex: 1; padding: 14px; border-radius: 14px; background: var(--bg3); border: none; font-size: 15px; font-weight: 600; color: var(--text2); touch-action: manipulation; }
 .btno { flex: 2; padding: 14px; border-radius: 14px; background: var(--accent); border: none; font-size: 15px; font-weight: 600; color: #fff; touch-action: manipulation; }
 </style>
-<script>
-// iOS: сброс масштаба при повороте экрана
-window.addEventListener('orientationchange', function() {
-  // iOS: принудительно сбрасываем масштаб после поворота
-  setTimeout(function() {
-    var mv = document.querySelector('meta[name=viewport]');
-    if (!mv) return;
-    mv.content = 'width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover';
-  }, 300);
-});
-// Также слушаем resize — на некоторых устройствах orientationchange не срабатывает
-window.addEventListener('resize', function() {
-  document.body.style.zoom = 1;
-});
-</script>
 </head>
 <body>
 
@@ -416,10 +382,8 @@ window.addEventListener('resize', function() {
       </div>
       <div class="cgrid" id="grid"></div>
 
-      <div id="rightCol">
-        <div id="entWrap"></div>
-        <div id="totWrap"></div>
-      </div>
+      <div id="entWrap"></div>
+      <div id="totWrap"></div>
     </div>
 
     <!-- SETTINGS -->
@@ -1350,38 +1314,28 @@ function goTab(tab, fromSwipe = false) {
     settle(e.changedTouches[0].clientX - sx);
   }, { passive: true });
 
-  // ── MOUSE CLICK-DRAG (desktop) — live follow like touch ──
+  // ── MOUSE CLICK-DRAG (desktop) — treated as a directional flick, triggers goTab like buttons ──
   let _md = false, _mdX = 0, _mdY = 0, _mdAxis = null, _mdMoved = false;
-  let _mdLastX = 0, _mdLastT = 0, _mdVelocity = 0;
   wrap.addEventListener('mousedown', e => {
     if (_recentTouch) return;
     if (document.getElementById('modal').classList.contains('on')) return;
     if (e.button !== 0 || e.target.type === 'range') return;
     _md = true; _mdX = e.clientX; _mdY = e.clientY; _mdAxis = null; _mdMoved = false;
-    _mdLastX = e.clientX; _mdLastT = Date.now(); _mdVelocity = 0;
-    m.style.transition = 'none'; s.style.transition = 'none';
   });
   window.addEventListener('mousemove', e => {
     if (!_md) return;
     const dx = e.clientX - _mdX, dy = e.clientY - _mdY;
-    if (!_mdAxis && (Math.abs(dx) > 8 || Math.abs(dy) > 8))
+    if (!_mdAxis && (Math.abs(dx) > 10 || Math.abs(dy) > 10))
       _mdAxis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-    if (_mdAxis !== 'x') return;
-    _mdMoved = true;
-    const now = Date.now(), dt = now - _mdLastT;
-    if (dt > 0) _mdVelocity = (e.clientX - _mdLastX) / dt;
-    _mdLastX = e.clientX; _mdLastT = now;
-    panelPos(dx);
+    if (_mdAxis === 'x' && Math.abs(dx) > 10) _mdMoved = true;
   });
   window.addEventListener('mouseup', e => {
     if (!_md) return;
     _md = false;
-    if (!_mdMoved || _mdAxis !== 'x') {
-      m.style.transition = ''; s.style.transition = '';
-      return;
-    }
-    velocity = _mdVelocity;
-    settle(e.clientX - _mdX);
+    if (!_mdMoved || _mdAxis !== 'x') return;
+    const dx = e.clientX - _mdX;
+    if      (curTab_ref.v === 'main' && dx < -40) goTab('sett');
+    else if (curTab_ref.v === 'sett' && dx >  40) goTab('main');
   });
 
   // ── WHEEL (Mac trackpad two-finger horizontal swipe) ──
