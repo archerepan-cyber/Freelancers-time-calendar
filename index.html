@@ -355,106 +355,82 @@ button { font-family: inherit; cursor: pointer; }
 .btno { flex: 2; padding: 14px; border-radius: 14px; background: var(--accent); border: none; font-size: 15px; font-weight: 600; color: #fff; touch-action: manipulation; }
 
 /* ── LAYER 2 ── */
-#layer2Btn {
+#l2badge {
   position: absolute;
-  top: calc(var(--st) + 18px);
+  top: calc(env(safe-area-inset-top) + 18px);
   right: 18px;
   z-index: 50;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: none;
-  touch-action: manipulation;
-  cursor: pointer;
-  padding: 0;
-}
-#layer2Btn .l2badge {
-  width: 28px; height: 28px;
+  width: 30px; height: 30px;
   border-radius: 50%;
   background: var(--accent);
+  border: none;
+  color: #fff;
+  font-size: 14px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 700; color: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,.25);
-  transition: transform .15s;
+  box-shadow: 0 2px 8px rgba(0,0,0,.22);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform .12s;
 }
-#layer2Btn:active .l2badge { transform: scale(.88); }
-#layer2Btn .l2num {
-  font-size: 16px; font-weight: 700; color: var(--text);
-  font-family: 'DM Serif Display', serif;
-}
+#l2badge:active { transform: scale(.86); }
+#l2badge.hidden { display: none; }
 
-/* NE dot on calendar dots */
 .dot .l2pip {
   position: absolute;
-  top: 2px; right: 2px;
-  width: 8px; height: 8px;
+  top: 1px; right: 1px;
+  width: 9px; height: 9px;
   border-radius: 50%;
-  background: var(--accent);
+  background: #FBC359;
   border: 1.5px solid var(--bg);
   display: none;
-  z-index: 2;
+  pointer-events: none;
 }
 .dot.has-l2 .l2pip { display: block; }
 
-/* Layer2 full-screen overlay */
-#layer2Over {
+#l2over {
   position: fixed;
   inset: 0;
-  z-index: 200;
-  pointer-events: none;
+  z-index: 300;
+  background: var(--bg);
   transform: translateY(100%);
   transition: transform .42s cubic-bezier(.25,0.46,0.45,0.94);
-  background: var(--bg);
   display: flex; flex-direction: column;
   -webkit-backface-visibility: hidden;
+  pointer-events: none;
 }
-#layer2Over.on {
+#l2over.on {
   transform: translateY(0);
   pointer-events: all;
 }
-
-#layer2Header {
+#l2head {
   flex-shrink: 0;
-  padding: calc(var(--st) + 16px) 20px 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  padding: calc(env(safe-area-inset-top) + 14px) 20px 12px;
+  display: flex; align-items: center; justify-content: space-between;
   background: var(--bg2);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-bottom: .5px solid var(--sep);
 }
-#layer2Header .l2title {
+#l2head .l2htit {
   font-family: 'DM Serif Display', serif;
-  font-size: 22px;
-  color: var(--text);
+  font-size: 22px; color: var(--text);
 }
-#layer2CloseBtn {
-  background: var(--bg3);
-  border: none;
-  border-radius: 50%;
-  width: 34px; height: 34px;
-  font-size: 18px;
-  color: var(--text2);
+#l2closebtn {
+  background: var(--bg3); border: none; border-radius: 50%;
+  width: 34px; height: 34px; font-size: 18px; color: var(--text2);
   display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  touch-action: manipulation;
-  cursor: pointer;
+  cursor: pointer; touch-action: manipulation; flex-shrink: 0;
 }
-#layer2Body {
+#l2body {
   flex: 1;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   padding: 20px 22px 78px;
 }
 @media (hover: hover) and (pointer: fine) {
-  #layer2Body { padding: 32px 48px 96px; }
-  #layer2Body .cgrid { gap: 8px; }
-  #layer2Body .dot { max-width: 70px; max-height: 70px; justify-self: center; width: 100%; }
+  #l2body { padding: 32px 48px 96px; }
+  #l2body .cgrid { gap: 8px; }
+  #l2body .dot { max-width: 70px; max-height: 70px; justify-self: center; width: 100%; }
 }
-
 </style>
 </head>
 <body>
@@ -465,10 +441,7 @@ button { font-family: inherit; cursor: pointer; }
 <div id="app">
   <div id="wrap">
 
-    <!-- LAYER 2 BADGE -->
-    <button id="layer2Btn" onclick="openLayer2()" aria-label="Второй слой">
-      <div class="l2badge">2</div>
-    </button>
+    <button id="l2badge" onclick="l2Open()" aria-label="Слой 2">2</button>
 
     <!-- MAIN -->
     <div class="scr" id="sMain">
@@ -589,12 +562,12 @@ button { font-family: inherit; cursor: pointer; }
 </div>
 
 <!-- LAYER 2 OVERLAY -->
-<div id="layer2Over">
-  <div id="layer2Header">
-    <div class="l2title">Слой 2</div>
-    <button id="layer2CloseBtn" onclick="closeLayer2()">✕</button>
+<div id="l2over">
+  <div id="l2head">
+    <div class="l2htit">Слой 2</div>
+    <button id="l2closebtn" onclick="l2Close()">✕</button>
   </div>
-  <div id="layer2Body">
+  <div id="l2body">
     <div class="mnav">
       <button class="marr" onclick="l2chM(-1)">‹</button>
       <div class="mlbl" id="l2mLbl"></div>
@@ -605,7 +578,10 @@ button { font-family: inherit; cursor: pointer; }
       <span class="we">С</span><span class="we">В</span>
     </div>
     <div class="cgrid" id="l2grid"></div>
-    <div id="l2rightCol"><div id="l2entWrap"></div><div id="l2totWrap"></div></div>
+    <div id="l2rightCol" style="margin-top:0;">
+      <div id="l2entWrap"></div>
+      <div id="l2totWrap"></div>
+    </div>
   </div>
 </div>
 
@@ -1358,8 +1334,7 @@ function goTab(tab, fromSwipe = false) {
   curTab_ref.v = tab;
   document.getElementById('tbM').classList.toggle('on', tab === 'main');
   document.getElementById('tbS').classList.toggle('on', tab === 'sett');
-  const l2b = document.getElementById('layer2Btn');
-  if (l2b) l2b.style.display = tab === 'main' ? '' : 'none';
+  document.getElementById('l2badge').classList.toggle('hidden', tab !== 'main');
   if (fromSwipe) {
     // After swipe: panels are already in motion — just set final position with animation
     m.style.transition = EASE;
@@ -1675,34 +1650,34 @@ function applyCfg() {
   window.fbInit = function(){};
 }
 
-// ── LAYER 2 ──
-const SK2 = 'ftc_d2';
+// ═══════════════════════════════════════════
+// LAYER 2
+// ═══════════════════════════════════════════
+const L2_SK = 'ftc_l2';
 let l2days = {};
-function l2load() { try { l2days = JSON.parse(localStorage.getItem(SK2) || '{}'); } catch { l2days = {}; } }
-function l2saveD() { localStorage.setItem(SK2, JSON.stringify(l2days)); }
-l2load();
+(function(){ try { l2days = JSON.parse(localStorage.getItem(L2_SK)||'{}'); } catch{} })();
+function l2save() { localStorage.setItem(L2_SK, JSON.stringify(l2days)); }
 
 let l2vy = new Date().getFullYear(), l2vm = new Date().getMonth();
-let l2Open = false;
-let l2eDk = null, l2dc = '#324E44';
+let _l2isOpen = false;
+let _l2ctx = false; // true когда модалка открыта из слоя 2
 
-function openLayer2() {
-  l2Open = true;
-  document.getElementById('layer2Over').classList.add('on');
+function l2Open() {
+  _l2isOpen = true;
+  document.getElementById('l2over').classList.add('on');
   l2renderCal();
   l2renderEnt();
 }
-function closeLayer2() {
-  document.getElementById('layer2Over').classList.remove('on');
-  l2Open = false;
+function l2Close() {
+  document.getElementById('l2over').classList.remove('on');
+  _l2isOpen = false;
 }
 
 function l2chM(d) {
   l2vm += d;
   if (l2vm < 0) { l2vm = 11; l2vy--; }
   if (l2vm > 11) { l2vm = 0; l2vy++; }
-  l2renderCal();
-  l2renderEnt();
+  l2renderCal(); l2renderEnt();
 }
 
 function l2renderCal() {
@@ -1719,240 +1694,166 @@ function l2renderCal() {
     const dt = new Date(l2vy, l2vm, d);
     const isT = dk === tdk;
     const isP = dt < new Date(t.getFullYear(), t.getMonth(), t.getDate());
-    let cls = 'dot';
-    let sty = '';
-    if (dd && dd.color) {
-      sty = `background:${dd.color};`;
-      cls += ' work';
-      if (isT) cls += ' today-w';
-    } else if (isT) { cls += ' today'; }
-    else if (isP)   { cls += ' past'; }
-    else            { cls += ' future'; }
+    let cls = 'dot', sty = '';
+    if (dd && dd.color) { sty = `background:${dd.color};`; cls += ' work'; if(isT) cls += ' today-w'; }
+    else if (isT)  { cls += ' today'; }
+    else if (isP)  { cls += ' past'; }
+    else           { cls += ' future'; }
     if (dd) cls += ' has';
     h += `<div class="${cls}" style="${sty}"
-      ontouchstart="l2ts(event,'${dk}')"
-      ontouchmove="l2tm()"
-      ontouchend="l2te(event,'${dk}')"
-      onmousedown="l2ms(event,'${dk}')"
-      onmouseup="l2mu(event,'${dk}')"
-    >
+      ontouchstart="l2ts(event,'${dk}')" ontouchmove="l2tm()" ontouchend="l2te(event,'${dk}')"
+      onmousedown="l2ms(event,'${dk}')" onmouseup="l2mu(event,'${dk}')">
       <div class="pip"></div>
     </div>`;
   }
   document.getElementById('l2grid').innerHTML = h;
 }
 
-// ── LAYER2 TOUCH ──
-let _l2t0 = 0, _l2mv = false, _l2lpt = null;
-let _l2lastTap = 0, _l2lastDk = null, _l2dtTimer = null;
-function l2ts(e, dk) {
-  _l2mv = false; _l2t0 = Date.now();
-  const el = e.currentTarget;
-  el.classList.add('press');
-  _l2lpt = setTimeout(() => {
-    el.classList.remove('press');
-    navigator.vibrate && navigator.vibrate(28);
-    l2openModal(dk);
-  }, 500);
-}
-function l2tm() {
-  _l2mv = true;
-  clearTimeout(_l2lpt);
-  document.querySelectorAll('#l2grid .dot.press').forEach(e => e.classList.remove('press'));
-}
-function l2te(e, dk) {
-  clearTimeout(_l2lpt);
-  e.currentTarget.classList.remove('press');
-  if (_l2mv) return;
-  if (Date.now() - _l2t0 >= 500) return;
-  const now = Date.now();
-  if (_l2lastDk === dk && now - _l2lastTap < 350) {
-    clearTimeout(_l2dtTimer);
-    _l2lastTap = 0; _l2lastDk = null;
-    l2clrD(dk); return;
-  }
-  _l2lastTap = now; _l2lastDk = dk;
-  clearTimeout(_l2dtTimer);
-  _l2dtTimer = setTimeout(() => { _l2lastTap = 0; _l2lastDk = null; l2openModal(dk); }, 350);
-}
-function l2clrD(dk) {
-  if (!l2days[dk]) return;
-  navigator.vibrate && navigator.vibrate([20,30,20]);
-  delete l2days[dk];
-  l2saveD(); l2renderCal(); l2renderEnt(); renderCal(); // refresh main cal l2pip
-}
-let _l2ms0 = 0, _l2msLpt = null, _l2mLastTap = 0, _l2mLastDk = null, _l2mDtTimer = null;
-function l2ms(e, dk) {
-  if (_recentTouch) return;
-  if (e.button !== 0) return;
-  _l2ms0 = Date.now();
-  const el = e.currentTarget;
-  el.classList.add('press');
-  _l2msLpt = setTimeout(() => { el.classList.remove('press'); l2openModal(dk); }, 500);
-}
-function l2mu(e, dk) {
-  if (_recentTouch) return;
-  clearTimeout(_l2msLpt);
-  e.currentTarget.classList.remove('press');
-  if (Date.now() - _l2ms0 >= 500) return;
-  const now = Date.now();
-  if (_l2mLastDk === dk && now - _l2mLastTap < 350) {
-    clearTimeout(_l2mDtTimer); _l2mLastTap = 0; _l2mLastDk = null;
-    l2clrD(dk); return;
-  }
-  _l2mLastTap = now; _l2mLastDk = dk;
-  clearTimeout(_l2mDtTimer);
-  _l2mDtTimer = setTimeout(() => { _l2mLastTap = 0; _l2mLastDk = null; l2openModal(dk); }, 350);
-}
+// touch layer2
+let _l2t0=0,_l2mv=false,_l2lpt=null,_l2ltap=0,_l2ldk=null,_l2dTimer=null;
+function l2ts(e,dk){ _l2mv=false;_l2t0=Date.now();const el=e.currentTarget;el.classList.add('press');_l2lpt=setTimeout(()=>{el.classList.remove('press');navigator.vibrate&&navigator.vibrate(28);l2openMod(dk);},500); }
+function l2tm(){ _l2mv=true;clearTimeout(_l2lpt);document.querySelectorAll('#l2grid .dot.press').forEach(e=>e.classList.remove('press')); }
+function l2te(e,dk){ clearTimeout(_l2lpt);e.currentTarget.classList.remove('press');if(_l2mv)return;if(Date.now()-_l2t0>=500)return;const now=Date.now();if(_l2ldk===dk&&now-_l2ltap<350){clearTimeout(_l2dTimer);_l2ltap=0;_l2ldk=null;l2clr(dk);return;}_l2ltap=now;_l2ldk=dk;clearTimeout(_l2dTimer);_l2dTimer=setTimeout(()=>{_l2ltap=0;_l2ldk=null;l2openMod(dk);},350); }
+function l2clr(dk){ if(!l2days[dk])return;navigator.vibrate&&navigator.vibrate([20,30,20]);delete l2days[dk];l2save();l2renderCal();l2renderEnt();renderCal(); }
+let _l2ms0=0,_l2mslpt=null,_l2mltap=0,_l2mldk=null,_l2mdTimer=null;
+function l2ms(e,dk){ if(_recentTouch)return;if(e.button!==0)return;_l2ms0=Date.now();const el=e.currentTarget;el.classList.add('press');_l2mslpt=setTimeout(()=>{el.classList.remove('press');l2openMod(dk);},500); }
+function l2mu(e,dk){ if(_recentTouch)return;clearTimeout(_l2mslpt);e.currentTarget.classList.remove('press');if(Date.now()-_l2ms0>=500)return;const now=Date.now();if(_l2mldk===dk&&now-_l2mltap<350){clearTimeout(_l2mdTimer);_l2mltap=0;_l2mldk=null;l2clr(dk);return;}_l2mltap=now;_l2mldk=dk;clearTimeout(_l2mdTimer);_l2mdTimer=setTimeout(()=>{_l2mltap=0;_l2mldk=null;l2openMod(dk);},350); }
 
-// ── LAYER2 MODAL (reuses main modal with l2 context) ──
-let _l2modalActive = false;
-function l2openModal(dk) {
-  _l2modalActive = true;
+// layer2 modal — переиспользуем существующую модалку
+function l2openMod(dk) {
+  _l2ctx = true;
   eDk = dk;
-  const [y, m, d] = dk.split('-').map(Number);
+  const [y,m,d] = dk.split('-').map(Number);
   document.getElementById('mTit').textContent = `${d} ${MONG[m-1]}`;
   const dd = l2days[dk] || {};
   dc = dd.color || cfg.acc || '#324E44';
   document.querySelectorAll('#dcs .dc').forEach(el => el.classList.toggle('on', el.dataset.c === dc));
-  document.getElementById('fLbl').value   = dd.label || '';
-  document.getElementById('fS').value     = dd.timeStart || '';
-  document.getElementById('fE').value     = dd.timeEnd || '';
-  document.getElementById('fEarn').value  = dd.earned || '';
-  document.getElementById('xList').innerHTML = '';
-  (dd.expenses || []).forEach(x => addX(x.amount, x.comment));
+  document.getElementById('fLbl').value   = dd.label||'';
+  document.getElementById('fS').value     = dd.timeStart||'';
+  document.getElementById('fE').value     = dd.timeEnd||'';
+  document.getElementById('fEarn').value  = dd.earned||'';
+  document.getElementById('xList').innerHTML='';
+  (dd.expenses||[]).forEach(x=>addX(x.amount,x.comment));
   document.getElementById('modal').classList.add('on');
 }
-// Patch saveDay to handle l2 context
-const _origSaveDayFn = saveDay;
+
+// Перехватываем saveDay и closeModal
+const _origSaveDay = window.saveDay;
 window.saveDay = function() {
   if (!eDk) return;
-  const xs = [];
-  document.querySelectorAll('#xList .xrow2').forEach(r => {
-    const ins = r.querySelectorAll('input');
-    const a = parseFloat(ins[0].value) || 0;
-    const c = ins[1].value.trim();
-    if (a > 0 || c) xs.push({ amount: a, comment: c });
+  const xs=[];
+  document.querySelectorAll('#xList .xrow2').forEach(r=>{
+    const ins=r.querySelectorAll('input');
+    const a=parseFloat(ins[0].value)||0, c=ins[1].value.trim();
+    if(a>0||c) xs.push({amount:a,comment:c});
   });
   const data = {
-    color:     dc,
-    label:     document.getElementById('fLbl').value.trim(),
+    color: dc,
+    label: document.getElementById('fLbl').value.trim(),
     timeStart: document.getElementById('fS').value,
-    timeEnd:   document.getElementById('fE').value,
-    earned:    parseFloat(document.getElementById('fEarn').value) || 0,
-    expenses:  xs
+    timeEnd: document.getElementById('fE').value,
+    earned: parseFloat(document.getElementById('fEarn').value)||0,
+    expenses: xs
   };
-  if (_l2modalActive) {
+  if (_l2ctx) {
     l2days[eDk] = data;
-    l2saveD(); closeModal(); l2renderCal(); l2renderEnt();
-    renderCal(); // refresh main cal l2pip dots
+    l2save();
+    document.getElementById('modal').classList.remove('on');
+    eDk = null; _l2ctx = false;
+    l2renderCal(); l2renderEnt();
+    renderCal(); // обновить l2pip на главном
   } else {
-    days[eDk] = data;
-    saveD(); closeModal(); renderCal(); renderEnt();
+    _origSaveDay.call(this);
   }
-  _l2modalActive = false;
-};
-const _origCloseModal = closeModal;
-window.closeModal = function() {
-  _l2modalActive = false;
-  document.getElementById('modal').classList.remove('on');
-  eDk = null;
 };
 
-// ── LAYER2 ENTRIES ──
+const _origCloseModal = window.closeModal;
+window.closeModal = function() {
+  _l2ctx = false;
+  _origCloseModal.call(this);
+};
+
+// entries layer2
 function l2renderEnt() {
-  const items = [];
-  for (let d = 1; d <= 31; d++) {
-    const dk = dkey(l2vy, l2vm, d);
-    const dt = new Date(l2vy, l2vm, d);
-    if (dt.getMonth() !== l2vm) break;
-    if (l2days[dk]) items.push({ dk, d, dd: l2days[dk] });
+  const items=[];
+  for(let d=1;d<=31;d++){
+    const dk=dkey(l2vy,l2vm,d);
+    const dt=new Date(l2vy,l2vm,d);
+    if(dt.getMonth()!==l2vm) break;
+    if(l2days[dk]) items.push({dk,d,dd:l2days[dk]});
   }
-  const ew = document.getElementById('l2entWrap');
-  const tw = document.getElementById('l2totWrap');
-  if (!items.length) { ew.innerHTML = ''; tw.innerHTML = ''; return; }
-  const cur = cfg.cur;
-  let html = `<div class="slbl">${MON[l2vm]} ${l2vy}</div>`;
-  let te = 0; const ax = [];
-  items.forEach((it, i) => {
-    const dd = it.dd;
-    te += dd.earned || 0;
-    (dd.expenses || []).forEach(x => ax.push({ ...x, day: it.d, lbl: dd.label }));
-    const ts  = dd.timeStart && dd.timeEnd ? `${dd.timeStart}–${dd.timeEnd}` : '';
-    const es  = dd.earned ? `+${cur}${dd.earned.toLocaleString()}` : '';
-    const xt  = (dd.expenses || []).reduce((s, x) => s + (x.amount || 0), 0);
-    const xs  = xt ? `−${cur}${xt.toLocaleString()}` : '';
-    html += `<div class="ecard" onclick="l2openModal('${it.dk}')">
+  const ew=document.getElementById('l2entWrap');
+  const tw=document.getElementById('l2totWrap');
+  if(!items.length){ew.innerHTML='';tw.innerHTML='';return;}
+  const cur=cfg.cur;
+  let html=`<div class="slbl">${MON[l2vm]} ${l2vy}</div>`;
+  let te=0; const ax=[];
+  items.forEach((it,i)=>{
+    const dd=it.dd; te+=dd.earned||0;
+    (dd.expenses||[]).forEach(x=>ax.push({...x,day:it.d}));
+    const ts=dd.timeStart&&dd.timeEnd?`${dd.timeStart}–${dd.timeEnd}`:'';
+    const es=dd.earned?`+${cur}${dd.earned.toLocaleString()}`:'';
+    const xt=(dd.expenses||[]).reduce((s,x)=>s+(x.amount||0),0);
+    const xs=xt?`−${cur}${xt.toLocaleString()}`:'';
+    html+=`<div class="ecard" onclick="l2openMod('${it.dk}')">
       <div class="etop">
         <div class="enum">${i+1}</div>
         <div class="einfo">
           <div class="edate">${it.d} ${MONG[l2vm]}</div>
-          ${dd.label ? `<div class="ename">${dd.label}</div>` : ''}
+          ${dd.label?`<div class="ename">${dd.label}</div>`:''}
         </div>
-        <div class="edot" style="background:${dd.color || cfg.acc};"></div>
+        <div class="edot" style="background:${dd.color||cfg.acc};"></div>
       </div>
       <div class="enums">
-        ${ts ? `<span style="color:var(--text3);">🕐 ${ts}</span>` : ''}
-        ${es ? `<span style="color:var(--accent);font-weight:600;">${es}</span>` : ''}
-        ${xs ? `<span style="color:var(--text2);">${xs}</span>` : ''}
+        ${ts?`<span style="color:var(--text3);">🕐 ${ts}</span>`:''}
+        ${es?`<span style="color:var(--accent);font-weight:600;">${es}</span>`:''}
+        ${xs?`<span style="color:var(--text2);">${xs}</span>`:''}
       </div>
     </div>`;
   });
-  ew.innerHTML = html;
-  const tx = ax.reduce((s, x) => s + (x.amount || 0), 0);
-  const net = te - tx;
-  const grouped = {};
-  ax.forEach(x => {
-    const key = (x.comment || 'Затрата').trim();
-    if (grouped[key]) grouped[key] += (x.amount || 0);
-    else grouped[key] = (x.amount || 0);
-  });
-  let th = '';
-  Object.entries(grouped).forEach(([name, total]) => {
-    th += `<div class="xrow"><span>${name}</span><span style="color:var(--accent);">−${cur}${total.toLocaleString()}</span></div>`;
-  });
-  th += `<div class="trow" style="align-items:flex-start;">
+  ew.innerHTML=html;
+  const tx=ax.reduce((s,x)=>s+(x.amount||0),0);
+  const net=te-tx;
+  const grouped={};
+  ax.forEach(x=>{ const k=(x.comment||'Затрата').trim(); grouped[k]=(grouped[k]||0)+(x.amount||0); });
+  let th='';
+  Object.entries(grouped).forEach(([n,tot])=>{ th+=`<div class="xrow"><span>${n}</span><span style="color:var(--accent);">−${cur}${tot.toLocaleString()}</span></div>`; });
+  th+=`<div class="trow" style="align-items:flex-start;">
     <div class="tlbl" style="padding-top:10px;">Итого</div>
     <div style="text-align:right;">
-      <div class="tamt" style="color:${net >= 0 ? 'var(--accent)' : '#c0392b'};">${net >= 0 ? '+' : ''}${cur}${Math.abs(net).toLocaleString()}</div>
+      <div class="tamt" style="color:${net>=0?'var(--accent)':'#c0392b'};">${net>=0?'+':''}${cur}${Math.abs(net).toLocaleString()}</div>
     </div>
   </div>`;
-  tw.innerHTML = `<div class="tcard">${th}</div>`;
+  tw.innerHTML=`<div class="tcard">${th}</div>`;
 }
 
-// ── LAYER2 SWIPE DOWN TO CLOSE ──
+// свайп вниз для закрытия layer2
 (function(){
-  const over = document.getElementById('layer2Over');
-  const body = document.getElementById('layer2Body');
-  let sy2 = 0, dragging2 = false, startedOnBody = false;
-  over.addEventListener('touchstart', e => {
-    if (!l2Open) return;
-    sy2 = e.touches[0].clientY;
-    dragging2 = false;
-    startedOnBody = body.contains(e.target);
-    over.style.transition = 'none';
-  }, { passive: true });
-  over.addEventListener('touchmove', e => {
-    if (!l2Open) return;
-    if (startedOnBody && body.scrollTop > 0) return;
-    const dy = e.touches[0].clientY - sy2;
-    if (dy > 10) {
-      dragging2 = true;
-      over.style.transform = `translateY(${Math.min(dy, 300)}px)`;
-    }
-  }, { passive: true });
-  over.addEventListener('touchend', e => {
-    if (!l2Open) return;
-    over.style.transition = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
-    const dy = e.changedTouches[0].clientY - sy2;
-    if (dragging2 && dy > 100) {
-      closeLayer2();
-    } else {
-      over.style.transform = 'translateY(0)';
-    }
-    dragging2 = false;
-  }, { passive: true });
+  const ov=document.getElementById('l2over');
+  const bd=document.getElementById('l2body');
+  let sy=0,drag=false;
+  const EASE='transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
+  ov.addEventListener('touchstart',e=>{
+    if(!_l2isOpen) return;
+    sy=e.touches[0].clientY; drag=false;
+    ov.style.transition='none';
+  },{passive:true});
+  ov.addEventListener('touchmove',e=>{
+    if(!_l2isOpen) return;
+    if(bd.scrollTop>0) return;
+    const dy=e.touches[0].clientY-sy;
+    if(dy>8){ drag=true; ov.style.transform=`translateY(${Math.min(dy,280)}px)`; }
+  },{passive:true});
+  ov.addEventListener('touchend',e=>{
+    if(!_l2isOpen) return;
+    ov.style.transition=EASE;
+    const dy=e.changedTouches[0].clientY-sy;
+    if(drag&&dy>90){ l2Close(); }
+    else { ov.style.transform='translateY(0)'; }
+    drag=false;
+  },{passive:true});
 })();
+// ═══════════════════════════════════════════
 
 </script>
 
