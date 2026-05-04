@@ -108,57 +108,6 @@ button { font-family: inherit; cursor: pointer; }
 .chdr span { text-align: center; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text3); }
 .chdr .we { color: var(--accent); }
 .cgrid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; }
-@media (hover: hover) and (pointer: fine) {
-  /* Wider shell */
-  #app { max-width: 1100px; margin: 0 auto; }
-
-  /* Cursor hint */
-  #wrap { cursor: grab; }
-  #wrap:active { cursor: grabbing; }
-
-  /* Screens side-by-side panel layout */
-  .scr { padding: calc(var(--st) + 32px) 48px 96px; }
-
-  /* ── MAIN SCREEN: two-column layout ── */
-  #sMain {
-    display: grid;
-    grid-template-columns: minmax(0,1fr) minmax(0,1fr);
-    column-gap: 40px;
-    align-items: start;
-  }
-  /* All left-column items */
-  #sMain .big,
-  #sMain .bigrow,
-  #sMain .mnav,
-  #sMain .chdr,
-  #sMain .cgrid   { grid-column: 1; }
-  /* Right column items stacked naturally */
-  #sMain #entWrap { grid-column: 2; grid-row: 1 / 8; }
-  #sMain #totWrap { grid-column: 2; grid-row: 8; }
-
-  /* Calendar dots larger on desktop */
-  .cgrid { gap: 8px; }
-  .dot { max-width: 70px; max-height: 70px; justify-self: center; width: 100%; }
-
-  /* Cards */
-  .ecard { padding: 16px 20px; }
-  .enum  { font-size: 28px; }
-  .tamt  { font-size: 44px; }
-
-  /* Settings screen: two-column grid for setting sections */
-  #sSett {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    column-gap: 40px;
-    align-items: start;
-  }
-  #sSett .stitle { grid-column: 1 / -1; }
-  #sSett .ssec   { /* natural flow fills two columns */ }
-
-  /* Tab bar bigger on desktop */
-  #bar { height: 64px; gap: 80px; }
-  .tbtn { font-size: 30px; }
-}
 
 .dot {
   aspect-ratio: 1; border-radius: 50%;
@@ -173,8 +122,6 @@ button { font-family: inherit; cursor: pointer; }
 .dot.work   { /* color set via inline style */ }
 .dot.empty  { background: transparent; pointer-events: none; }
 .dot.press  { transform: scale(.82); }
-.dot.cp-src { outline: 2.5px dashed var(--accent); outline-offset: 2px; animation: cp-pulse 1.4s ease-in-out infinite; }
-@keyframes cp-pulse { 0%,100%{opacity:1} 50%{opacity:.55} }
 .dot .pip { position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); width: 3px; height: 3px; border-radius: 50%; background: rgba(255,255,255,.8); display: none; }
 .dot.has .pip { display: block; }
 
@@ -313,14 +260,6 @@ button { font-family: inherit; cursor: pointer; }
   transform: translateY(100%); transition: transform .3s cubic-bezier(.4,0,.2,1);
 }
 .mover.on .msheet { transform: translateY(0); }
-@media (hover: hover) and (pointer: fine) {
-  .mover { align-items: center; }
-  .msheet {
-    border-radius: 24px; max-height: 80vh;
-    transform: translateY(20px) scale(.97);
-  }
-  .mover.on .msheet { transform: translateY(0) scale(1); }
-}
 .mdrg { width: 36px; height: 4px; border-radius: 2px; background: var(--sep); margin: 0 auto 16px; }
 .mtit { font-family: 'DM Serif Display', serif; font-size: 26px; margin-bottom: 18px; color: var(--text); }
 .fg { margin-bottom: 14px; }
@@ -354,12 +293,51 @@ button { font-family: inherit; cursor: pointer; }
 .mact { display: flex; gap: 10px; margin-top: 16px; }
 .btnc { flex: 1; padding: 14px; border-radius: 14px; background: var(--bg3); border: none; font-size: 15px; font-weight: 600; color: var(--text2); touch-action: manipulation; }
 .btno { flex: 2; padding: 14px; border-radius: 14px; background: var(--accent); border: none; font-size: 15px; font-weight: 600; color: #fff; touch-action: manipulation; }
+
+/* ── CONTEXT MENU ── */
+#ctxMenu {
+  position: fixed; z-index: 500;
+  background: var(--bg2);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: .5px solid var(--sep);
+  border-radius: 16px;
+  padding: 6px;
+  min-width: 160px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.22);
+  opacity: 0; pointer-events: none;
+  transform: scale(.88);
+  transition: opacity .18s, transform .18s cubic-bezier(.34,1.56,.64,1);
+}
+#ctxMenu.on {
+  opacity: 1; pointer-events: auto; transform: scale(1);
+}
+.ctx-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 14px; border-radius: 11px;
+  font-size: 15px; font-weight: 500; color: var(--text);
+  background: none; border: none; width: 100%; text-align: left;
+  cursor: pointer; touch-action: manipulation;
+  transition: background .12s;
+}
+.ctx-item:active { background: var(--bg3); }
+.ctx-item .ctx-icon { font-size: 17px; }
+.ctx-item.paste { color: var(--accent); }
 </style>
 </head>
 <body>
 
 <div id="bg"><img id="bgImg" alt=""/></div>
 <div id="ov"></div>
+
+<!-- CONTEXT MENU -->
+<div id="ctxMenu">
+  <button class="ctx-item" id="ctxCopy" onclick="ctxDoCopy()">
+    <span class="ctx-icon">📋</span> Копировать
+  </button>
+  <button class="ctx-item paste" id="ctxPaste" onclick="ctxDoPaste()">
+    <span class="ctx-icon">📌</span> Вставить
+  </button>
+</div>
 
 <div id="app">
   <div id="wrap">
@@ -391,27 +369,6 @@ button { font-family: inherit; cursor: pointer; }
     <!-- SETTINGS -->
     <div class="scr" id="sSett">
       <div class="stitle">Настройки</div>
-
-      <div class="ssec">
-        <div class="sseclbl">Аккаунт</div>
-        <div id="fbAuthBlock">
-          <button class="bgbtn" id="fbSignInBtn" onclick="fbSignIn()" style="display:flex;align-items:center;justify-content:center;gap:8px;">
-            <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-            Войти через Google
-          </button>
-          <div id="fbUserInfo" style="display:none;">
-            <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg3);border-radius:14px;">
-              <img id="fbAvatar" width="32" height="32" style="border-radius:50%;"/>
-              <div style="flex:1;">
-                <div id="fbName" style="font-size:14px;font-weight:600;color:var(--text);"></div>
-                <div id="fbEmail" style="font-size:11px;color:var(--text3);"></div>
-              </div>
-              <button onclick="fbSignOut()" style="background:none;border:none;font-size:12px;color:var(--text3);touch-action:manipulation;">Выйти</button>
-            </div>
-            <div id="fbSyncStatus" style="font-size:11px;color:var(--text3);text-align:center;margin-top:6px;"></div>
-          </div>
-        </div>
-      </div>
 
       <div class="ssec">
         <div class="sseclbl">Валюта</div>
@@ -844,29 +801,13 @@ function toHex(val) {
 // ── STORAGE ──
 const SK = 'ftc_d1', SS = 'ftc_s1';
 let days = {}, cfg = { cur:'₽', theme:'default', thcls:'', acc:'#D0391B', ov:45, bg:'', xcurs:[] };
-window.days = days; window.cfg = cfg;
 
 function load() {
   try { days = JSON.parse(localStorage.getItem(SK) || '{}'); } catch { days = {}; }
   try { Object.assign(cfg, JSON.parse(localStorage.getItem(SS) || '{}')); } catch {}
-  // Восстанавливаем фото из отдельного ключа
-  try {
-    const bgData = JSON.parse(localStorage.getItem('ftc_bg') || 'null');
-    if (bgData && bgData.bg) { cfg.bg = bgData.bg; cfg.bgMime = bgData.bgMime || ''; }
-  } catch {}
 }
-function saveD() { localStorage.setItem(SK, JSON.stringify(days)); window.days = days; }
-function saveC() {
-  // Храним фото отдельно — base64 может быть несколько MB и вызывать QuotaExceededError
-  const { bg, bgMime, ...cfgLight } = cfg;
-  try { localStorage.setItem(SS, JSON.stringify(cfgLight)); } catch(e) {}
-  try {
-    if (bg) localStorage.setItem('ftc_bg', JSON.stringify({ bg, bgMime: bgMime || '' }));
-    else localStorage.removeItem('ftc_bg');
-  } catch(e) {}
-  window.cfg = cfg;
-}
-window.saveD = saveD; window.saveC = saveC;
+function saveD() { localStorage.setItem(SK, JSON.stringify(days)); }
+function saveC() { localStorage.setItem(SS, JSON.stringify(cfg)); }
 function dkey(y, m, d) { return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
 
 // ── STATE ──
@@ -930,13 +871,10 @@ function renderCal() {
     else if (isP)   { cls += ' past'; }
     else            { cls += ' future'; }
     if (dd) cls += ' has';
-    if (_copiedDay && _copiedDay.dk === dk) cls += ' cp-src';
     h += `<div class="${cls}" style="${sty}"
       ontouchstart="ts(event,'${dk}')"
       ontouchmove="tm()"
       ontouchend="te(event,'${dk}')"
-      onmousedown="ms(event,'${dk}')"
-      onmouseup="mu(event,'${dk}')"
 >
       <div class="pip"></div>
     </div>`;
@@ -944,69 +882,59 @@ function renderCal() {
   document.getElementById('grid').innerHTML = h;
 }
 
-// ── COPY-PASTE STATE ──
-let _copiedDay = null; // { dk, data } — скопированный день
+// ── COPY / PASTE ──
+let _copiedDay = null; // holds copied day data
+let _ctxDk = null;    // dk for which context menu is open
 
-function showToast(msg, dur = 2200) {
-  let t = document.getElementById('cpToast');
-  if (!t) {
-    t = document.createElement('div');
-    t.id = 'cpToast';
-    t.style.cssText = `
-      position:fixed; bottom: calc(var(--sb,0px) + 80px); left:50%; transform:translateX(-50%) translateY(10px);
-      background:rgba(0,0,0,.82); color:#fff; font-size:14px; font-weight:500;
-      padding:10px 18px; border-radius:24px; z-index:9999; pointer-events:none;
-      opacity:0; transition:opacity .22s, transform .22s; white-space:nowrap;
-    `;
-    document.body.appendChild(t);
-  }
-  clearTimeout(t._tid);
-  t.textContent = msg;
-  requestAnimationFrame(() => {
-    t.style.opacity = '1'; t.style.transform = 'translateX(-50%) translateY(0)';
+function showCtxMenu(e, dk, showCopy, showPaste) {
+  _ctxDk = dk;
+  const menu = document.getElementById('ctxMenu');
+  document.getElementById('ctxCopy').style.display  = showCopy  ? '' : 'none';
+  document.getElementById('ctxPaste').style.display = showPaste ? '' : 'none';
+
+  // Position near the touched dot, keep inside viewport
+  const touch = e.changedTouches ? e.changedTouches[0] : e.touches[0];
+  const vw = window.innerWidth, vh = window.innerHeight;
+  let x = touch.clientX - 80, y = touch.clientY + 16;
+  if (x < 10) x = 10;
+  if (x + 170 > vw) x = vw - 178;
+  if (y + 110 > vh) y = touch.clientY - 120;
+  menu.style.left = x + 'px';
+  menu.style.top  = y + 'px';
+  menu.classList.add('on');
+}
+
+function closeCtxMenu() {
+  document.getElementById('ctxMenu').classList.remove('on');
+  _ctxDk = null;
+}
+
+function ctxDoCopy() {
+  if (!_ctxDk) return;
+  _copiedDay = JSON.parse(JSON.stringify(days[_ctxDk]));
+  navigator.vibrate && navigator.vibrate([15, 20, 15]);
+  closeCtxMenu();
+  // flash copied dot
+  document.querySelectorAll('.dot').forEach(el => {
+    if (el.dataset && el._dk === _ctxDk) return; // not reliable, skip
   });
-  t._tid = setTimeout(() => {
-    t.style.opacity = '0'; t.style.transform = 'translateX(-50%) translateY(10px)';
-  }, dur);
+  renderCal(); // re-render to show copy indicator ring
 }
 
-function highlightCopiedDot() {
-  document.querySelectorAll('.dot.cp-src').forEach(d => d.classList.remove('cp-src'));
-  if (!_copiedDay) return;
-  document.querySelectorAll('.dot').forEach(d => {
-    // dots don't store dk directly, but we can match via onclick attribute
-  });
-  // Use data attribute approach - mark via renderCal
-  renderCal();
+function ctxDoPaste() {
+  if (!_ctxDk || !_copiedDay) return;
+  days[_ctxDk] = JSON.parse(JSON.stringify(_copiedDay));
+  navigator.vibrate && navigator.vibrate(28);
+  closeCtxMenu();
+  saveD(); renderCal(); renderEnt();
 }
 
-function handleLongPress(dk) {
-  navigator.vibrate && navigator.vibrate(36);
-  if (_copiedDay) {
-    // ── PASTE ──
-    if (_copiedDay.dk === dk) {
-      // Tapping same day — cancel copy mode
-      _copiedDay = null;
-      renderCal();
-      showToast('❌ Копирование отменено');
-      return;
-    }
-    const src = _copiedDay.data;
-    days[dk] = JSON.parse(JSON.stringify(src)); // deep copy
-    saveD(); renderCal(); renderEnt();
-    showToast('📋 День вставлен');
-    // keep copy mode so user can paste to more days
-  } else {
-    // ── COPY ──
-    if (!days[dk]) {
-      showToast('⚠ Нет данных для копирования');
-      return;
-    }
-    _copiedDay = { dk, data: JSON.parse(JSON.stringify(days[dk])) };
-    renderCal();
-    showToast('📌 День скопирован — нажмите и удержите другой день для вставки');
-  }
-}
+// Close context menu on tap outside
+document.addEventListener('touchstart', e => {
+  const menu = document.getElementById('ctxMenu');
+  if (!menu.classList.contains('on')) return;
+  if (!menu.contains(e.target)) closeCtxMenu();
+}, { passive: true });
 
 // ── TOUCH ──
 let _t0 = 0, _mv = false, _lpt = null;
@@ -1018,7 +946,15 @@ function ts(e, dk) {
   el.classList.add('press');
   _lpt = setTimeout(() => {
     el.classList.remove('press');
-    handleLongPress(dk);
+    navigator.vibrate && navigator.vibrate(28);
+    const hasDayData = !!days[dk];
+    const hasCopied  = !!_copiedDay;
+    if (hasDayData || hasCopied) {
+      // show context menu instead of opening modal
+      showCtxMenu(e, dk, hasDayData, hasCopied);
+    } else {
+      openModal(dk);
+    }
   }, 500);
 }
 function tm() {
@@ -1031,6 +967,8 @@ function te(e, dk) {
   e.currentTarget.classList.remove('press');
   if (_mv) return;
   if (Date.now() - _t0 >= 500) return;
+  // if context menu is open, don't act
+  if (document.getElementById('ctxMenu').classList.contains('on')) return;
   const now = Date.now();
   if (_lastDk === dk && now - _lastTap < 350) {
     clearTimeout(_dtTimer);
@@ -1050,50 +988,7 @@ function clrD(dk) {
   if (!days[dk]) return;
   navigator.vibrate && navigator.vibrate([20, 30, 20]);
   delete days[dk];
-  if (_copiedDay && _copiedDay.dk === dk) { _copiedDay = null; }
   saveD(); renderCal(); renderEnt();
-}
-
-// ── MOUSE (desktop only — blocked if touch was used) ──
-let _ms0 = 0, _msLpt = null;
-let _mLastTap = 0, _mLastDk = null, _mDtTimer = null;
-let _recentTouch = false; // set true after any touch, blocks mouse handlers
-
-document.addEventListener('touchstart', () => {
-  _recentTouch = true;
-  clearTimeout(window._rtTimer);
-  window._rtTimer = setTimeout(() => { _recentTouch = false; }, 1000);
-}, { passive: true });
-
-function ms(e, dk) {
-  if (_recentTouch) return;
-  if (e.button !== 0) return;
-  _ms0 = Date.now();
-  const el = e.currentTarget;
-  el.classList.add('press');
-  _msLpt = setTimeout(() => {
-    el.classList.remove('press');
-    handleLongPress(dk);
-  }, 500);
-}
-function mu(e, dk) {
-  if (_recentTouch) return;
-  clearTimeout(_msLpt);
-  e.currentTarget.classList.remove('press');
-  if (Date.now() - _ms0 >= 500) return;
-  const now = Date.now();
-  if (_mLastDk === dk && now - _mLastTap < 350) {
-    clearTimeout(_mDtTimer);
-    _mLastTap = 0; _mLastDk = null;
-    clrD(dk);
-    return;
-  }
-  _mLastTap = now; _mLastDk = dk;
-  clearTimeout(_mDtTimer);
-  _mDtTimer = setTimeout(() => {
-    _mLastTap = 0; _mLastDk = null;
-    openModal(dk);
-  }, 350);
 }
 
 // ── MODAL ──
@@ -1327,131 +1222,55 @@ function goTab(tab, fromSwipe = false) {
   const wrap = document.getElementById('wrap');
   const m = document.getElementById('sMain');
   const s = document.getElementById('sSett');
-  const EASE = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
-  const EASE_FAST = 'transform .28s cubic-bezier(.25,0.46,0.45,0.94)';
-
-  // ── Shared drag state ──
   let sx = 0, sy = 0, axis = null, dragging = false;
-  let lastX = 0, lastT = 0, velocity = 0; // px/ms
 
-  function panelPos(dx) {
-    const W = window.innerWidth;
-    if (curTab_ref.v === 'main') {
-      const x = Math.max(-W, Math.min(0, dx));
-      m.style.transform = `translateX(${x}px)`;
-      s.style.transform = `translateX(${W + x}px)`;
-    } else {
-      const x = Math.min(W, Math.max(0, dx));
-      s.style.transform = `translateX(${x}px)`;
-      m.style.transform = `translateX(${x - W}px)`;
-    }
-  }
-
-  function settle(dx) {
-    const W = window.innerWidth;
-    // Use velocity to decide: flick fast enough = switch regardless of distance
-    const flick = Math.abs(velocity) > 0.4;
-    const half  = Math.abs(dx) > W * 0.3;
-    const shouldSwitch = flick || half;
-    const ease = flick ? EASE_FAST : EASE;
-    m.style.transition = ease;
-    s.style.transition = ease;
-    if      (curTab_ref.v === 'main' && dx < 0 && shouldSwitch) goTab('sett', true);
-    else if (curTab_ref.v === 'sett' && dx > 0 && shouldSwitch) goTab('main', true);
-    else {
-      m.style.transform = curTab_ref.v === 'main' ? 'translateX(0)' : 'translateX(-100%)';
-      s.style.transform = curTab_ref.v === 'sett' ? 'translateX(0)' : 'translateX(100%)';
-    }
-  }
-
-  // ── TOUCH (phone/tablet) ──
   wrap.addEventListener('touchstart', e => {
     if (document.getElementById('modal').classList.contains('on')) return;
-    if (e.target.type === 'range') return;
-    const t = e.touches[0];
-    sx = t.clientX; sy = t.clientY;
-    lastX = sx; lastT = Date.now(); velocity = 0;
+    if (e.target.type === 'range') return; // не перехватываем бегунок
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
     axis = null; dragging = false;
-    m.style.transition = 'none'; s.style.transition = 'none';
+    m.style.transition = 'none';
+    s.style.transition = 'none';
   }, { passive: true });
 
   wrap.addEventListener('touchmove', e => {
     if (document.getElementById('modal').classList.contains('on')) return;
-    const t = e.touches[0];
-    const dx = t.clientX - sx, dy = t.clientY - sy;
-    if (!axis && (Math.abs(dx) > 8 || Math.abs(dy) > 8))
+    const dx = e.touches[0].clientX - sx;
+    const dy = e.touches[0].clientY - sy;
+    if (!axis && (Math.abs(dx) > 10 || Math.abs(dy) > 10))
       axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
     if (axis !== 'x') return;
     dragging = true;
-    const now = Date.now(), dt = now - lastT;
-    if (dt > 0) velocity = (t.clientX - lastX) / dt;
-    lastX = t.clientX; lastT = now;
-    panelPos(dx);
+    const W = window.innerWidth;
+    if (curTab_ref.v === 'main') {
+      const x = Math.min(0, dx);
+      m.style.transform = `translateX(${x}px)`;
+      s.style.transform = `translateX(${W + x}px)`;
+    } else {
+      const x = Math.max(0, dx);
+      s.style.transform = `translateX(${x}px)`;
+      m.style.transform = `translateX(${x - W}px)`;
+    }
   }, { passive: true });
 
   wrap.addEventListener('touchend', e => {
     if (!dragging) return;
+    const dx = e.changedTouches[0].clientX - sx;
+    m.style.transition = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
+    s.style.transition = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
+    if      (curTab_ref.v === 'main' && dx < -60) goTab('sett', true);
+    else if (curTab_ref.v === 'sett' && dx >  60) goTab('main', true);
+    else {
+      m.style.transition = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
+      s.style.transition = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
+      requestAnimationFrame(() => {
+        m.style.transform = curTab_ref.v === 'main' ? 'translateX(0)' : 'translateX(-100%)';
+        s.style.transform = curTab_ref.v === 'sett' ? 'translateX(0)' : 'translateX(100%)';
+      });
+    }
     dragging = false;
-    settle(e.changedTouches[0].clientX - sx);
   }, { passive: true });
-
-  // ── MOUSE CLICK-DRAG (desktop) — treated as a directional flick, triggers goTab like buttons ──
-  let _md = false, _mdX = 0, _mdY = 0, _mdAxis = null, _mdMoved = false;
-  wrap.addEventListener('mousedown', e => {
-    if (_recentTouch) return;
-    if (document.getElementById('modal').classList.contains('on')) return;
-    if (e.button !== 0 || e.target.type === 'range') return;
-    _md = true; _mdX = e.clientX; _mdY = e.clientY; _mdAxis = null; _mdMoved = false;
-  });
-  window.addEventListener('mousemove', e => {
-    if (!_md) return;
-    const dx = e.clientX - _mdX, dy = e.clientY - _mdY;
-    if (!_mdAxis && (Math.abs(dx) > 10 || Math.abs(dy) > 10))
-      _mdAxis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-    if (_mdAxis === 'x' && Math.abs(dx) > 10) _mdMoved = true;
-  });
-  window.addEventListener('mouseup', e => {
-    if (!_md) return;
-    _md = false;
-    if (!_mdMoved || _mdAxis !== 'x') return;
-    const dx = e.clientX - _mdX;
-    if      (curTab_ref.v === 'main' && dx < -40) goTab('sett');
-    else if (curTab_ref.v === 'sett' && dx >  40) goTab('main');
-  });
-
-  // ── WHEEL (Mac trackpad two-finger horizontal swipe) ──
-  // No setTimeout — fires the moment cumulative deltaX crosses threshold.
-  // Uses a rAF loop to consume queued wheel events instantly.
-  let _wAcc = 0, _wLocked = false, _wRafId = null, _wLastDX = 0;
-  const W_THRESHOLD = 40; // px to trigger switch
-
-  function _wFlush() {
-    _wRafId = null;
-    if (_wLocked) { _wAcc = 0; return; }
-    if      (curTab_ref.v === 'main' && _wAcc >  W_THRESHOLD) { _wLocked = true; goTab('sett'); _wAcc = 0; }
-    else if (curTab_ref.v === 'sett' && _wAcc < -W_THRESHOLD) { _wLocked = true; goTab('main'); _wAcc = 0; }
-    // Decay accumulator slowly so a resting finger doesn't carry momentum
-    if (Math.abs(_wAcc) > 2) {
-      _wAcc *= 0.6;
-      _wRafId = requestAnimationFrame(_wFlush);
-    } else {
-      _wAcc = 0;
-    }
-  }
-
-  wrap.addEventListener('wheel', e => {
-    if (document.getElementById('modal').classList.contains('on')) return;
-    // Ignore mostly-vertical scrolls (allow some diagonal tolerance for lazy fingers)
-    if (Math.abs(e.deltaY) > Math.abs(e.deltaX) * 2.5) return;
-    e.preventDefault();
-    if (_wLocked) {
-      // Release lock once fingers stop (deltaX near zero)
-      if (Math.abs(e.deltaX) < 3) { _wLocked = false; _wAcc = 0; }
-      return;
-    }
-    _wAcc += e.deltaX;
-    if (!_wRafId) _wRafId = requestAnimationFrame(_wFlush);
-  }, { passive: false });
 })();
 
 // ── SETTINGS ──
@@ -1583,223 +1402,7 @@ function applyCfg() {
   });
   // Auto-refresh exchange rates
   if (cfg.xcurs && cfg.xcurs.length) setTimeout(xcRefreshRates, 500);
-  // Expose for Firebase
-  window.applyCfg = applyCfg;
-  window.renderCal = renderCal;
-  window.renderEnt = renderEnt;
-  window.fbInit = function(){};
 }
-</script>
-
-<!-- FIREBASE -->
-<script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, doc, setDoc, onSnapshot }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-
-const firebaseConfig = {
-  apiKey: "AIzaSyAhu9apuPi0o7Zwi_YbPikO3f5vKetNvi8",
-  authDomain: "freelancers-time-calendar.firebaseapp.com",
-  projectId: "freelancers-time-calendar",
-  storageBucket: "freelancers-time-calendar.firebasestorage.app",
-  messagingSenderId: "270890748637",
-  appId: "1:270890748637:web:e58fa74466758043c2e934"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-let _fbUid = null, _fbUnsub = null, _fbSaving = false;
-
-function fbStatus(msg) {
-  const el = document.getElementById('fbSyncStatus');
-  if (el) el.textContent = msg;
-}
-
-async function fbSave() {
-  if (!_fbUid || _fbSaving) return;
-  _fbSaving = true;
-  try {
-    await setDoc(doc(db, 'users', _fbUid, 'data', 'main'), {
-      days: JSON.stringify(window.days),
-      cfg: JSON.stringify(window.cfg),
-      ts: Date.now()
-    });
-    fbStatus('✓ Сохранено в облако');
-  } catch(e) { fbStatus('⚠ Ошибка сохранения'); }
-  _fbSaving = false;
-}
-
-function fbListen() {
-  if (_fbUnsub) _fbUnsub();
-  _fbUnsub = onSnapshot(doc(db, 'users', _fbUid, 'data', 'main'), snap => {
-    if (!snap.exists()) { fbSave(); return; }
-    const d = snap.data();
-    try {
-      const remoteDays = JSON.parse(d.days || '{}');
-      const remoteCfg  = JSON.parse(d.cfg  || '{}');
-      window.days = remoteDays;
-      Object.assign(window.cfg, remoteCfg);
-      window.saveD(); window.saveC();
-      window.applyCfg();
-      window.renderCal();
-      window.renderEnt();
-      fbStatus('✓ Синхронизировано');
-    } catch(e) {}
-  });
-}
-
-function fbUpdateUI(user) {
-  const signInBtn = document.getElementById('fbSignInBtn');
-  const userInfo  = document.getElementById('fbUserInfo');
-  if (!signInBtn || !userInfo) return;
-  if (user) {
-    signInBtn.style.display = 'none';
-    userInfo.style.display = 'block';
-    document.getElementById('fbAvatar').src = user.photoURL || '';
-    document.getElementById('fbName').textContent = user.displayName || '';
-    document.getElementById('fbEmail').textContent = user.email || '';
-  } else {
-    signInBtn.style.display = '';
-    userInfo.style.display = 'none';
-  }
-}
-
-onAuthStateChanged(auth, user => {
-  if (user) {
-    _fbUid = user.uid;
-    fbUpdateUI(user);
-    fbListen();
-    // Перехватываем saveD и saveC для автосинхронизации
-    const _origSaveD = window.saveD;
-    const _origSaveC = window.saveC;
-    window.saveD = function() { _origSaveD.call(this); fbSave(); };
-    window.saveC = function() { _origSaveC.call(this); fbSave(); };
-  } else {
-    _fbUid = null;
-    if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
-    fbUpdateUI(null);
-  }
-});
-
-window.fbSignIn = async function() {
-  try {
-    await signInWithPopup(auth, new GoogleAuthProvider());
-  } catch(e) { console.error(e); }
-};
-window.fbSignOut = async function() {
-  if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
-  await signOut(auth);
-};
 </script>
 </body>
 </html>
-<script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, doc, setDoc, getDoc, onSnapshot }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-
-const firebaseConfig = {
-  apiKey: "AIzaSyAhu9apuPi0o7Zwi_YbPikO3f5vKetNvi8",
-  authDomain: "freelancers-time-calendar.firebaseapp.com",
-  projectId: "freelancers-time-calendar",
-  storageBucket: "freelancers-time-calendar.firebasestorage.app",
-  messagingSenderId: "270890748637",
-  appId: "1:270890748637:web:e58fa74466758043c2e934"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-let _fbUid = null, _fbUnsub = null, _fbSaving = false;
-
-function fbStatus(msg) {
-  const el = document.getElementById('fbSyncStatus');
-  if (el) el.textContent = msg;
-}
-
-async function fbSave() {
-  if (!_fbUid || _fbSaving) return;
-  _fbSaving = true;
-  try {
-    await setDoc(doc(db, 'users', _fbUid, 'data', 'main'), {
-      days: JSON.stringify(days),
-      cfg: JSON.stringify(cfg),
-      ts: Date.now()
-    });
-    fbStatus('✓ Сохранено в облако');
-  } catch(e) { fbStatus('⚠ Ошибка сохранения'); }
-  _fbSaving = false;
-}
-
-function fbListen() {
-  if (_fbUnsub) _fbUnsub();
-  _fbUnsub = onSnapshot(doc(db, 'users', _fbUid, 'data', 'main'), snap => {
-    if (!snap.exists()) return;
-    const d = snap.data();
-    const remoteDays = JSON.parse(d.days || '{}');
-    const remoteCfg  = JSON.parse(d.cfg  || '{}');
-    // Мёржим — берём более свежие данные
-    days = remoteDays;
-    Object.assign(cfg, remoteCfg);
-    saveD(); saveC();
-    applyCfg();
-    renderCal();
-    renderEnt();
-    fbStatus('✓ Данные синхронизированы');
-  });
-}
-
-function fbUpdateUI(user) {
-  const signInBtn  = document.getElementById('fbSignInBtn');
-  const userInfo   = document.getElementById('fbUserInfo');
-  if (!signInBtn || !userInfo) return;
-  if (user) {
-    signInBtn.style.display = 'none';
-    userInfo.style.display = 'block';
-    document.getElementById('fbAvatar').src = user.photoURL || '';
-    document.getElementById('fbName').textContent = user.displayName || '';
-    document.getElementById('fbEmail').textContent = user.email || '';
-  } else {
-    signInBtn.style.display = '';
-    userInfo.style.display = 'none';
-  }
-}
-
-onAuthStateChanged(auth, user => {
-  if (user) {
-    _fbUid = user.uid;
-    fbUpdateUI(user);
-    fbListen();
-    // Патчим saveD и saveC чтобы автосохранять в облако
-    const _origSaveD = window.saveD;
-    const _origSaveC = window.saveC;
-    window.saveD = function() { _origSaveD(); fbSave(); };
-    window.saveC = function() { _origSaveC(); fbSave(); };
-  } else {
-    _fbUid = null;
-    if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
-    fbUpdateUI(null);
-  }
-});
-
-window.fbInit = function() {}; // уже инициализировано через onAuthStateChanged
-
-window.fbSignIn = async function() {
-  try {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
-  } catch(e) { console.error('Sign in error', e); }
-};
-
-window.fbSignOut = async function() {
-  if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
-  await signOut(auth);
-};
-</script>
