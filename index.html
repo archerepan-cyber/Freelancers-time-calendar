@@ -458,7 +458,7 @@ button { font-family: inherit; cursor: pointer; }
         <div class="sseclbl">Фон приложения</div>
         <label class="bgbtn">
           📷 Выбрать фото из галереи
-          <input type="file" accept="image/*" style="display:none" onchange="loadBg(event)"/>
+          <input type="file" accept="image/*,image/heic,image/heif" style="display:none" onchange="loadBg(event)"/>
         </label>
         <button class="bgbtn" onclick="clearBg()">✕ Убрать фото</button>
       </div>
@@ -543,7 +543,7 @@ button { font-family: inherit; cursor: pointer; }
     <div class="te-sub">Нажмите на кружок чтобы изменить цвет</div>
     <label class="bgbtn" style="margin-bottom:18px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;">
       Подобрать цвета из фото
-      <input type="file" accept="image/*" style="display:none" onchange="teFromPhoto(event)"/>
+      <input type="file" accept="image/*,image/heic,image/heif" style="display:none" onchange="teFromPhoto(event)"/>
     </label>
     <div id="tePhotoStatus" style="display:none;font-size:12px;color:var(--text3);text-align:center;margin:-10px 0 14px;"></div>
 
@@ -712,15 +712,15 @@ function teFromPhoto(e) {
   const status = document.getElementById('tePhotoStatus');
   status.style.display = 'block';
   status.textContent = '⏳ Анализирую фото...';
-  const img = new Image();
-  const url = URL.createObjectURL(f);
-  img.onload = () => {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
     // Сэмплируем цвета через canvas
     const cv = document.createElement('canvas');
     const S = 80; cv.width = S; cv.height = S;
     const ctx = cv.getContext('2d');
     ctx.drawImage(img, 0, 0, S, S);
-    URL.revokeObjectURL(url);
     const data = ctx.getImageData(0, 0, S, S).data;
     // Собираем все пиксели
     const pixels = [];
@@ -780,9 +780,12 @@ function teFromPhoto(e) {
     });
     status.textContent = '✅ Цвета подобраны! Можно скорректировать вручную.';
     setTimeout(() => { status.style.display = 'none'; }, 3000);
+    };
+    img.onerror = () => { status.textContent = '❌ Не удалось загрузить фото'; };
+    img.src = ev.target.result;
   };
-  img.onerror = () => { status.textContent = '❌ Не удалось загрузить фото'; };
-  img.src = url;
+  reader.onerror = () => { status.textContent = '❌ Не удалось прочитать файл'; };
+  reader.readAsDataURL(f);
 }
 
 function kMeans(pixels, k) {
