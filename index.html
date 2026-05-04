@@ -1284,34 +1284,25 @@ function te(e, dk) {
     return;
   }
   if (_mv) { clearTimeout(_lpt); return; }
-
-  // Меню уже показал таймер — не делаем ничего
   if (_menuShown) { clearTimeout(_lpt); return; }
-
   clearTimeout(_lpt);
 
-  // Короткое нажатие с буфером → показываем Вставить
+  const t = e.changedTouches[0];
+
+  // Если есть буфер — показываем Вставить
   if (_clipboard) {
-    const t = e.changedTouches[0];
     showCtxMenu(dk, e.currentTarget, t.clientX, t.clientY);
     return;
   }
 
-  // Двойной тап → удалить день
-  const now = Date.now();
-  if (_lastDk === dk && now - _lastTap < 350) {
-    clearTimeout(_dtTimer);
-    _lastTap = 0; _lastDk = null;
-    clrD(dk);
+  // Заполненный день: короткий тап → меню (Изменить + Копировать)
+  if (days[dk]) {
+    showCtxMenu(dk, e.currentTarget, t.clientX, t.clientY);
     return;
   }
-  _lastTap = now;
-  _lastDk = dk;
-  clearTimeout(_dtTimer);
-  _dtTimer = setTimeout(() => {
-    _lastTap = 0; _lastDk = null;
-    openModal(dk);
-  }, 350);
+
+  // Пустой день: короткий тап → открыть модал
+  openModal(dk);
 }
 function clrD(dk) {
   if (!days[dk]) return;
@@ -2304,7 +2295,8 @@ function showCtxMenu(dk, el, x, y) {
     openModal(dk); return;
   }
 
-  document.getElementById('ctx-copy').style.display  = !hasCb ? '' : 'none';
+  document.getElementById('ctx-edit').style.display  = (hasDat && !hasCb) ? '' : 'none';
+  document.getElementById('ctx-copy').style.display  = (hasDat && !hasCb) ? '' : 'none';
   document.getElementById('ctx-paste').style.display = hasCb  ? '' : 'none';
 
   const mw = 190, mh = 56;
@@ -2323,6 +2315,10 @@ function showCtxMenu(dk, el, x, y) {
 
 function closeCtxMenu() {
   document.getElementById('ctx-menu').classList.remove('on');
+}
+function ctxEdit() {
+  closeCtxMenu();
+  setTimeout(() => openModal(_ctxDk), 180);
 }
 
 function ctxEdit() {
@@ -2532,6 +2528,7 @@ window.fbSignOut = async function() {
 
 <!-- CONTEXT MENU -->
 <div id="ctx-menu">
+  <div class="ctx-item" id="ctx-edit"  onclick="ctxEdit()">Изменить</div>
   <div class="ctx-item" id="ctx-copy"  onclick="ctxCopy()">Копировать</div>
   <div class="ctx-item paste-item" id="ctx-paste" onclick="ctxPaste()" style="display:none">Вставить</div>
 </div>
