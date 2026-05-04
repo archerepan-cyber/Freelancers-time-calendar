@@ -38,6 +38,11 @@ html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
+/* На мобиле используем dvh чтобы корректно обрабатывать поворот */
+@supports (height: 100dvh) {
+  html, body { height: 100dvh; }
+  #app { height: 100dvh; }
+}
 body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); }
 input, textarea, select { font-family: inherit; user-select: text; -webkit-user-select: text; }
 button { font-family: inherit; cursor: pointer; }
@@ -964,34 +969,30 @@ renderBig();
 renderCal();
 renderEnt();
 
-// Сброс масштаба при повороте экрана (iOS увеличивает viewport)
+// Фикс поворота экрана на iOS: принудительно задаём размеры через JS
 (function() {
-  function resetViewport() {
-    const mv = document.querySelector('meta[name=viewport]');
-    if (!mv) return;
-    // Временно разрешаем масштабирование, потом снова блокируем — это сбрасывает zoom
-    mv.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
-    // Принудительно сбрасываем через небольшую задержку после поворота
-    setTimeout(() => {
-      mv.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
-      document.documentElement.style.zoom = '1';
-    }, 300);
+  var app = document.getElementById('app');
+  function fixSize() {
+    // Используем visualViewport если доступен — он даёт реальные размеры после поворота
+    var vvp = window.visualViewport;
+    var w = vvp ? vvp.width  : window.innerWidth;
+    var h = vvp ? vvp.height : window.innerHeight;
+    app.style.width  = w + 'px';
+    app.style.height = h + 'px';
+    app.style.top    = (vvp ? vvp.offsetTop  : 0) + 'px';
+    app.style.left   = (vvp ? vvp.offsetLeft : 0) + 'px';
+    app.style.position = 'fixed';
   }
-  window.addEventListener('orientationchange', resetViewport);
-  window.addEventListener('resize', () => {
-    // Сбрасываем если масштаб стал больше 1 (визуально экран "увеличен")
-    if (window.visualViewport && window.visualViewport.scale > 1.01) {
-      document.documentElement.style.zoom = '1';
-      resetViewport();
-    }
+  fixSize();
+  window.addEventListener('resize', fixSize);
+  window.addEventListener('orientationchange', function() {
+    // Двойная задержка: iOS анимирует поворот ~300ms
+    setTimeout(fixSize, 50);
+    setTimeout(fixSize, 350);
   });
-  // visualViewport API — самый надёжный способ поймать нежелательный zoom
   if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', () => {
-      if (window.visualViewport.scale > 1.01) {
-        resetViewport();
-      }
-    });
+    window.visualViewport.addEventListener('resize', fixSize);
+    window.visualViewport.addEventListener('scroll', fixSize);
   }
 })();
 
