@@ -1812,73 +1812,93 @@ window.pickCHex = function(c) {
 
 // ── LAYER 2 SWIPE DOWN TO CLOSE ──
 (function(){
-  const l2el = document.getElementById('layer2');
+  const l2el  = document.getElementById('layer2');
   const l2body = document.getElementById('l2body');
-  const EASE = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
+  const EASE      = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
   const EASE_FAST = 'transform .28s cubic-bezier(.25,0.46,0.45,0.94)';
-  let sx=0,sy=0,axis=null,dragging=false,lastY=0,lastT=0,velocity=0;
-  let fromHeader=false, lockedByScroll=false;
 
-  l2el.addEventListener('touchstart', e => {
-    if(document.getElementById('modal').classList.contains('on'))return;
-    if(e.target.type==='range')return;
-    const t=e.touches[0];
-    sx=t.clientX; sy=t.clientY;
-    lastY=sy; lastT=Date.now(); velocity=0;
-    axis=null; dragging=false; lockedByScroll=false;
-    fromHeader = !!e.target.closest('#l2header');
+  let sy0=0, lastY=0, lastT=0, velocity=0;
+  let pulling=false, decided=false;
+
+  function onStart(clientX, clientY, target) {
+    if(document.getElementById('modal').classList.contains('on')) return;
+    sy0=clientY; lastY=clientY; lastT=Date.now(); velocity=0;
+    pulling=false; decided=false;
     l2el.style.transition='none';
-  },{passive:true});
+  }
 
-  l2el.addEventListener('touchmove', e => {
-    if(document.getElementById('modal').classList.contains('on'))return;
-    const t=e.touches[0];
-    const dx=t.clientX-sx, dy=t.clientY-sy;
-    if(!axis&&(Math.abs(dx)>8||Math.abs(dy)>8))
-      axis=Math.abs(dy)>Math.abs(dx)?'y':'x';
-    if(axis!=='y')return;
-    // Определяем однажды: заблокирован ли жест скроллом
-    if(!dragging&&!lockedByScroll) {
-      if(dy>0&&(l2body.scrollTop<=2||fromHeader)) {
-        dragging=true; // начинаем тянуть вниз
-      } else if(dy<0||l2body.scrollTop>2) {
-        lockedByScroll=true; // это скролл контента, не свайп закрытия
-        return;
-      }
-    }
-    if(lockedByScroll)return;
-    if(!dragging)return;
-    if(dy<0){l2el.style.transform='translateY(0)';return;}
-    const now=Date.now(),dt=now-lastT;
-    if(dt>0)velocity=(t.clientY-lastY)/dt;
-    lastY=t.clientY; lastT=now;
-    l2el.style.transform=`translateY(${Math.max(0,dy)}px)`;
-  },{passive:true});
+  function onMove(clientX, clientY) {
+    if(document.getElementById('modal').classList.contains('on')) return;
+    const dy = clientY - sy0;
+    const now = Date.now(), dt = now - lastT;
+    if(dt>0) velocity = (clientY - lastY) / dt;
+    lastY=clientY; lastT=now;
 
-  l2el.addEventListener('touchend', e => {
-    if(!dragging){
-      if(!lockedByScroll){l2el.style.transition=EASE;l2el.style.transform='translateY(0)';}
-      return;
+    if(!decided) {
+      // Решаем: свайп-закрытие только если тянем ВНИЗ и body в самом верху
+      if(dy > 6 && l2body.scrollTop <= 1) { pulling=true; decided=true; }
+      else if(Math.abs(dy) > 6)           { pulling=false; decided=true; }
+      else return;
     }
-    dragging=false;
-    const dy=e.changedTouches[0].clientY-sy;
-    const flick=velocity>0.35;
-    const half=dy>window.innerHeight*0.28;
-    const ease=flick?EASE_FAST:EASE;
-    l2el.style.transition=ease;
-    if(flick||half){
-      // Анимируем из текущей позиции вниз до 100%
+    if(!pulling) return;
+
+    // Блокируем нативный скролл пока тянем
+    l2body.style.overflowY='hidden';
+    const clamp = Math.max(0, dy);
+    l2el.style.transform = `translateY(${clamp}px)`;
+  }
+
+  function onEnd(clientY) {
+    l2body.style.overflowY='';
+    if(!pulling) { l2el.style.transition=EASE; l2el.style.transform='translateY(0)'; return; }
+    pulling=false;
+    const dy = clientY - sy0;
+    const flick = velocity > 0.3;
+    const half  = dy > window.innerHeight * 0.25;
+    l2el.style.transition = flick ? EASE_FAST : EASE;
+    if(flick || half) {
       l2el.style.transform='translateY(100%)';
       _l2open=false;
-      l2el.addEventListener('transitionend',()=>{
+      l2el.addEventListener('transitionend', () => {
         l2el.classList.remove('open','closing');
         l2el.style.transform='';
         l2el.style.transition='';
-      },{once:true});
+      }, {once:true});
     } else {
       l2el.style.transform='translateY(0)';
     }
-  },{passive:true});
+  }
+
+  // Вешаем на l2body (скроллящийся контейнер) — не passive чтобы можно было блокировать
+  l2body.addEventListener('touchstart', e => {
+    if(e.touches.length!==1) return;
+    onStart(e.touches[0].clientX, e.touches[0].clientY, e.target);
+  }, {passive:true});
+
+  l2body.addEventListener('touchmove', e => {
+    if(e.touches.length!==1) return;
+    onMove(e.touches[0].clientX, e.touches[0].clientY);
+    // Если тянем вниз для закрытия — не даём скроллить
+    if(pulling) e.preventDefault();
+  }, {passive:false});
+
+  l2body.addEventListener('touchend', e => {
+    onEnd(e.changedTouches[0].clientY);
+  }, {passive:true});
+
+  // Шапка — отдельно (там нет скролла)
+  document.getElementById('l2header').addEventListener('touchstart', e => {
+    if(e.touches.length!==1) return;
+    onStart(e.touches[0].clientX, e.touches[0].clientY, e.target);
+  }, {passive:true});
+  document.getElementById('l2header').addEventListener('touchmove', e => {
+    if(e.touches.length!==1) return;
+    onMove(e.touches[0].clientX, e.touches[0].clientY);
+    if(pulling) e.preventDefault();
+  }, {passive:false});
+  document.getElementById('l2header').addEventListener('touchend', e => {
+    onEnd(e.changedTouches[0].clientY);
+  }, {passive:true});
 })();
 
 // бейдж скрывается внутри goTab
