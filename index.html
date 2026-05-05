@@ -136,6 +136,7 @@ button { font-family: inherit; cursor: pointer; }
   z-index: 2;
 }
 .dot.has-l2 .l2badge { display: block; }
+.dot .dnum {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
   padding-bottom: 6px;
@@ -319,6 +320,28 @@ button { font-family: inherit; cursor: pointer; }
 .mact { display: flex; gap: 10px; margin-top: 16px; }
 .btnc { flex: 1; padding: 14px; border-radius: 14px; background: var(--bg3); border: none; font-size: 15px; font-weight: 600; color: var(--text2); touch-action: manipulation; }
 .btno { flex: 2; padding: 14px; border-radius: 14px; background: var(--accent); border: none; font-size: 15px; font-weight: 600; color: #fff; touch-action: manipulation; }
+
+/* ── TASK BLOCK ── */
+.task-block {
+  background: var(--bg3); border-radius: 16px;
+  padding: 14px; margin-bottom: 12px;
+  border: .5px solid var(--sep);
+  position: relative;
+}
+.task-block-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.task-num {
+  font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--text3);
+}
+.task-del {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--sep); border: none; font-size: 16px;
+  color: var(--text3); display: flex; align-items: center;
+  justify-content: center; touch-action: manipulation;
+}
 
 /* ── DRAG GHOST ── */
 #dragGhost {
@@ -577,45 +600,12 @@ button { font-family: inherit; cursor: pointer; }
 <div class="mover" id="modal" onclick="if(event.target===this)closeModal()">
   <div class="msheet">
     <div class="mdrg"></div>
-    <div class="mtit" id="mTit">3 мая</div>
-
-    <div class="fg">
-      <label class="fl">Цвет дня</label>
-      <div class="dcs" id="dcs">
-        <div class="dc on" style="background:#324E44;" data-c="#324E44" onclick="pickC('#324E44',this)"></div>
-        <div class="dc" style="background:#D0391B;" data-c="#D0391B" onclick="pickC('#D0391B',this)"></div>
-        <div class="dc" style="background:#FBC359;" data-c="#FBC359" onclick="pickC('#FBC359',this)"></div>
-        <div class="dc" style="background:#7BA7AF;" data-c="#7BA7AF" onclick="pickC('#7BA7AF',this)"></div>
-        <div class="dc" style="background:#9F4125;" data-c="#9F4125" onclick="pickC('#9F4125',this)"></div>
-        <div class="dc" style="background:#73A642;" data-c="#73A642" onclick="pickC('#73A642',this)"></div>
-        <div class="dc" style="background:#4E6851;" data-c="#4E6851" onclick="pickC('#4E6851',this)"></div>
-        <div class="dc-cw" title="Свой цвет">
-          <span style="font-size:18px;font-weight:300;color:#fff;line-height:1;">+</span>
-          <input type="color" value="#324E44" oninput="pickCHex(this.value)"/>
-        </div>
-      </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+      <div class="mtit" id="mTit" style="margin-bottom:0;">3 мая</div>
+      <button onclick="addTask()" style="width:34px;height:34px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:22px;font-weight:300;line-height:1;display:flex;align-items:center;justify-content:center;touch-action:manipulation;flex-shrink:0;">+</button>
     </div>
 
-    <div class="fg">
-      <label class="fl">Описание</label>
-      <input class="fi" id="fLbl" placeholder="Название / комментарий"/>
-    </div>
-
-    <div class="frow">
-      <div class="fg"><label class="fl">Начало</label><input class="fi" id="fS" type="time"/></div>
-      <div class="fg"><label class="fl">Конец</label><input class="fi" id="fE" type="time"/></div>
-    </div>
-
-    <div class="fg">
-      <label class="fl">Заработано</label>
-      <input class="fi" id="fEarn" type="number" placeholder="Заработано" inputmode="decimal"/>
-    </div>
-
-    <div class="fg">
-      <label class="fl">Затраты</label>
-      <div class="xlist" id="xList"></div>
-      <button class="addx" onclick="addX()">+ Добавить затрату</button>
-    </div>
+    <div id="taskList"></div>
 
     <div class="mact">
       <button class="btnc" onclick="closeModal()">Отмена</button>
@@ -1018,19 +1008,20 @@ function renderCal2() {
   for (let i = 0; i < fd; i++) h += '<div class="dot empty"></div>';
   for (let d = 1; d <= dim; d++) {
     const dk  = dkey(vy2, vm2, d);
-    const dd  = days2[dk];
+    const raw = days2[dk];
+    const tasks = _dayTasks(raw);
     const dt  = new Date(vy2, vm2, d);
     const isT = dk === tdk;
     const isP = dt < new Date(t.getFullYear(), t.getMonth(), t.getDate());
     let cls = 'dot', sty = '';
-    if (dd && dd.color) {
-      sty = `background:${dd.color};`;
+    if (tasks && tasks.length) {
+      sty = _pizzaStyle(tasks);
       cls += ' work';
       if (isT) cls += ' today-w';
     } else if (isT) { cls += ' today'; }
     else if (isP)   { cls += ' past'; }
     else            { cls += ' future'; }
-    if (dd) cls += ' has';
+    if (raw) cls += ' has';
     h += `<div class="${cls}" style="${sty}"
       ontouchstart="ts2(event,'${dk}')"
       ontouchmove="tm2()"
@@ -1095,72 +1086,220 @@ function clrD2(dk) {
   delete days2[dk]; saveD2(); renderCal2(); renderEnt2(); renderCal(); // refresh L1 badges
 }
 
+// ── MULTI-TASK MODAL ──
+// Colors palette for task color pickers
+const TASK_COLORS = ['#324E44','#D0391B','#FBC359','#7BA7AF','#9F4125','#73A642','#4E6851','#4B848A','#9B59B6','#E67E22'];
+
+function _taskColorHtml(taskIdx, selectedColor) {
+  const cols = TASK_COLORS.map(c =>
+    `<div class="dc${c===selectedColor?' on':''}" style="background:${c};" data-c="${c}" onclick="pickTaskColor(${taskIdx},'${c}',this)"></div>`
+  ).join('');
+  return `<div class="dcs" id="dcs_${taskIdx}">
+    ${cols}
+    <div class="dc-cw" title="Свой цвет">
+      <span style="font-size:18px;font-weight:300;color:#fff;line-height:1;">+</span>
+      <input type="color" value="${selectedColor||'#324E44'}" oninput="pickTaskColorHex(${taskIdx},this.value)"/>
+    </div>
+  </div>`;
+}
+
+function _taskHtml(taskIdx, task, total) {
+  const canDelete = total > 1;
+  const xs = (task.expenses || []).map((x, xi) =>
+    `<div class="xrow2">
+      <input class="fi" style="flex:0 0 90px;" type="number" placeholder="Сумма" value="${x.amount||''}" inputmode="decimal"/>
+      <input class="fi" placeholder="Затрата" value="${x.comment||''}"/>
+      <button class="xdel" onclick="delX(${taskIdx},${xi})">×</button>
+    </div>`
+  ).join('');
+
+  return `<div class="task-block" id="task_${taskIdx}">
+    <div class="task-block-header">
+      <div class="task-num">Задача ${taskIdx+1}</div>
+      ${canDelete ? `<button class="task-del" onclick="removeTask(${taskIdx})">×</button>` : ''}
+    </div>
+    <div class="fg">
+      <label class="fl">Цвет</label>
+      ${_taskColorHtml(taskIdx, task.color)}
+    </div>
+    <div class="fg">
+      <label class="fl">Описание</label>
+      <input class="fi task-lbl" placeholder="Название / комментарий" value="${task.label||''}"/>
+    </div>
+    <div class="frow">
+      <div class="fg"><label class="fl">Начало</label><input class="fi task-ts" type="time" value="${task.timeStart||''}"/></div>
+      <div class="fg"><label class="fl">Конец</label><input class="fi task-te" type="time" value="${task.timeEnd||''}"/></div>
+    </div>
+    <div class="fg">
+      <label class="fl">Заработано</label>
+      <input class="fi task-earn" type="number" placeholder="Заработано" inputmode="decimal" value="${task.earned||''}"/>
+    </div>
+    <div class="fg">
+      <label class="fl">Затраты</label>
+      <div class="xlist task-xlist">${xs}</div>
+      <button class="addx" onclick="addTaskX(${taskIdx})">+ Добавить затрату</button>
+    </div>
+  </div>`;
+}
+
+// Current task colors array (kept in sync as user picks)
+let _taskColors = [];
+
+function _renderTaskList(tasks) {
+  _taskColors = tasks.map(t => t.color || cfg.acc || '#324E44');
+  const html = tasks.map((t, i) => _taskHtml(i, t, tasks.length)).join('');
+  document.getElementById('taskList').innerHTML = html;
+}
+
+function pickTaskColor(taskIdx, c, el) {
+  _taskColors[taskIdx] = c;
+  const dcs = document.getElementById(`dcs_${taskIdx}`);
+  if (dcs) dcs.querySelectorAll('.dc').forEach(d => d.classList.toggle('on', d.dataset.c === c));
+}
+function pickTaskColorHex(taskIdx, c) {
+  _taskColors[taskIdx] = c;
+  const dcs = document.getElementById(`dcs_${taskIdx}`);
+  if (dcs) dcs.querySelectorAll('.dc').forEach(d => d.classList.remove('on'));
+}
+
+// Legacy compat (used by old references)
+function pickC(c, el) { pickTaskColor(0, c, el); }
+function pickCHex(c)  { pickTaskColorHex(0, c); }
+
+function addTask() {
+  const tl = document.getElementById('taskList');
+  const blocks = tl.querySelectorAll('.task-block');
+  const newIdx = blocks.length;
+  _taskColors.push(cfg.acc || '#324E44');
+  const dummy = { color: cfg.acc || '#324E44', label:'', timeStart:'', timeEnd:'', earned:'', expenses:[] };
+  const temp = document.createElement('div');
+  temp.innerHTML = _taskHtml(newIdx, dummy, newIdx+1);
+  tl.appendChild(temp.firstElementChild);
+  // Update all delete buttons (first task now also gets one if there are 2+)
+  if (newIdx === 1) {
+    const first = document.getElementById('task_0');
+    if (first && !first.querySelector('.task-del')) {
+      const hdr = first.querySelector('.task-block-header');
+      const btn = document.createElement('button');
+      btn.className = 'task-del'; btn.setAttribute('onclick','removeTask(0)'); btn.textContent = '×';
+      hdr.appendChild(btn);
+    }
+  }
+  temp.firstElementChild.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function removeTask(taskIdx) {
+  const tl = document.getElementById('taskList');
+  const block = document.getElementById(`task_${taskIdx}`);
+  if (!block) return;
+  _taskColors.splice(taskIdx, 1);
+  block.remove();
+  // Re-number remaining blocks
+  const blocks = tl.querySelectorAll('.task-block');
+  blocks.forEach((b, i) => {
+    b.id = `task_${i}`;
+    const num = b.querySelector('.task-num');
+    if (num) num.textContent = `Задача ${i+1}`;
+    const dcs = b.querySelector('[id^="dcs_"]');
+    if (dcs) dcs.id = `dcs_${i}`;
+    // Re-wire color pickers
+    b.querySelectorAll('.dc').forEach(d => {
+      d.setAttribute('onclick', `pickTaskColor(${i},'${d.dataset.c}',this)`);
+    });
+    b.querySelector('.dc-cw input') && (b.querySelector('.dc-cw input').setAttribute('oninput', `pickTaskColorHex(${i},this.value)`));
+    b.querySelector('.task-del') && b.querySelector('.task-del').setAttribute('onclick', `removeTask(${i})`);
+    b.querySelectorAll('.addx').forEach(btn => btn.setAttribute('onclick', `addTaskX(${i})`));
+    // Re-wire expense delete buttons
+    b.querySelectorAll('.xdel').forEach((btn, xi) => btn.setAttribute('onclick', `delX(${i},${xi})`));
+    if (blocks.length === 1) {
+      const del = b.querySelector('.task-del'); if (del) del.remove();
+    }
+  });
+}
+
+function addTaskX(taskIdx) {
+  const block = document.getElementById(`task_${taskIdx}`);
+  if (!block) return;
+  const xlist = block.querySelector('.task-xlist');
+  const xi = xlist.querySelectorAll('.xrow2').length;
+  const row = document.createElement('div');
+  row.className = 'xrow2';
+  row.innerHTML = `<input class="fi" style="flex:0 0 90px;" type="number" placeholder="Сумма" inputmode="decimal"/>
+    <input class="fi" placeholder="Затрата"/>
+    <button class="xdel" onclick="delX(${taskIdx},${xi})">×</button>`;
+  xlist.appendChild(row);
+}
+
+function delX(taskIdx, xi) {
+  const block = document.getElementById(`task_${taskIdx}`);
+  if (!block) return;
+  const rows = block.querySelectorAll('.xrow2');
+  if (rows[xi]) rows[xi].remove();
+  // Re-number del buttons
+  block.querySelectorAll('.xrow2').forEach((r, i) => {
+    const btn = r.querySelector('.xdel');
+    if (btn) btn.setAttribute('onclick', `delX(${taskIdx},${i})`);
+  });
+}
+
+function _readTasks() {
+  const tl = document.getElementById('taskList');
+  const blocks = tl.querySelectorAll('.task-block');
+  return Array.from(blocks).map((b, i) => {
+    const xs = [];
+    b.querySelectorAll('.xrow2').forEach(r => {
+      const ins = r.querySelectorAll('input');
+      const a = parseFloat(ins[0].value) || 0;
+      const c = ins[1].value.trim();
+      if (a > 0 || c) xs.push({ amount: a, comment: c });
+    });
+    return {
+      color:     _taskColors[i] || cfg.acc || '#324E44',
+      label:     b.querySelector('.task-lbl').value.trim(),
+      timeStart: b.querySelector('.task-ts').value,
+      timeEnd:   b.querySelector('.task-te').value,
+      earned:    parseFloat(b.querySelector('.task-earn').value) || 0,
+      expenses:  xs
+    };
+  });
+}
+
+// ── MODAL (LAYER 1) ──
+function openModal(dk) {
+  _activeLayer = 1;
+  eDk = dk;
+  const [y, m, d] = dk.split('-').map(Number);
+  document.getElementById('mTit').textContent = `${d} ${MONG[m-1]}`;
+  const raw = days[dk];
+  // Support both old single-object and new array format
+  const tasks = Array.isArray(raw) ? raw : (raw ? [raw] : [{ color: cfg.acc||'#324E44', label:'', timeStart:'', timeEnd:'', earned:'', expenses:[] }]);
+  _renderTaskList(tasks);
+  document.getElementById('modal').classList.add('on');
+}
+
 // ── LAYER 2 MODAL ──
 function openModal2(dk) {
   _activeLayer = 2;
   eDk2 = dk;
   const [y,m,d] = dk.split('-').map(Number);
   document.getElementById('mTit').textContent = `${d} ${MONG[m-1]}`;
-  const dd = days2[dk] || {};
-  dc2 = dd.color || cfg.acc || '#324E44';
-  document.querySelectorAll('#dcs .dc').forEach(el => el.classList.toggle('on', el.dataset.c === dc2));
-  document.getElementById('fLbl').value  = dd.label || '';
-  document.getElementById('fS').value    = dd.timeStart || '';
-  document.getElementById('fE').value    = dd.timeEnd || '';
-  document.getElementById('fEarn').value = dd.earned || '';
-  document.getElementById('xList').innerHTML = '';
-  (dd.expenses || []).forEach(x => addX(x.amount, x.comment));
+  const raw = days2[dk];
+  const tasks = Array.isArray(raw) ? raw : (raw ? [raw] : [{ color: cfg.acc||'#324E44', label:'', timeStart:'', timeEnd:'', earned:'', expenses:[] }]);
+  _renderTaskList(tasks);
   document.getElementById('modal').classList.add('on');
 }
 
-// Patch pickC to work for both layers
-const _origPickC = window.pickC;
-function pickC(c, el) {
-  if (_activeLayer === 2) {
-    dc2 = c;
-    document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
-    if (el) el.classList.add('on');
-  } else {
-    dc = c;
-    document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
-    if (el) el.classList.add('on');
-  }
-}
-function pickCHex(c) {
-  if (_activeLayer === 2) {
-    dc2 = c;
-    document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
-  } else {
-    dc = c;
-    document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
-  }
-}
-
-// Patch saveDay to work for both layers
+// Patch saveDay to work for both layers with multi-task
 function saveDay() {
   const isL2 = _activeLayer === 2;
   const curDk = isL2 ? eDk2 : eDk;
   if (!curDk) return;
-  const xs = [];
-  document.querySelectorAll('#xList .xrow2').forEach(r => {
-    const ins = r.querySelectorAll('input');
-    const a = parseFloat(ins[0].value) || 0;
-    const c = ins[1].value.trim();
-    if (a > 0 || c) xs.push({ amount: a, comment: c });
-  });
-  const data = {
-    color:     isL2 ? dc2 : dc,
-    label:     document.getElementById('fLbl').value.trim(),
-    timeStart: document.getElementById('fS').value,
-    timeEnd:   document.getElementById('fE').value,
-    earned:    parseFloat(document.getElementById('fEarn').value) || 0,
-    expenses:  xs
-  };
+  const tasks = _readTasks();
   if (isL2) {
-    days2[curDk] = data; saveD2();
-    closeModal(); renderCal2(); renderEnt2(); renderCal(); // refresh L1 badges
+    days2[curDk] = tasks; saveD2();
+    closeModal(); renderCal2(); renderEnt2(); renderCal();
   } else {
-    days[curDk] = data; saveD();
+    days[curDk] = tasks; saveD();
     closeModal(); renderCal(); renderEnt();
   }
 }
@@ -1193,7 +1332,7 @@ function renderEnt2() {
     const dk = dkey(vy2, vm2, d);
     const dt = new Date(vy2, vm2, d);
     if (dt.getMonth() !== vm2) break;
-    if (days2[dk]) items.push({ dk, d, dd: days2[dk] });
+    if (days2[dk]) items.push({ dk, d, raw: days2[dk] });
   }
   const ew = document.getElementById('entWrap2');
   const tw = document.getElementById('totWrap2');
@@ -1205,30 +1344,65 @@ function renderEnt2() {
   const ax = [];
 
   items.forEach((it, i) => {
-    const dd = it.dd;
-    totalEarned2 += dd.earned || 0;
-    (dd.expenses || []).forEach(x => ax.push({ ...x, day: it.d, lbl: dd.label }));
-    const ts  = dd.timeStart && dd.timeEnd ? `${dd.timeStart}–${dd.timeEnd}` : '';
-    const es  = dd.earned ? `+${cur}${dd.earned.toLocaleString()}` : '';
-    const xt  = (dd.expenses || []).reduce((s, x) => s + (x.amount || 0), 0);
-    const xs  = xt ? `−${cur}${xt.toLocaleString()}` : '';
+    const tasks = _dayTasks(it.raw);
+    tasks.forEach(t => {
+      totalEarned2 += t.earned || 0;
+      (t.expenses || []).forEach(x => ax.push({ ...x, day: it.d, lbl: t.label }));
+    });
+    const pizzaSty = _pizzaStyle(tasks);
+    const taskRows = tasks.map((t, ti) => {
+      const ts = t.timeStart && t.timeEnd ? `${t.timeStart}–${t.timeEnd}` : '';
+      const es = t.earned ? `+${cur}${t.earned.toLocaleString()}` : '';
+      const xt = (t.expenses || []).reduce((s, x) => s + (x.amount || 0), 0);
+      const xs = xt ? `−${cur}${xt.toLocaleString()}` : '';
+      return `<div style="display:flex;align-items:flex-start;gap:8px;padding:${ti>0?'8px 0 0':' 4px 0 0'};${ti>0?'border-top:.5px solid var(--sep);margin-top:6px;':''}">
+        <div style="width:10px;height:10px;border-radius:50%;background:${t.color||cfg.acc};flex-shrink:0;margin-top:3px;"></div>
+        <div style="flex:1;min-width:0;">
+          ${t.label ? `<div class="ename">${t.label}</div>` : ''}
+          <div class="enums" style="margin-top:${t.label?'4':'0'}px;">
+            ${ts ? `<span style="color:var(--text3);">🕐 ${ts}</span>` : ''}
+            ${es ? `<span style="color:var(--accent);font-weight:600;">${es}</span>` : ''}
+            ${xs ? `<span style="color:var(--text2);">${xs}</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
     html += `<div class="ecard" onclick="_activeLayer=2;openModal2('${it.dk}')">
       <div class="etop">
         <div class="enum">${i+1}</div>
-        <div class="einfo">
-          <div class="edate">${it.d} ${MONG[vm2]}</div>
-          ${dd.label ? `<div class="ename">${dd.label}</div>` : ''}
-        </div>
-        <div class="edot" style="background:${dd.color || cfg.acc};"></div>
+        <div class="einfo"><div class="edate">${it.d} ${MONG[vm2]}</div></div>
+        <div style="width:18px;height:18px;border-radius:50%;flex-shrink:0;margin-top:3px;${pizzaSty}"></div>
       </div>
-      <div class="enums">
-        ${ts ? `<span style="color:var(--text3);">🕐 ${ts}</span>` : ''}
-        ${es ? `<span style="color:var(--accent);font-weight:600;">${es}</span>` : ''}
-        ${xs ? `<span style="color:var(--text2);">${xs}</span>` : ''}
-      </div>
+      ${taskRows}
     </div>`;
   });
   ew.innerHTML = html;
+
+  const tx2  = ax.reduce((s, x) => s + (x.amount || 0), 0);
+  const net2 = totalEarned2 - tx2;
+
+  let th = '';
+  const grouped = {};
+  ax.forEach(x => {
+    const key = (x.comment || 'Затрата').trim();
+    grouped[key] = (grouped[key] || 0) + (x.amount || 0);
+  });
+  Object.entries(grouped).forEach(([name, total]) => {
+    th += `<div class="xrow"><span>${name}</span><span style="color:var(--accent);">−${cur}${total.toLocaleString()}</span></div>`;
+  });
+  th += `
+    <div class="trow" style="align-items:flex-start;">
+      <div class="tlbl" style="padding-top:10px;">Итого</div>
+      <div style="text-align:right;">
+        <div class="tamt" style="color:${net2>=0?'var(--accent)':'#c0392b'};">${net2>=0?'+':''}${cur}${Math.abs(net2).toLocaleString()}</div>
+        <div class="xcur-wrap" id="xcurEdit2"></div>
+      </div>
+    </div>`;
+  tw.innerHTML = `<div class="tcard">${th}</div>`;
+  window._lastNet2 = net2;
+  renderXcurEdit2();
+}
 
   const tx2  = ax.reduce((s, x) => s + (x.amount || 0), 0);
   const net2 = totalEarned2 - tx2;
@@ -1266,7 +1440,7 @@ function renderXcurEdit2() {
     if (x.on === false) return;
     const conv = (x.rate && x.sym) ? net * parseFloat(x.rate) : null;
     const amtStr = conv !== null
-      ? `<span style="font-size:22px;font-family:'DM Serif Display',serif;font-weight:400;color:${conv>=0?'var(--accent)':'#c0392b'};">${conv>=0?'+':''}${x.sym}${Math.round(Math.abs(conv)).toLocaleString()}</span>`
+      ? `<span style="font-size:22px;font-family:'DM Serif Display',serif;font-weight:400;color:${conv>=0?'var(--accent)':'#c0392b'};">${conv>=0?'+':''}${x.sym}${Math.abs(conv).toLocaleString(undefined,{maximumFractionDigits:0})}</span>`
       : `<span style="font-size:13px;color:var(--text3);">загрузка…</span>`;
     h += `<div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
       <div style="background:var(--bg3);border-radius:10px;padding:4px 10px;font-size:15px;color:var(--text);min-width:44px;text-align:center;">${x.sym||''}</div>
@@ -1278,23 +1452,19 @@ function renderXcurEdit2() {
 
 function summateLayers() {
   const cur = cfg.cur;
-  // Layer 1 net for current viewed month
   let earn1=0, exp1=0;
   for (let d=1; d<=31; d++) {
     const dk = dkey(vy, vm, d);
     if (new Date(vy, vm, d).getMonth() !== vm) break;
-    const dd = days[dk]; if (!dd) continue;
-    earn1 += dd.earned || 0;
-    (dd.expenses||[]).forEach(x => exp1 += x.amount||0);
+    const tasks = _dayTasks(days[dk]); if (!tasks) continue;
+    tasks.forEach(t => { earn1 += t.earned||0; (t.expenses||[]).forEach(x => exp1 += x.amount||0); });
   }
-  // Layer 2 net for current viewed month
   let earn2=0, exp2=0;
   for (let d=1; d<=31; d++) {
     const dk = dkey(vy2, vm2, d);
     if (new Date(vy2, vm2, d).getMonth() !== vm2) break;
-    const dd = days2[dk]; if (!dd) continue;
-    earn2 += dd.earned || 0;
-    (dd.expenses||[]).forEach(x => exp2 += x.amount||0);
+    const tasks = _dayTasks(days2[dk]); if (!tasks) continue;
+    tasks.forEach(t => { earn2 += t.earned||0; (t.expenses||[]).forEach(x => exp2 += x.amount||0); });
   }
   const net1 = earn1-exp1, net2 = earn2-exp2;
   const total = net1+net2;
@@ -1310,7 +1480,7 @@ function summateLayers() {
       .map(x => {
         const conv = total * parseFloat(x.rate);
         const sg = conv >= 0 ? '+' : '';
-        return `${sg}${x.sym}${Math.round(Math.abs(conv)).toLocaleString()}`;
+        return `${sg}${x.sym}${Math.abs(conv).toLocaleString(undefined,{maximumFractionDigits:0})}`;
       });
     if (xcParts.length) xcLine = `  (${xcParts.join('  ')})`;
   }
@@ -1365,6 +1535,28 @@ function summateLayers() {
   }, {passive:true});
 })();
 
+// ── PIZZA SLICE HELPER ──
+function _pizzaStyle(tasks) {
+  // tasks: array of {color,...}
+  if (!tasks || !tasks.length) return '';
+  const colors = tasks.map(t => t.color || '#888');
+  if (colors.length === 1) return `background:${colors[0]};`;
+  // conic-gradient pizza slices
+  const deg = 360 / colors.length;
+  const stops = colors.map((c, i) => `${c} ${i*deg}deg ${(i+1)*deg}deg`).join(', ');
+  return `background: conic-gradient(${stops});`;
+}
+
+function _dayTasks(raw) {
+  if (!raw) return null;
+  return Array.isArray(raw) ? raw : [raw];
+}
+
+function _firstColor(raw) {
+  const tasks = _dayTasks(raw);
+  return tasks && tasks.length ? (tasks[0].color || '#888') : null;
+}
+
 // ── CALENDAR ──
 function chM(d) {
   vm += d;
@@ -1378,29 +1570,31 @@ function renderCal() {
   document.getElementById('mLbl').textContent = MON[vm] + ' ' + vy;
   const t = new Date();
   const tdk = dkey(t.getFullYear(), t.getMonth(), t.getDate());
-  const fd = (new Date(vy, vm, 1).getDay() + 6) % 7; // Mon=0
+  const fd = (new Date(vy, vm, 1).getDay() + 6) % 7;
   const dim = new Date(vy, vm+1, 0).getDate();
   let h = '';
   for (let i = 0; i < fd; i++) h += '<div class="dot empty"></div>';
   for (let d = 1; d <= dim; d++) {
     const dk = dkey(vy, vm, d);
-    const dd = days[dk];
-    const dt = new Date(vy, vm, d);
+    const raw = days[dk];
+    const tasks = _dayTasks(raw);
+    const dt  = new Date(vy, vm, d);
     const isT = dk === tdk;
     const isP = dt < new Date(t.getFullYear(), t.getMonth(), t.getDate());
     let cls = 'dot';
     let sty = '';
-    if (dd && dd.color) {
-      sty = `background:${dd.color};`;
+    if (tasks && tasks.length) {
+      sty = _pizzaStyle(tasks);
       cls += ' work';
-      if (isT) cls += ' today-w'; // today but has work color
-    } else if (isT) { cls += ' today'; }  // ring only, no fill
+      if (isT) cls += ' today-w';
+    } else if (isT) { cls += ' today'; }
     else if (isP)   { cls += ' past'; }
     else            { cls += ' future'; }
-    if (dd) cls += ' has';
-    const dd2 = days2[dk];
-    if (dd2 && dd2.color) cls += ' has-l2';
-    const l2color = (dd2 && dd2.color) ? dd2.color : 'transparent';
+    if (raw) cls += ' has';
+    const raw2 = days2[dk];
+    const tasks2 = _dayTasks(raw2);
+    if (tasks2 && tasks2.length) { cls += ' has-l2'; }
+    const l2color = (tasks2 && tasks2.length) ? (tasks2[0].color || 'transparent') : 'transparent';
     h += `<div class="${cls}" style="${sty}"
       ontouchstart="ts(event,'${dk}')"
       ontouchmove="tm()"
@@ -1505,8 +1699,9 @@ function _startDrag(touch, dk, srcEl) {
   _dragActive = true;
   _dragSrcDk  = dk;
   _dragSrcEl  = srcEl;
-  const dd = days[dk];
-  _ghost.style.background = (dd && dd.color) ? dd.color : (cfg.acc || '#324E44');
+  const dd = _activeLayer === 2 ? days2[dk] : days[dk];
+  const colors = dd ? _dotColors(dd) : [];
+  _ghost.style.background = colors.length ? colors[0] : (cfg.acc || '#324E44');
   _ghost.style.left = touch.clientX + 'px';
   _ghost.style.top  = touch.clientY + 'px';
   _ghost.classList.add('on');
@@ -1696,7 +1891,7 @@ function renderEnt() {
     const dk = dkey(vy, vm, d);
     const dt = new Date(vy, vm, d);
     if (dt.getMonth() !== vm) break;
-    if (days[dk]) items.push({ dk, d, dd: days[dk] });
+    if (days[dk]) items.push({ dk, d, raw: days[dk] });
   }
   const ew = document.getElementById('entWrap');
   const tw = document.getElementById('totWrap');
@@ -1707,27 +1902,42 @@ function renderEnt() {
   let te = 0; const ax = [];
 
   items.forEach((it, i) => {
-    const dd = it.dd;
-    te += dd.earned || 0;
-    (dd.expenses || []).forEach(x => ax.push({ ...x, day: it.d, lbl: dd.label }));
-    const ts  = dd.timeStart && dd.timeEnd ? `${dd.timeStart}–${dd.timeEnd}` : '';
-    const es  = dd.earned ? `+${cur}${dd.earned.toLocaleString()}` : '';
-    const xt  = (dd.expenses || []).reduce((s, x) => s + (x.amount || 0), 0);
-    const xs  = xt ? `−${cur}${xt.toLocaleString()}` : '';
+    const tasks = _dayTasks(it.raw);
+    // Sum all tasks for totals
+    tasks.forEach(t => {
+      te += t.earned || 0;
+      (t.expenses || []).forEach(x => ax.push({ ...x, day: it.d, lbl: t.label }));
+    });
+    // Pizza dot color
+    const pizzaSty = _pizzaStyle(tasks);
+    // Build sub-task rows
+    const taskRows = tasks.map((t, ti) => {
+      const ts = t.timeStart && t.timeEnd ? `${t.timeStart}–${t.timeEnd}` : '';
+      const es = t.earned ? `+${cur}${t.earned.toLocaleString()}` : '';
+      const xt = (t.expenses || []).reduce((s, x) => s + (x.amount || 0), 0);
+      const xs = xt ? `−${cur}${xt.toLocaleString()}` : '';
+      return `<div style="display:flex;align-items:flex-start;gap:8px;padding:${ti>0?'8px 0 0':' 4px 0 0'};${ti>0?'border-top:.5px solid var(--sep);margin-top:6px;':''}">
+        <div style="width:10px;height:10px;border-radius:50%;background:${t.color||cfg.acc};flex-shrink:0;margin-top:3px;"></div>
+        <div style="flex:1;min-width:0;">
+          ${t.label ? `<div class="ename">${t.label}</div>` : ''}
+          <div class="enums" style="margin-top:${t.label?'4':'0'}px;">
+            ${ts ? `<span style="color:var(--text3);">🕐 ${ts}</span>` : ''}
+            ${es ? `<span style="color:var(--accent);font-weight:600;">${es}</span>` : ''}
+            ${xs ? `<span style="color:var(--text2);">${xs}</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
     html += `<div class="ecard" onclick="openModal('${it.dk}')">
       <div class="etop">
         <div class="enum">${i+1}</div>
         <div class="einfo">
           <div class="edate">${it.d} ${MONG[vm]}</div>
-          ${dd.label ? `<div class="ename">${dd.label}</div>` : ''}
         </div>
-        <div class="edot" style="background:${dd.color || cfg.acc};"></div>
+        <div style="width:18px;height:18px;border-radius:50%;flex-shrink:0;margin-top:3px;${pizzaSty}"></div>
       </div>
-      <div class="enums">
-        ${ts ? `<span style="color:var(--text3);">🕐 ${ts}</span>` : ''}
-        ${es ? `<span style="color:var(--accent);font-weight:600;">${es}</span>` : ''}
-        ${xs ? `<span style="color:var(--text2);">${xs}</span>` : ''}
-      </div>
+      ${taskRows}
     </div>`;
   });
   ew.innerHTML = html;
@@ -1735,18 +1945,13 @@ function renderEnt() {
   const tx = ax.reduce((s, x) => s + (x.amount || 0), 0);
   const net = te - tx; window._lastNet = net;
   let th = '';
-  // Группируем одинаковые траты по названию
   const grouped = {};
   ax.forEach(x => {
     const key = (x.comment || 'Затрата').trim();
-    if (grouped[key]) grouped[key] += (x.amount || 0);
-    else grouped[key] = (x.amount || 0);
+    grouped[key] = (grouped[key] || 0) + (x.amount || 0);
   });
   Object.entries(grouped).forEach(([name, total]) => {
-    th += `<div class="xrow">
-      <span>${name}</span>
-      <span style="color:var(--accent);">−${cur}${total.toLocaleString()}</span>
-    </div>`;
+    th += `<div class="xrow"><span>${name}</span><span style="color:var(--accent);">−${cur}${total.toLocaleString()}</span></div>`;
   });
   th += `<div class="trow" style="align-items:flex-start;">
     <div class="tlbl" style="padding-top:10px;">Итого</div>
@@ -1798,7 +2003,7 @@ function renderXcurEdit() {
   cfg.xcurs.forEach((x, i) => {
     const conv = (x.rate && x.sym) ? net * parseFloat(x.rate) : null;
     const amtStr = conv !== null
-      ? `<span style="font-size:22px;font-family:'DM Serif Display',serif;font-weight:400;color:${conv>=0?'var(--accent)':'#c0392b'};">${conv>=0?'+':''}${x.sym}${Math.round(Math.abs(conv)).toLocaleString()}</span>`
+      ? `<span style="font-size:22px;font-family:'DM Serif Display',serif;font-weight:400;color:${conv>=0?'var(--accent)':'#c0392b'};">${conv>=0?'+':''}${x.sym}${Math.abs(conv).toLocaleString(undefined,{maximumFractionDigits:0})}</span>`
       : `<span style="font-size:13px;color:var(--text3);">загрузка…</span>`;
     const opacity = x.on === false ? '0.35' : '1';
     h += `<div style="display:flex;align-items:center;gap:8px;margin-top:10px;opacity:${opacity};">
