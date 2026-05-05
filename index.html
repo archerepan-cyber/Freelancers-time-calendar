@@ -609,7 +609,7 @@ button { font-family: inherit; cursor: pointer; }
 </div>
 
 <!-- DAY MODAL -->
-<div class="mover" id="modal" onclick="if(event.target===this)closeModal()">
+<div class="mover" id="modal">
   <div class="msheet">
     <div class="mdrg"></div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
@@ -972,6 +972,35 @@ renderBig();
 renderCal();
 renderEnt();
 
+// ── IOS-SAFE MODAL CLOSE ──
+(function() {
+  const mover = document.getElementById('modal');
+  // Use touchend on the overlay — but only if touch didn't move (not a scroll)
+  let _mTouchY = 0;
+  mover.addEventListener('touchstart', e => {
+    _mTouchY = e.touches[0].clientY;
+  }, { passive: true });
+  mover.addEventListener('touchend', e => {
+    if (e.target !== mover) return;
+    const dy = Math.abs(e.changedTouches[0].clientY - _mTouchY);
+    if (dy < 10) closeModal(); // only close on a clean tap, not scroll
+  }, { passive: true });
+  // Desktop fallback
+  mover.addEventListener('click', e => {
+    if (e.target === mover) closeModal();
+  });
+})();
+
+// ── INIT GRID EVENTS (once, at boot) ──
+(function() {
+  const g = document.getElementById('grid');
+  g._eventsAttached = true;
+  g.addEventListener('touchstart',  _gridTS, { passive: true });
+  g.addEventListener('touchmove',   _gridTM, { passive: true });
+  g.addEventListener('touchend',    _gridTE, { passive: true });
+  g.addEventListener('touchcancel', _gridTC, { passive: true });
+})();
+
 // ── BIG DATE ──
 function renderBig() {
   const t = new Date();
@@ -1176,7 +1205,7 @@ function saveDay() {
     closeModal(); renderCal2(); renderEnt2(); renderCal();
   } else {
     days[curDk] = data; saveD();
-    closeModal(); renderCal(); renderEnt();
+    closeModal(); _patchDot(curDk); renderEnt();
   }
 }
 
@@ -1438,56 +1467,101 @@ function chM(d) {
   renderEnt();
 }
 
+function _dotClsStyle(dk, tdk) {
+  const dd  = days[dk];
+  const dt  = new Date(...dk.split('-').map((v,i)=>i===1?Number(v)-1:Number(v)));
+  const today = new Date(); today.setHours(0,0,0,0);
+  const isT = dk === tdk;
+  const isP = dt < today;
+  let cls = 'dot', sty = '';
+  if (dd && dd.color) {
+    const blocks = dd.blocks;
+    const colors = blocks && blocks.length > 1 ? blocks.map(b=>b.color).filter(Boolean) : null;
+    if (colors && colors.length > 1) {
+      sty = `background:${pizzaGradient(colors)};`;
+    } else {
+      sty = `background:${dd.color};`;
+    }
+    cls += ' work';
+    if (isT) cls += ' today-w';
+  } else if (isT) { cls += ' today'; }
+  else if (isP)   { cls += ' past'; }
+  else            { cls += ' future'; }
+  if (dd) cls += ' has';
+  const dd2 = days2[dk];
+  if (dd2 && dd2.color) cls += ' has-l2';
+  return { cls, sty, l2color: (dd2 && dd2.color) ? dd2.color : 'transparent' };
+}
+
 function renderCal() {
   document.getElementById('mLbl').textContent = MON[vm] + ' ' + vy;
   const t = new Date();
   const tdk = dkey(t.getFullYear(), t.getMonth(), t.getDate());
-  const fd = (new Date(vy, vm, 1).getDay() + 6) % 7; // Mon=0
+  const fd  = (new Date(vy, vm, 1).getDay() + 6) % 7;
   const dim = new Date(vy, vm+1, 0).getDate();
-  let h = '';
-  for (let i = 0; i < fd; i++) h += '<div class="dot empty"></div>';
-  for (let d = 1; d <= dim; d++) {
-    const dk = dkey(vy, vm, d);
-    const dd = days[dk];
-    const dt = new Date(vy, vm, d);
-    const isT = dk === tdk;
-    const isP = dt < new Date(t.getFullYear(), t.getMonth(), t.getDate());
-    let cls = 'dot';
-    let sty = '';
-    if (dd && dd.color) {
-      // Check for multi-block pizza
-      const blocks = dd.blocks;
-      const colors = blocks && blocks.length > 1
-        ? blocks.map(b => b.color).filter(Boolean)
-        : null;
-      if (colors && colors.length > 1) {
-        const grad = pizzaGradient(colors);
-        sty = `background:${grad};`;
-        cls += ' work';
-        if (isT) cls += ' today-w';
-      } else {
-        sty = `background:${dd.color};`;
-        cls += ' work';
-        if (isT) cls += ' today-w'; // today but has work color
-      }
-    } else if (isT) { cls += ' today'; }  // ring only, no fill
-    else if (isP)   { cls += ' past'; }
-    else            { cls += ' future'; }
-    if (dd) cls += ' has';
-    const dd2 = days2[dk];
-    if (dd2 && dd2.color) cls += ' has-l2';
-    const l2color = (dd2 && dd2.color) ? dd2.color : 'transparent';
-    h += `<div class="${cls}" style="${sty}"
-      ontouchstart="ts(event,'${dk}')"
-      ontouchmove="tm()"
-      ontouchend="te(event,'${dk}')"
->
-      <div class="pip"></div>
-      <div class="dnum">${d}</div>
-      <div class="l2badge" style="background:${l2color};"></div>
-    </div>`;
+  const grid = document.getElementById('grid');
+
+  // Full rebuild only when month/structure changes
+  const prevMonth = grid.dataset.month;
+  const curMonth  = vy + '-' + vm;
+  if (prevMonth !== curMonth) {
+    // Structure changed — rebuild completely
+    let h = '';
+    for (let i = 0; i < fd; i++) h += '<div class="dot empty"></div>';
+    for (let d = 1; d <= dim; d++) {
+      const dk = dkey(vy, vm, d);
+      const { cls, sty, l2color } = _dotClsStyle(dk, tdk);
+      h += `<div class="${cls}" style="${sty}" data-dk="${dk}"><div class="pip"></div><div class="dnum">${d}</div><div class="l2badge" style="background:${l2color};"></div></div>`;
+    }
+    grid.innerHTML = h;
+    grid.dataset.month = curMonth;
+    // Listeners stay attached across innerHTML rebuilds (same element)
+  } else {
+    // Same month — patch only changed dots
+    grid.querySelectorAll('.dot[data-dk]').forEach(el => {
+      const dk = el.dataset.dk;
+      const { cls, sty, l2color } = _dotClsStyle(dk, tdk);
+      el.className = cls;
+      el.style.cssText = sty;
+      const badge = el.querySelector('.l2badge');
+      if (badge) badge.style.background = l2color;
+    });
   }
-  document.getElementById('grid').innerHTML = h;
+}
+
+function _attachGridEvents(grid) {
+  // Re-attach touch listeners after full innerHTML rebuild (month change)
+  // We use a flag so we don't double-add on the initial boot attach
+  if (grid._eventsAttached) return;
+  grid._eventsAttached = true;
+  grid.addEventListener('touchstart',  _gridTS, { passive: true });
+  grid.addEventListener('touchmove',   _gridTM, { passive: true });
+  grid.addEventListener('touchend',    _gridTE, { passive: true });
+  grid.addEventListener('touchcancel', _gridTC, { passive: true });
+}
+
+function _getDkFromTouch(e) {
+  const el = e.target.closest('.dot[data-dk]');
+  return el ? el.dataset.dk : null;
+}
+function _getDotEl(e) { return e.target.closest('.dot[data-dk]') || null; }
+
+function _gridTS(e) {
+  const dk = _getDkFromTouch(e); if (!dk) return;
+  const el = _getDotEl(e);
+  ts(e, dk, el);
+}
+function _gridTM(e) { tm(); }
+function _gridTE(e) {
+  const dk = _getDkFromTouch(e); if (!dk) return;
+  const el = _getDotEl(e);
+  te(e, dk, el);
+}
+function _gridTC(e) {
+  clearTimeout(_lpt);
+  document.querySelectorAll('#grid .dot.press').forEach(d => d.classList.remove('press'));
+  _longPressed = false; _longPressDk = null;
+  _mv = false;
 }
 
 // ── COPY / PASTE ──
@@ -1648,19 +1722,18 @@ document.addEventListener('touchcancel', e => {
   _longPressed = false; _longPressDk = null;
 }, { passive: true });
 
-function ts(e, dk) {
+function ts(e, dk, el) {
+  el = el || e.currentTarget;
   _mv = false; _t0 = Date.now();
   _longPressed = false; _longPressDk = null;
-  const el = e.currentTarget;
   el.classList.add('press');
+  clearTimeout(_lpt);
   _lpt = setTimeout(() => {
     el.classList.remove('press');
     navigator.vibrate && navigator.vibrate(32);
-    // Mark that long-press fired; wait to see if finger moves (drag) or lifts (menu)
     _longPressed  = true;
     _longPressDk  = dk;
     _longPressE   = e;
-    // Pre-position src el reference for drag
     _dragSrcEl    = el;
   }, 500);
 }
@@ -1676,11 +1749,12 @@ function tm() {
   // If long-press already fired, movement is handled by global touchmove → drag starts there
 }
 
-function te(e, dk) {
+function te(e, dk, el) {
+  el = el || e.currentTarget;
   clearTimeout(_lpt);
-  e.currentTarget.classList.remove('press');
+  el.classList.remove('press');
   if (_dragActive) return;
-  if (_longPressed) return; // handled by global touchend
+  if (_longPressed) return;
   if (_mv) return;
   if (Date.now() - _t0 >= 500) return;
   if (document.getElementById('ctxMenu').classList.contains('on')) return;
@@ -1703,7 +1777,25 @@ function clrD(dk) {
   if (!days[dk]) return;
   navigator.vibrate && navigator.vibrate([20, 30, 20]);
   delete days[dk];
-  saveD(); renderCal(); renderEnt();
+  // Reset double-tap state immediately so next tap is fresh
+  clearTimeout(_dtTimer); _dtTimer = null;
+  _lastTap = 0; _lastDk = null; _mv = false;
+  saveD();
+  // Patch just this dot — avoids iOS touch context loss from full innerHTML replace
+  _patchDot(dk);
+  renderEnt();
+}
+
+function _patchDot(dk) {
+  const el = document.querySelector(`#grid .dot[data-dk="${dk}"]`);
+  if (!el) { renderCal(); return; } // fallback
+  const t = new Date();
+  const tdk = dkey(t.getFullYear(), t.getMonth(), t.getDate());
+  const { cls, sty, l2color } = _dotClsStyle(dk, tdk);
+  el.className = cls;
+  el.style.cssText = sty;
+  const badge = el.querySelector('.l2badge');
+  if (badge) badge.style.background = l2color;
 }
 
 // ── MODAL (LAYER 1) ──
