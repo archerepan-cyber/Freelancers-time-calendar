@@ -124,7 +124,18 @@ button { font-family: inherit; cursor: pointer; }
 .dot.press  { transform: scale(.82); }
 .dot .pip { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 3px; height: 3px; border-radius: 50%; background: rgba(255,255,255,.8); display: none; }
 .dot.has .pip { display: block; }
-.dot .dnum {
+.dot .l2badge {
+  position: absolute;
+  top: 2px; right: 2px;
+  width: 28%; height: 28%;
+  min-width: 5px; min-height: 5px;
+  border-radius: 50%;
+  border: 1.5px solid var(--bg);
+  display: none;
+  pointer-events: none;
+  z-index: 2;
+}
+.dot.has-l2 .l2badge { display: block; }
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
   padding-bottom: 6px;
@@ -981,7 +992,10 @@ function openLayer2() {
 function closeLayer2() {
   _layer2Open = false;
   _activeLayer = 1;
-  document.getElementById('layer2').classList.remove('on');
+  const panel = document.getElementById('layer2');
+  panel.style.transition = '';
+  panel.style.transform  = ''; // clear any inline override from swipe
+  panel.classList.remove('on');
   document.getElementById('l2btn').classList.remove('hide');
 }
 
@@ -1078,7 +1092,7 @@ function te2(e, dk) {
 function clrD2(dk) {
   if (!days2[dk]) return;
   navigator.vibrate && navigator.vibrate([20,30,20]);
-  delete days2[dk]; saveD2(); renderCal2(); renderEnt2();
+  delete days2[dk]; saveD2(); renderCal2(); renderEnt2(); renderCal(); // refresh L1 badges
 }
 
 // ── LAYER 2 MODAL ──
@@ -1144,7 +1158,7 @@ function saveDay() {
   };
   if (isL2) {
     days2[curDk] = data; saveD2();
-    closeModal(); renderCal2(); renderEnt2();
+    closeModal(); renderCal2(); renderEnt2(); renderCal(); // refresh L1 badges
   } else {
     days[curDk] = data; saveD();
     closeModal(); renderCal(); renderEnt();
@@ -1164,7 +1178,7 @@ function ctxDoPaste() {
   if (!_ctxDk || !_copiedDay) return;
   if (_activeLayer === 2) {
     days2[_ctxDk] = JSON.parse(JSON.stringify(_copiedDay));
-    saveD2(); closeCtxMenu(); renderCal2(); renderEnt2();
+    saveD2(); closeCtxMenu(); renderCal2(); renderEnt2(); renderCal();
   } else {
     days[_ctxDk] = JSON.parse(JSON.stringify(_copiedDay));
     saveD(); closeCtxMenu(); renderCal(); renderEnt();
@@ -1343,6 +1357,9 @@ function renderCal() {
     else if (isP)   { cls += ' past'; }
     else            { cls += ' future'; }
     if (dd) cls += ' has';
+    const dd2 = days2[dk];
+    if (dd2 && dd2.color) cls += ' has-l2';
+    const l2color = (dd2 && dd2.color) ? dd2.color : 'transparent';
     h += `<div class="${cls}" style="${sty}"
       ontouchstart="ts(event,'${dk}')"
       ontouchmove="tm()"
@@ -1350,6 +1367,7 @@ function renderCal() {
 >
       <div class="pip"></div>
       <div class="dnum">${d}</div>
+      <div class="l2badge" style="background:${l2color};"></div>
     </div>`;
   }
   document.getElementById('grid').innerHTML = h;
