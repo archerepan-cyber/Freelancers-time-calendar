@@ -351,9 +351,101 @@ button { font-family: inherit; cursor: pointer; }
 .ctx-item:active { background: var(--bg3); }
 .ctx-item .ctx-icon { font-size: 17px; }
 .ctx-item.paste { color: var(--accent); }
+/* ── LAYER 2 BUTTON ── */
+#l2btn {
+  position: fixed; top: calc(var(--st) + 14px); right: 18px; z-index: 250;
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--accent); color: #fff;
+  font-size: 13px; font-weight: 700; border: none;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 3px 12px rgba(0,0,0,.22);
+  touch-action: manipulation; cursor: pointer;
+  transition: opacity .2s, transform .2s;
+}
+#l2btn.hide { opacity: 0; pointer-events: none; }
+#l2btn:active { transform: scale(.88); }
+
+/* ── LAYER 2 PANEL ── */
+#layer2 {
+  position: fixed; inset: 0; z-index: 200;
+  background: var(--bg);
+  transform: translateY(100%);
+  transition: transform .44s cubic-bezier(.25,0.46,0.45,0.94);
+  will-change: transform;
+  display: flex; flex-direction: column;
+}
+#layer2.on { transform: translateY(0); }
+
+#l2header {
+  flex-shrink: 0;
+  padding: calc(var(--st) + 14px) 20px 10px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--bg2);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-bottom: .5px solid var(--sep);
+}
+#l2header .l2title {
+  font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--text);
+}
+#l2close {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--bg3); border: none;
+  font-size: 17px; color: var(--text2);
+  display: flex; align-items: center; justify-content: center;
+  touch-action: manipulation; cursor: pointer;
+  flex-shrink: 0;
+}
+#l2body {
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 16px 22px 88px;
+}
+
+/* ── SUMMATE BUTTON ── */
+.sum-btn {
+  width: 100%; padding: 12px; border-radius: 13px;
+  background: var(--bg3); border: .5px solid var(--sep);
+  font-size: 14px; font-weight: 600; color: var(--text2);
+  touch-action: manipulation; cursor: pointer; margin-bottom: 12px;
+  transition: background .15s;
+}
+.sum-btn:active { background: var(--sep); }
+.sum-result {
+  font-size: 13px; color: var(--text3); text-align: center;
+  margin-bottom: 8px; min-height: 18px;
+}
 </style>
 </head>
 <body>
+
+<!-- LAYER 2 BUTTON -->
+<button id="l2btn" onclick="openLayer2()">2</button>
+
+<!-- LAYER 2 PANEL -->
+<div id="layer2">
+  <div id="l2header">
+    <div class="l2title">Слой 2</div>
+    <button id="l2close" onclick="closeLayer2()">✕</button>
+  </div>
+  <div id="l2body">
+
+    <div class="mnav">
+      <button class="marr" onclick="chM2(-1)">‹</button>
+      <div class="mlbl" id="mLbl2">Май 2026</div>
+      <button class="marr" onclick="chM2(1)">›</button>
+    </div>
+
+    <div class="chdr">
+      <span>П</span><span>В</span><span>С</span><span>Ч</span><span>П</span>
+      <span class="we">С</span><span class="we">В</span>
+    </div>
+    <div class="cgrid" id="grid2"></div>
+
+    <div id="entWrap2"></div>
+    <div id="totWrap2"></div>
+
+  </div>
+</div>
 
 <div id="bg"><img id="bgImg" alt=""/></div>
 <div id="ov"></div>
@@ -829,15 +921,18 @@ function toHex(val) {
 }
 
 // ── STORAGE ──
-const SK = 'ftc_d1', SS = 'ftc_s1';
+const SK = 'ftc_d1', SS = 'ftc_s1', SK2 = 'ftc_d2';
 let days = {}, cfg = { cur:'₽', theme:'default', thcls:'', acc:'#D0391B', ov:45, bg:'', xcurs:[] };
+let days2 = {}; // Second layer data
 
 function load() {
   try { days = JSON.parse(localStorage.getItem(SK) || '{}'); } catch { days = {}; }
   try { Object.assign(cfg, JSON.parse(localStorage.getItem(SS) || '{}')); } catch {}
+  try { days2 = JSON.parse(localStorage.getItem(SK2) || '{}'); } catch { days2 = {}; }
 }
-function saveD() { localStorage.setItem(SK, JSON.stringify(days)); }
-function saveC() { localStorage.setItem(SS, JSON.stringify(cfg)); }
+function saveD()  { localStorage.setItem(SK,  JSON.stringify(days));  }
+function saveD2() { localStorage.setItem(SK2, JSON.stringify(days2)); }
+function saveC()  { localStorage.setItem(SS,  JSON.stringify(cfg));   }
 function dkey(y, m, d) { return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
 
 // ── STATE ──
@@ -845,6 +940,12 @@ const now = new Date();
 let vy = now.getFullYear(), vm = now.getMonth();
 let eDk = null, dc = '#324E44';
 const curTab_ref = { v: 'main' };
+
+// ── LAYER 2 STATE ──
+let vy2 = now.getFullYear(), vm2 = now.getMonth();
+let _layer2Open = false;
+let eDk2 = null, dc2 = '#324E44'; // separate modal context for layer 2
+let _activeLayer = 1; // which layer's modal/data functions operate on
 
 const MON  = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 const MONG = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
@@ -867,6 +968,347 @@ function renderBig() {
   document.getElementById('bDow').textContent = DOW[t.getDay()];
 }
 setInterval(renderBig, 30000);
+
+// ── LAYER 2 OPEN / CLOSE ──
+function openLayer2() {
+  _layer2Open = true;
+  _activeLayer = 2;
+  document.getElementById('layer2').classList.add('on');
+  document.getElementById('l2btn').classList.add('hide');
+  renderCal2();
+  renderEnt2();
+}
+function closeLayer2() {
+  _layer2Open = false;
+  _activeLayer = 1;
+  document.getElementById('layer2').classList.remove('on');
+  document.getElementById('l2btn').classList.remove('hide');
+}
+
+// ── LAYER 2 CALENDAR ──
+function chM2(d) {
+  vm2 += d;
+  if (vm2 < 0)  { vm2 = 11; vy2--; }
+  if (vm2 > 11) { vm2 = 0;  vy2++; }
+  renderCal2();
+  renderEnt2();
+}
+
+function renderCal2() {
+  document.getElementById('mLbl2').textContent = MON[vm2] + ' ' + vy2;
+  const t = new Date();
+  const tdk = dkey(t.getFullYear(), t.getMonth(), t.getDate());
+  const fd  = (new Date(vy2, vm2, 1).getDay() + 6) % 7;
+  const dim = new Date(vy2, vm2+1, 0).getDate();
+  let h = '';
+  for (let i = 0; i < fd; i++) h += '<div class="dot empty"></div>';
+  for (let d = 1; d <= dim; d++) {
+    const dk  = dkey(vy2, vm2, d);
+    const dd  = days2[dk];
+    const dt  = new Date(vy2, vm2, d);
+    const isT = dk === tdk;
+    const isP = dt < new Date(t.getFullYear(), t.getMonth(), t.getDate());
+    let cls = 'dot', sty = '';
+    if (dd && dd.color) {
+      sty = `background:${dd.color};`;
+      cls += ' work';
+      if (isT) cls += ' today-w';
+    } else if (isT) { cls += ' today'; }
+    else if (isP)   { cls += ' past'; }
+    else            { cls += ' future'; }
+    if (dd) cls += ' has';
+    h += `<div class="${cls}" style="${sty}"
+      ontouchstart="ts2(event,'${dk}')"
+      ontouchmove="tm2()"
+      ontouchend="te2(event,'${dk}')"
+>
+      <div class="pip"></div>
+      <div class="dnum">${d}</div>
+    </div>`;
+  }
+  document.getElementById('grid2').innerHTML = h;
+}
+
+// ── LAYER 2 TOUCH ──
+let _t02=0, _mv2=false, _lpt2=null;
+let _lastTap2=0, _lastDk2=null, _dtTimer2=null;
+let _lp2=false, _lpE2=null, _lpDk2=null;
+
+function ts2(e, dk) {
+  _mv2=false; _t02=Date.now(); _lp2=false; _lpDk2=null;
+  const el = e.currentTarget;
+  el.classList.add('press');
+  _lpt2 = setTimeout(() => {
+    el.classList.remove('press');
+    navigator.vibrate && navigator.vibrate(32);
+    _lp2=true; _lpDk2=dk; _lpE2=e;
+  }, 500);
+}
+function tm2() {
+  if (!_lp2) {
+    _mv2=true; clearTimeout(_lpt2);
+    document.querySelectorAll('#grid2 .dot.press').forEach(d=>d.classList.remove('press'));
+  }
+}
+function te2(e, dk) {
+  clearTimeout(_lpt2);
+  e.currentTarget.classList.remove('press');
+  if (_lp2) {
+    _lp2=false;
+    const hasDayData = !!days2[dk];
+    const hasCopied  = !!_copiedDay;
+    if (hasDayData || hasCopied) {
+      _activeLayer = 2;
+      showCtxMenu(_lpE2||e, dk, hasDayData, hasCopied);
+    } else { openModal2(dk); }
+    return;
+  }
+  if (_mv2) return;
+  if (Date.now()-_t02 >= 500) return;
+  if (document.getElementById('ctxMenu').classList.contains('on')) return;
+  const nowT = Date.now();
+  if (_lastDk2===dk && nowT-_lastTap2<350) {
+    clearTimeout(_dtTimer2); _lastTap2=0; _lastDk2=null;
+    clrD2(dk); return;
+  }
+  _lastTap2=nowT; _lastDk2=dk;
+  clearTimeout(_dtTimer2);
+  _dtTimer2=setTimeout(()=>{ _lastTap2=0; _lastDk2=null; openModal2(dk); }, 350);
+}
+function clrD2(dk) {
+  if (!days2[dk]) return;
+  navigator.vibrate && navigator.vibrate([20,30,20]);
+  delete days2[dk]; saveD2(); renderCal2(); renderEnt2();
+}
+
+// ── LAYER 2 MODAL ──
+function openModal2(dk) {
+  _activeLayer = 2;
+  eDk2 = dk;
+  const [y,m,d] = dk.split('-').map(Number);
+  document.getElementById('mTit').textContent = `${d} ${MONG[m-1]}`;
+  const dd = days2[dk] || {};
+  dc2 = dd.color || cfg.acc || '#324E44';
+  document.querySelectorAll('#dcs .dc').forEach(el => el.classList.toggle('on', el.dataset.c === dc2));
+  document.getElementById('fLbl').value  = dd.label || '';
+  document.getElementById('fS').value    = dd.timeStart || '';
+  document.getElementById('fE').value    = dd.timeEnd || '';
+  document.getElementById('fEarn').value = dd.earned || '';
+  document.getElementById('xList').innerHTML = '';
+  (dd.expenses || []).forEach(x => addX(x.amount, x.comment));
+  document.getElementById('modal').classList.add('on');
+}
+
+// Patch pickC to work for both layers
+const _origPickC = window.pickC;
+function pickC(c, el) {
+  if (_activeLayer === 2) {
+    dc2 = c;
+    document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
+    if (el) el.classList.add('on');
+  } else {
+    dc = c;
+    document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
+    if (el) el.classList.add('on');
+  }
+}
+function pickCHex(c) {
+  if (_activeLayer === 2) {
+    dc2 = c;
+    document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
+  } else {
+    dc = c;
+    document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
+  }
+}
+
+// Patch saveDay to work for both layers
+function saveDay() {
+  const isL2 = _activeLayer === 2;
+  const curDk = isL2 ? eDk2 : eDk;
+  if (!curDk) return;
+  const xs = [];
+  document.querySelectorAll('#xList .xrow2').forEach(r => {
+    const ins = r.querySelectorAll('input');
+    const a = parseFloat(ins[0].value) || 0;
+    const c = ins[1].value.trim();
+    if (a > 0 || c) xs.push({ amount: a, comment: c });
+  });
+  const data = {
+    color:     isL2 ? dc2 : dc,
+    label:     document.getElementById('fLbl').value.trim(),
+    timeStart: document.getElementById('fS').value,
+    timeEnd:   document.getElementById('fE').value,
+    earned:    parseFloat(document.getElementById('fEarn').value) || 0,
+    expenses:  xs
+  };
+  if (isL2) {
+    days2[curDk] = data; saveD2();
+    closeModal(); renderCal2(); renderEnt2();
+  } else {
+    days[curDk] = data; saveD();
+    closeModal(); renderCal(); renderEnt();
+  }
+}
+
+// Layer-aware closeModal
+function closeModal() {
+  document.getElementById('modal').classList.remove('on');
+  if (_activeLayer === 2) { eDk2 = null; }
+  else { eDk = null; }
+  if (!_layer2Open) _activeLayer = 1;
+}
+
+// Patch ctxDoPaste for layer 2
+function ctxDoPaste() {
+  if (!_ctxDk || !_copiedDay) return;
+  if (_activeLayer === 2) {
+    days2[_ctxDk] = JSON.parse(JSON.stringify(_copiedDay));
+    saveD2(); closeCtxMenu(); renderCal2(); renderEnt2();
+  } else {
+    days[_ctxDk] = JSON.parse(JSON.stringify(_copiedDay));
+    saveD(); closeCtxMenu(); renderCal(); renderEnt();
+  }
+  navigator.vibrate && navigator.vibrate(28);
+}
+
+// ── LAYER 2 ENTRIES & TOTALS ──
+function renderEnt2() {
+  const items = [];
+  for (let d = 1; d <= 31; d++) {
+    const dk = dkey(vy2, vm2, d);
+    const dt = new Date(vy2, vm2, d);
+    if (dt.getMonth() !== vm2) break;
+    if (days2[dk]) items.push({ dk, d, dd: days2[dk] });
+  }
+  const ew = document.getElementById('entWrap2');
+  const tw = document.getElementById('totWrap2');
+  if (!items.length) { ew.innerHTML = ''; tw.innerHTML = ''; return; }
+
+  const cur = cfg.cur;
+  let html = `<div class="slbl">${MON[vm2]} ${vy2}</div>`;
+  let totalEarned2 = 0;
+  const ax = [];
+
+  items.forEach((it, i) => {
+    const dd = it.dd;
+    totalEarned2 += dd.earned || 0;
+    (dd.expenses || []).forEach(x => ax.push({ ...x, day: it.d, lbl: dd.label }));
+    const ts  = dd.timeStart && dd.timeEnd ? `${dd.timeStart}–${dd.timeEnd}` : '';
+    const es  = dd.earned ? `+${cur}${dd.earned.toLocaleString()}` : '';
+    const xt  = (dd.expenses || []).reduce((s, x) => s + (x.amount || 0), 0);
+    const xs  = xt ? `−${cur}${xt.toLocaleString()}` : '';
+    html += `<div class="ecard" onclick="_activeLayer=2;openModal2('${it.dk}')">
+      <div class="etop">
+        <div class="enum">${i+1}</div>
+        <div class="einfo">
+          <div class="edate">${it.d} ${MONG[vm2]}</div>
+          ${dd.label ? `<div class="ename">${dd.label}</div>` : ''}
+        </div>
+        <div class="edot" style="background:${dd.color || cfg.acc};"></div>
+      </div>
+      <div class="enums">
+        ${ts ? `<span style="color:var(--text3);">🕐 ${ts}</span>` : ''}
+        ${es ? `<span style="color:var(--accent);font-weight:600;">${es}</span>` : ''}
+        ${xs ? `<span style="color:var(--text2);">${xs}</span>` : ''}
+      </div>
+    </div>`;
+  });
+  ew.innerHTML = html;
+
+  const tx2  = ax.reduce((s, x) => s + (x.amount || 0), 0);
+  const net2 = totalEarned2 - tx2;
+
+  let th = '';
+  const grouped = {};
+  ax.forEach(x => {
+    const key = (x.comment || 'Затрата').trim();
+    grouped[key] = (grouped[key] || 0) + (x.amount || 0);
+  });
+  Object.entries(grouped).forEach(([name, total]) => {
+    th += `<div class="xrow"><span>${name}</span><span style="color:var(--accent);">−${cur}${total.toLocaleString()}</span></div>`;
+  });
+  th += `
+    <div class="trow" style="align-items:flex-start;">
+      <div class="tlbl" style="padding-top:10px;">Итого</div>
+      <div style="text-align:right;">
+        <div class="tamt" style="color:${net2>=0?'var(--accent)':'#c0392b'};">${net2>=0?'+':''}${cur}${Math.abs(net2).toLocaleString()}</div>
+      </div>
+    </div>
+    <div style="margin-top:14px;">
+      <div class="sum-result" id="sumResult"></div>
+      <button class="sum-btn" onclick="summateLayers()">∑ Суммировать с основным</button>
+    </div>`;
+  tw.innerHTML = `<div class="tcard">${th}</div>`;
+}
+
+function summateLayers() {
+  // Sum net of layer1 current month + layer2 current month
+  const cur = cfg.cur;
+  // Layer 1
+  let earn1=0, exp1=0;
+  for (let d=1; d<=31; d++) {
+    const dk = dkey(vy, vm, d);
+    if (new Date(vy, vm, d).getMonth() !== vm) break;
+    const dd = days[dk];
+    if (!dd) continue;
+    earn1 += dd.earned || 0;
+    (dd.expenses||[]).forEach(x => exp1 += x.amount||0);
+  }
+  // Layer 2
+  let earn2=0, exp2=0;
+  for (let d=1; d<=31; d++) {
+    const dk = dkey(vy2, vm2, d);
+    if (new Date(vy2, vm2, d).getMonth() !== vm2) break;
+    const dd = days2[dk];
+    if (!dd) continue;
+    earn2 += dd.earned || 0;
+    (dd.expenses||[]).forEach(x => exp2 += x.amount||0);
+  }
+  const net1 = earn1-exp1, net2 = earn2-exp2;
+  const total = net1+net2;
+  const sign = total >= 0 ? '+' : '';
+  document.getElementById('sumResult').textContent =
+    `Слой 1: ${net1>=0?'+':''}${cur}${Math.abs(net1).toLocaleString()}  |  Слой 2: ${net2>=0?'+':''}${cur}${Math.abs(net2).toLocaleString()}  =  ${sign}${cur}${Math.abs(total).toLocaleString()}`;
+  navigator.vibrate && navigator.vibrate(20);
+}
+
+// ── LAYER 2 SWIPE DOWN TO CLOSE ──
+(function(){
+  const panel = document.getElementById('layer2');
+  const body  = document.getElementById('l2body');
+  let sy2=0, dy2=0, swiping2=false;
+  panel.addEventListener('touchstart', e => {
+    if (!_layer2Open) return;
+    if (document.getElementById('modal').classList.contains('on')) return;
+    sy2 = e.touches[0].clientY;
+    dy2 = 0; swiping2 = false;
+  }, {passive:true});
+  panel.addEventListener('touchmove', e => {
+    if (!_layer2Open) return;
+    if (document.getElementById('modal').classList.contains('on')) return;
+    if (_dragActive) return;
+    const d = e.touches[0].clientY - sy2;
+    if (body.scrollTop > 0 && d > 0) return; // allow scroll first
+    if (d > 12) {
+      swiping2 = true;
+      dy2 = Math.min(d, 300);
+      panel.style.transition = 'none';
+      panel.style.transform  = `translateY(${dy2}px)`;
+    }
+  }, {passive:true});
+  panel.addEventListener('touchend', e => {
+    if (!_layer2Open) return;
+    panel.style.transition = '';
+    if (swiping2 && dy2 > 100) {
+      closeLayer2();
+      panel.style.transform = '';
+    } else {
+      panel.style.transform = 'translateY(0)';
+    }
+    swiping2=false; dy2=0;
+  }, {passive:true});
+})();
 
 // ── CALENDAR ──
 function chM(d) {
@@ -953,7 +1395,7 @@ function ctxDoCopy() {
   renderCal(); // re-render to show copy indicator ring
 }
 
-function ctxDoPaste() {
+function _ctxDoPaste_orig_unused() {
   if (!_ctxDk || !_copiedDay) return;
   days[_ctxDk] = JSON.parse(JSON.stringify(_copiedDay));
   navigator.vibrate && navigator.vibrate(28);
@@ -1129,8 +1571,9 @@ function clrD(dk) {
   saveD(); renderCal(); renderEnt();
 }
 
-// ── MODAL ──
+// ── MODAL (LAYER 1) ──
 function openModal(dk) {
+  _activeLayer = 1;
   eDk = dk;
   const [y, m, d] = dk.split('-').map(Number);
   document.getElementById('mTit').textContent = `${d} ${MONG[m-1]}`;
@@ -1145,16 +1588,16 @@ function openModal(dk) {
   (dd.expenses || []).forEach(x => addX(x.amount, x.comment));
   document.getElementById('modal').classList.add('on');
 }
-function closeModal() {
+function _closeModalOrig_unused() {
   document.getElementById('modal').classList.remove('on');
   eDk = null;
 }
-function pickC(c, el) {
+function _pickC_orig_unused(c, el) {
   dc = c;
   document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
   if (el) el.classList.add('on');
 }
-function pickCHex(c) {
+function _pickCHex_orig_unused(c) {
   dc = c;
   document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
 }
@@ -1167,7 +1610,7 @@ function addX(amount = '', comment = '') {
     <button class="xdel" onclick="this.parentElement.remove()">✕</button>`;
   document.getElementById('xList').appendChild(div);
 }
-function saveDay() {
+function _saveDay_orig_unused() {
   if (!eDk) return;
   const xs = [];
   document.querySelectorAll('#xList .xrow2').forEach(r => {
@@ -1329,6 +1772,10 @@ function goTab(tab, fromSwipe = false) {
   curTab_ref.v = tab;
   document.getElementById('tbM').classList.toggle('on', tab === 'main');
   document.getElementById('tbS').classList.toggle('on', tab === 'sett');
+  // Hide L2 button on settings
+  const l2btn = document.getElementById('l2btn');
+  if (tab === 'sett') l2btn.classList.add('hide');
+  else if (!_layer2Open) l2btn.classList.remove('hide');
   if (fromSwipe) {
     // After swipe: panels are already in motion — just set final position with animation
     m.style.transition = EASE;
