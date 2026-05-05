@@ -1026,9 +1026,20 @@ function renderCal2() {
     const isP = dt < new Date(t.getFullYear(), t.getMonth(), t.getDate());
     let cls = 'dot', sty = '';
     if (dd && dd.color) {
-      sty = `background:${dd.color};`;
-      cls += ' work';
-      if (isT) cls += ' today-w';
+      const blocks = dd.blocks;
+      const colors = blocks && blocks.length > 1
+        ? blocks.map(b => b.color).filter(Boolean)
+        : null;
+      if (colors && colors.length > 1) {
+        const grad = pizzaGradient(colors);
+        sty = `background:${grad};`;
+        cls += ' work';
+        if (isT) cls += ' today-w';
+      } else {
+        sty = `background:${dd.color};`;
+        cls += ' work';
+        if (isT) cls += ' today-w';
+      }
     } else if (isT) { cls += ' today'; }
     else if (isP)   { cls += ' past'; }
     else            { cls += ' future'; }
@@ -1405,6 +1416,19 @@ function summateLayers() {
   }, {passive:true});
 })();
 
+// ── PIZZA GRADIENT ──
+function pizzaGradient(colors) {
+  if (!colors || colors.length === 0) return null;
+  if (colors.length === 1) return colors[0];
+  const step = 100 / colors.length;
+  const stops = colors.map((c, i) => {
+    const from = (step * i).toFixed(1);
+    const to   = (step * (i + 1)).toFixed(1);
+    return `${c} ${from}% ${to}%`;
+  });
+  return `conic-gradient(from 0deg, ${stops.join(', ')})`;
+}
+
 // ── CALENDAR ──
 function chM(d) {
   vm += d;
@@ -1431,9 +1455,21 @@ function renderCal() {
     let cls = 'dot';
     let sty = '';
     if (dd && dd.color) {
-      sty = `background:${dd.color};`;
-      cls += ' work';
-      if (isT) cls += ' today-w'; // today but has work color
+      // Check for multi-block pizza
+      const blocks = dd.blocks;
+      const colors = blocks && blocks.length > 1
+        ? blocks.map(b => b.color).filter(Boolean)
+        : null;
+      if (colors && colors.length > 1) {
+        const grad = pizzaGradient(colors);
+        sty = `background:${grad};`;
+        cls += ' work';
+        if (isT) cls += ' today-w';
+      } else {
+        sty = `background:${dd.color};`;
+        cls += ' work';
+        if (isT) cls += ' today-w'; // today but has work color
+      }
     } else if (isT) { cls += ' today'; }  // ring only, no fill
     else if (isP)   { cls += ' past'; }
     else            { cls += ' future'; }
