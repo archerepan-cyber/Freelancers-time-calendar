@@ -1247,84 +1247,43 @@ function renderEnt2() {
       <div class="tlbl" style="padding-top:10px;">Итого</div>
       <div style="text-align:right;">
         <div class="tamt" style="color:${net2>=0?'var(--accent)':'#c0392b'};">${net2>=0?'+':''}${cur}${Math.abs(net2).toLocaleString()}</div>
-        <div class="xcur-wrap" id="xcurEdit2"></div>
       </div>
+    </div>
+    <div style="margin-top:14px;">
+      <div class="sum-result" id="sumResult"></div>
+      <button class="sum-btn" onclick="summateLayers()">∑ Суммировать с основным</button>
     </div>`;
   tw.innerHTML = `<div class="tcard">${th}</div>`;
-  window._lastNet2 = net2;
-  renderXcurEdit2();
-}
-
-// ── XCUR FOR LAYER 2 (display only, same currencies as L1) ──
-function renderXcurEdit2() {
-  const el = document.getElementById('xcurEdit2');
-  if (!el) return;
-  if (!cfg.xcurs || !cfg.xcurs.length) { el.innerHTML = ''; return; }
-  const net = window._lastNet2 || 0;
-  let h = '';
-  cfg.xcurs.forEach(x => {
-    if (x.on === false) return;
-    const conv = (x.rate && x.sym) ? net * parseFloat(x.rate) : null;
-    const amtStr = conv !== null
-      ? `<span style="font-size:22px;font-family:'DM Serif Display',serif;font-weight:400;color:${conv>=0?'var(--accent)':'#c0392b'};">${conv>=0?'+':''}${x.sym}${Math.abs(conv).toLocaleString(undefined,{maximumFractionDigits:0})}</span>`
-      : `<span style="font-size:13px;color:var(--text3);">загрузка…</span>`;
-    h += `<div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
-      <div style="background:var(--bg3);border-radius:10px;padding:4px 10px;font-size:15px;color:var(--text);min-width:44px;text-align:center;">${x.sym||''}</div>
-      ${amtStr}
-    </div>`;
-  });
-  el.innerHTML = h;
 }
 
 function summateLayers() {
+  // Sum net of layer1 current month + layer2 current month
   const cur = cfg.cur;
-  // Layer 1 net for current viewed month
+  // Layer 1
   let earn1=0, exp1=0;
   for (let d=1; d<=31; d++) {
     const dk = dkey(vy, vm, d);
     if (new Date(vy, vm, d).getMonth() !== vm) break;
-    const dd = days[dk]; if (!dd) continue;
+    const dd = days[dk];
+    if (!dd) continue;
     earn1 += dd.earned || 0;
     (dd.expenses||[]).forEach(x => exp1 += x.amount||0);
   }
-  // Layer 2 net for current viewed month
+  // Layer 2
   let earn2=0, exp2=0;
   for (let d=1; d<=31; d++) {
     const dk = dkey(vy2, vm2, d);
     if (new Date(vy2, vm2, d).getMonth() !== vm2) break;
-    const dd = days2[dk]; if (!dd) continue;
+    const dd = days2[dk];
+    if (!dd) continue;
     earn2 += dd.earned || 0;
     (dd.expenses||[]).forEach(x => exp2 += x.amount||0);
   }
   const net1 = earn1-exp1, net2 = earn2-exp2;
   const total = net1+net2;
-  const sign  = total >= 0 ? '+' : '';
-  const sign1 = net1 >= 0 ? '+' : '';
-  const sign2 = net2 >= 0 ? '+' : '';
-
-  // Build currency conversions line
-  let xcLine = '';
-  if (cfg.xcurs && cfg.xcurs.length) {
-    const xcParts = cfg.xcurs
-      .filter(x => x.on !== false && x.sym && x.rate)
-      .map(x => {
-        const conv = total * parseFloat(x.rate);
-        const sg = conv >= 0 ? '+' : '';
-        return `${sg}${x.sym}${Math.abs(conv).toLocaleString(undefined,{maximumFractionDigits:0})}`;
-      });
-    if (xcParts.length) xcLine = `  (${xcParts.join('  ')})`;
-  }
-
-  const el = document.getElementById('sumResult');
-  if (el) {
-    el.innerHTML =
-      `<span style="color:var(--text2);">Слой 1: <b>${sign1}${cur}${Math.abs(net1).toLocaleString()}</b></span>` +
-      `<span style="color:var(--text3);margin:0 6px;">+</span>` +
-      `<span style="color:var(--text2);">Слой 2: <b>${sign2}${cur}${Math.abs(net2).toLocaleString()}</b></span>` +
-      `<span style="color:var(--text3);margin:0 6px;">=</span>` +
-      `<span style="color:var(--accent);font-weight:700;">${sign}${cur}${Math.abs(total).toLocaleString()}</span>` +
-      (xcLine ? `<span style="color:var(--text3);font-size:12px;display:block;margin-top:3px;">${xcLine}</span>` : '');
-  }
+  const sign = total >= 0 ? '+' : '';
+  document.getElementById('sumResult').textContent =
+    `Слой 1: ${net1>=0?'+':''}${cur}${Math.abs(net1).toLocaleString()}  |  Слой 2: ${net2>=0?'+':''}${cur}${Math.abs(net2).toLocaleString()}  =  ${sign}${cur}${Math.abs(total).toLocaleString()}`;
   navigator.vibrate && navigator.vibrate(20);
 }
 
@@ -1754,10 +1713,6 @@ function renderEnt() {
       <div class="tamt" style="color:${net >= 0 ? 'var(--accent)' : '#c0392b'};">${net >= 0 ? '+' : ''}${cur}${Math.abs(net).toLocaleString()}</div>
       <div class="xcur-wrap" id="xcurEdit"></div>
     </div>
-  </div>
-  <div style="margin-top:14px;">
-    <div class="sum-result" id="sumResult" style="font-size:13px;color:var(--text3);text-align:center;margin-bottom:8px;min-height:18px;line-height:1.6;"></div>
-    <button class="sum-btn" onclick="summateLayers()">∑ Суммировать со слоем 2</button>
   </div>`;
   tw.innerHTML = `<div class="tcard">${th}</div>`;
   renderXcurEdit();
@@ -1786,7 +1741,7 @@ async function xcRefreshRates() {
     const code = CUR_CODE[x.sym] || x.sym.replace(/[^A-Za-z]/g,'').toUpperCase();
     if (rates[code]) { x.rate = rates[code]; changed = true; }
   });
-  if (changed) { saveC(); renderEnt(); if (_layer2Open) renderEnt2(); }
+  if (changed) { saveC(); renderEnt(); }
 }
 function renderXcurEdit() {
   const el = document.getElementById('xcurEdit');
