@@ -320,41 +320,6 @@ button { font-family: inherit; cursor: pointer; }
 .btnc { flex: 1; padding: 14px; border-radius: 14px; background: var(--bg3); border: none; font-size: 15px; font-weight: 600; color: var(--text2); touch-action: manipulation; }
 .btno { flex: 2; padding: 14px; border-radius: 14px; background: var(--accent); border: none; font-size: 15px; font-weight: 600; color: #fff; touch-action: manipulation; }
 
-/* ── DAY BLOCKS ── */
-.day-block {
-  border: .5px solid var(--sep);
-  border-radius: 16px;
-  padding: 14px;
-  margin-bottom: 14px;
-  background: var(--bg3);
-  position: relative;
-}
-.day-block-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 12px;
-}
-.day-block-num {
-  font-family: 'DM Serif Display', serif; font-size: 18px; color: var(--accent);
-}
-.day-block-del {
-  width: 28px; height: 28px; border-radius: 50%;
-  background: none; border: 1px solid var(--sep);
-  font-size: 15px; color: var(--text3);
-  display: flex; align-items: center; justify-content: center;
-  touch-action: manipulation; cursor: pointer;
-}
-
-/* ── SUB-BLOCKS IN DAY CARD ── */
-.eblock { padding: 4px 0 6px; }
-.eblock-sep { border-top: .5px solid var(--sep); margin-top: 6px; padding-top: 10px; }
-.eblock-top { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 4px; }
-.eblock-num {
-  font-family: 'DM Serif Display', serif; font-size: 14px;
-  color: var(--accent); min-width: 16px; line-height: 1.3;
-  flex-shrink: 0;
-}
-.eblock-lbl { font-size: 14px; font-weight: 500; color: var(--text); flex: 1; line-height: 1.3; }
-
 /* ── DRAG GHOST ── */
 #dragGhost {
   position: fixed; z-index: 999; pointer-events: none;
@@ -612,12 +577,45 @@ button { font-family: inherit; cursor: pointer; }
 <div class="mover" id="modal" onclick="if(event.target===this)closeModal()">
   <div class="msheet">
     <div class="mdrg"></div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
-      <div class="mtit" id="mTit" style="margin-bottom:0;">3 мая</div>
-      <button onclick="addBlock()" style="width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:22px;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0;touch-action:manipulation;cursor:pointer;">+</button>
+    <div class="mtit" id="mTit">3 мая</div>
+
+    <div class="fg">
+      <label class="fl">Цвет дня</label>
+      <div class="dcs" id="dcs">
+        <div class="dc on" style="background:#324E44;" data-c="#324E44" onclick="pickC('#324E44',this)"></div>
+        <div class="dc" style="background:#D0391B;" data-c="#D0391B" onclick="pickC('#D0391B',this)"></div>
+        <div class="dc" style="background:#FBC359;" data-c="#FBC359" onclick="pickC('#FBC359',this)"></div>
+        <div class="dc" style="background:#7BA7AF;" data-c="#7BA7AF" onclick="pickC('#7BA7AF',this)"></div>
+        <div class="dc" style="background:#9F4125;" data-c="#9F4125" onclick="pickC('#9F4125',this)"></div>
+        <div class="dc" style="background:#73A642;" data-c="#73A642" onclick="pickC('#73A642',this)"></div>
+        <div class="dc" style="background:#4E6851;" data-c="#4E6851" onclick="pickC('#4E6851',this)"></div>
+        <div class="dc-cw" title="Свой цвет">
+          <span style="font-size:18px;font-weight:300;color:#fff;line-height:1;">+</span>
+          <input type="color" value="#324E44" oninput="pickCHex(this.value)"/>
+        </div>
+      </div>
     </div>
 
-    <div id="blocksContainer"></div>
+    <div class="fg">
+      <label class="fl">Описание</label>
+      <input class="fi" id="fLbl" placeholder="Название / комментарий"/>
+    </div>
+
+    <div class="frow">
+      <div class="fg"><label class="fl">Начало</label><input class="fi" id="fS" type="time"/></div>
+      <div class="fg"><label class="fl">Конец</label><input class="fi" id="fE" type="time"/></div>
+    </div>
+
+    <div class="fg">
+      <label class="fl">Заработано</label>
+      <input class="fi" id="fEarn" type="number" placeholder="Заработано" inputmode="decimal"/>
+    </div>
+
+    <div class="fg">
+      <label class="fl">Затраты</label>
+      <div class="xlist" id="xList"></div>
+      <button class="addx" onclick="addX()">+ Добавить затрату</button>
+    </div>
 
     <div class="mact">
       <button class="btnc" onclick="closeModal()">Отмена</button>
@@ -1104,65 +1102,63 @@ function openModal2(dk) {
   const [y,m,d] = dk.split('-').map(Number);
   document.getElementById('mTit').textContent = `${d} ${MONG[m-1]}`;
   const dd = days2[dk] || {};
-  const blocks = dd.blocks || [{ color: dd.color || cfg.acc || '#324E44', label: dd.label || '', timeStart: dd.timeStart || '', timeEnd: dd.timeEnd || '', earned: dd.earned || 0, expenses: dd.expenses || [] }];
-  renderBlocks(blocks);
+  dc2 = dd.color || cfg.acc || '#324E44';
+  document.querySelectorAll('#dcs .dc').forEach(el => el.classList.toggle('on', el.dataset.c === dc2));
+  document.getElementById('fLbl').value  = dd.label || '';
+  document.getElementById('fS').value    = dd.timeStart || '';
+  document.getElementById('fE').value    = dd.timeEnd || '';
+  document.getElementById('fEarn').value = dd.earned || '';
+  document.getElementById('xList').innerHTML = '';
+  (dd.expenses || []).forEach(x => addX(x.amount, x.comment));
   document.getElementById('modal').classList.add('on');
 }
 
-// Patch pickC to work for block-based modal
-function pickC(blockIdx, c, el) {
-  const block = document.querySelector(`.day-block[data-block="${blockIdx}"]`);
-  if (!block) return;
-  block.dataset.color = c;
-  block.querySelectorAll('.dc').forEach(d => d.classList.remove('on'));
-  if (el) el.classList.add('on');
+// Patch pickC to work for both layers
+const _origPickC = window.pickC;
+function pickC(c, el) {
+  if (_activeLayer === 2) {
+    dc2 = c;
+    document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
+    if (el) el.classList.add('on');
+  } else {
+    dc = c;
+    document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
+    if (el) el.classList.add('on');
+  }
 }
-function pickCHex(blockIdx, c) {
-  const block = document.querySelector(`.day-block[data-block="${blockIdx}"]`);
-  if (!block) return;
-  block.dataset.color = c;
-  block.querySelectorAll('.dc').forEach(d => d.classList.remove('on'));
+function pickCHex(c) {
+  if (_activeLayer === 2) {
+    dc2 = c;
+    document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
+  } else {
+    dc = c;
+    document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
+  }
 }
 
-// Patch saveDay to work for both layers with blocks
+// Patch saveDay to work for both layers
 function saveDay() {
   const isL2 = _activeLayer === 2;
   const curDk = isL2 ? eDk2 : eDk;
   if (!curDk) return;
-  const blockEls = document.querySelectorAll('#blocksContainer .day-block');
-  const blocks = [];
-  blockEls.forEach(bl => {
-    const idx = bl.dataset.block;
-    const xs = [];
-    bl.querySelectorAll('.xrow2').forEach(r => {
-      const ins = r.querySelectorAll('input');
-      const a = parseFloat(ins[0].value) || 0;
-      const c = ins[1].value.trim();
-      if (a > 0 || c) xs.push({ amount: a, comment: c });
-    });
-    blocks.push({
-      color:     bl.dataset.color || cfg.acc || '#324E44',
-      label:     bl.querySelector('.b-lbl').value.trim(),
-      timeStart: bl.querySelector('.b-ts').value,
-      timeEnd:   bl.querySelector('.b-te').value,
-      earned:    parseFloat(bl.querySelector('.b-earn').value) || 0,
-      expenses:  xs
-    });
+  const xs = [];
+  document.querySelectorAll('#xList .xrow2').forEach(r => {
+    const ins = r.querySelectorAll('input');
+    const a = parseFloat(ins[0].value) || 0;
+    const c = ins[1].value.trim();
+    if (a > 0 || c) xs.push({ amount: a, comment: c });
   });
-  // For backward compat, also store first block fields at top level
-  const first = blocks[0] || {};
   const data = {
-    color:     first.color,
-    label:     first.label,
-    timeStart: first.timeStart,
-    timeEnd:   first.timeEnd,
-    earned:    blocks.reduce((s,b) => s + (b.earned||0), 0),
-    expenses:  blocks.flatMap(b => b.expenses||[]),
-    blocks:    blocks
+    color:     isL2 ? dc2 : dc,
+    label:     document.getElementById('fLbl').value.trim(),
+    timeStart: document.getElementById('fS').value,
+    timeEnd:   document.getElementById('fE').value,
+    earned:    parseFloat(document.getElementById('fEarn').value) || 0,
+    expenses:  xs
   };
   if (isL2) {
     days2[curDk] = data; saveD2();
-    closeModal(); renderCal2(); renderEnt2(); renderCal();
+    closeModal(); renderCal2(); renderEnt2(); renderCal(); // refresh L1 badges
   } else {
     days[curDk] = data; saveD();
     closeModal(); renderCal(); renderEnt();
@@ -1212,61 +1208,25 @@ function renderEnt2() {
     const dd = it.dd;
     totalEarned2 += dd.earned || 0;
     (dd.expenses || []).forEach(x => ax.push({ ...x, day: it.d, lbl: dd.label }));
-    const blocks = dd.blocks && dd.blocks.length > 1 ? dd.blocks : null;
-    const multiBlock = !!blocks;
-
-    if (multiBlock) {
-      let blocksHtml = '';
-      blocks.forEach((bl, bi) => {
-        const ts = bl.timeStart && bl.timeEnd ? `${bl.timeStart}–${bl.timeEnd}` : '';
-        const es = bl.earned ? `+${cur}${bl.earned.toLocaleString()}` : '';
-        const xt = (bl.expenses || []).reduce((s, x) => s + (x.amount || 0), 0);
-        const xs = xt ? `−${cur}${xt.toLocaleString()}` : '';
-        blocksHtml += `
-        <div class="eblock${bi > 0 ? ' eblock-sep' : ''}">
-          <div class="eblock-top">
-            <div class="eblock-num">${bi + 1}</div>
-            <div class="edot" style="background:${bl.color || cfg.acc};margin-top:2px;"></div>
-            ${bl.label ? `<div class="eblock-lbl">${bl.label}</div>` : '<div class="eblock-lbl" style="opacity:0.3;">—</div>'}
-          </div>
-          <div class="enums" style="padding-left:22px;">
-            ${ts ? `<span style="color:var(--text3);">🕐 ${ts}</span>` : ''}
-            ${es ? `<span style="color:var(--accent);font-weight:600;">${es}</span>` : ''}
-            ${xs ? `<span style="color:var(--text2);">${xs}</span>` : ''}
-          </div>
-        </div>`;
-      });
-      html += `<div class="ecard" onclick="_activeLayer=2;openModal2('${it.dk}')">
-        <div class="etop" style="margin-bottom:10px;">
-          <div class="enum">${i+1}</div>
-          <div class="einfo">
-            <div class="edate">${it.d} ${MONG[vm2]}</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:2px;">${blocks.length} задач${blocks.length===1?'а':blocks.length<5?'и':''}и</div>
-          </div>
+    const ts  = dd.timeStart && dd.timeEnd ? `${dd.timeStart}–${dd.timeEnd}` : '';
+    const es  = dd.earned ? `+${cur}${dd.earned.toLocaleString()}` : '';
+    const xt  = (dd.expenses || []).reduce((s, x) => s + (x.amount || 0), 0);
+    const xs  = xt ? `−${cur}${xt.toLocaleString()}` : '';
+    html += `<div class="ecard" onclick="_activeLayer=2;openModal2('${it.dk}')">
+      <div class="etop">
+        <div class="enum">${i+1}</div>
+        <div class="einfo">
+          <div class="edate">${it.d} ${MONG[vm2]}</div>
+          ${dd.label ? `<div class="ename">${dd.label}</div>` : ''}
         </div>
-        ${blocksHtml}
-      </div>`;
-    } else {
-      const ts  = dd.timeStart && dd.timeEnd ? `${dd.timeStart}–${dd.timeEnd}` : '';
-      const es  = dd.earned ? `+${cur}${dd.earned.toLocaleString()}` : '';
-      const xt  = (dd.expenses || []).reduce((s, x) => s + (x.amount || 0), 0);
-      const xs  = xt ? `−${cur}${xt.toLocaleString()}` : '';
-      html += `<div class="ecard" onclick="_activeLayer=2;openModal2('${it.dk}')">
-        <div class="etop">
-          <div class="enum">${i+1}</div>
-          <div class="einfo">
-            <div class="edate">${it.d} ${MONG[vm2]}</div>
-            ${dd.label ? `<div class="ename">${dd.label}</div>` : ''}
-          </div>
-          <div class="edot" style="background:${dd.color || cfg.acc};"></div>
-        </div>
-        <div class="enums">
-          ${ts ? `<span style="color:var(--text3);">🕐 ${ts}</span>` : ''}
-          ${es ? `<span style="color:var(--accent);font-weight:600;">${es}</span>` : ''}
-          ${xs ? `<span style="color:var(--text2);">${xs}</span>` : ''}
-        </div>
-      </div>`;
-    }
+        <div class="edot" style="background:${dd.color || cfg.acc};"></div>
+      </div>
+      <div class="enums">
+        ${ts ? `<span style="color:var(--text3);">🕐 ${ts}</span>` : ''}
+        ${es ? `<span style="color:var(--accent);font-weight:600;">${es}</span>` : ''}
+        ${xs ? `<span style="color:var(--text2);">${xs}</span>` : ''}
+      </div>
+    </div>`;
   });
   ew.innerHTML = html;
 
@@ -1677,9 +1637,14 @@ function openModal(dk) {
   const [y, m, d] = dk.split('-').map(Number);
   document.getElementById('mTit').textContent = `${d} ${MONG[m-1]}`;
   const dd = days[dk] || {};
-  // Support both old single-block and new multi-block format
-  const blocks = dd.blocks || [{ color: dd.color || cfg.acc || '#324E44', label: dd.label || '', timeStart: dd.timeStart || '', timeEnd: dd.timeEnd || '', earned: dd.earned || 0, expenses: dd.expenses || [] }];
-  renderBlocks(blocks);
+  dc = dd.color || cfg.acc || '#324E44';
+  document.querySelectorAll('#dcs .dc').forEach(el => el.classList.toggle('on', el.dataset.c === dc));
+  document.getElementById('fLbl').value   = dd.label || '';
+  document.getElementById('fS').value     = dd.timeStart || '';
+  document.getElementById('fE').value     = dd.timeEnd || '';
+  document.getElementById('fEarn').value  = dd.earned || '';
+  document.getElementById('xList').innerHTML = '';
+  (dd.expenses || []).forEach(x => addX(x.amount, x.comment));
   document.getElementById('modal').classList.add('on');
 }
 function _closeModalOrig_unused() {
@@ -1695,121 +1660,14 @@ function _pickCHex_orig_unused(c) {
   dc = c;
   document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
 }
-function addX(xListEl, amount = '', comment = '') {
-  // Support old call signature (no xListEl) for backward compat
-  if (typeof xListEl === 'number' || xListEl === '' || xListEl === undefined || xListEl === null) {
-    comment = amount; amount = xListEl || '';
-    xListEl = null; // no-op if called without target
-  }
+function addX(amount = '', comment = '') {
   const div = document.createElement('div');
   div.className = 'xrow2';
   div.innerHTML = `
     <input class="fi" type="number" placeholder="Сумма" value="${amount}" style="max-width:110px;" inputmode="decimal"/>
     <input class="fi" placeholder="На такси, еду..." value="${comment}"/>
     <button class="xdel" onclick="this.parentElement.remove()">✕</button>`;
-  if (xListEl) xListEl.appendChild(div);
-}
-
-function _makeBlockHTML(idx, block, total) {
-  const showNum = total > 1;
-  const colors = ['#324E44','#D0391B','#FBC359','#7BA7AF','#9F4125','#73A642','#4E6851'];
-  const color = block.color || cfg.acc || '#324E44';
-  let dcsHtml = colors.map(c =>
-    `<div class="dc ${c===color?'on':''}" style="background:${c};" data-c="${c}" onclick="pickC(${idx},'${c}',this)"></div>`
-  ).join('');
-  dcsHtml += `<div class="dc-cw" title="Свой цвет"><span style="font-size:11px;font-weight:300;color:#fff;line-height:1;">+</span><input type="color" value="${color}" oninput="pickCHex(${idx},this.value)"/></div>`;
-  return `<div class="day-block" data-block="${idx}" data-color="${color}">
-    <div class="day-block-header">
-      ${showNum ? `<div class="day-block-num">${idx+1}</div>` : '<div></div>'}
-      ${idx > 0 ? `<button class="day-block-del" onclick="removeBlock(${idx})">✕</button>` : '<div></div>'}
-    </div>
-    <div class="fg">
-      <label class="fl">Цвет дня</label>
-      <div class="dcs">${dcsHtml}</div>
-    </div>
-    <div class="fg">
-      <label class="fl">Описание</label>
-      <input class="fi b-lbl" placeholder="Название / комментарий" value="${(block.label||'').replace(/"/g,'&quot;')}"/>
-    </div>
-    <div class="frow">
-      <div class="fg"><label class="fl">Начало</label><input class="fi b-ts" type="time" value="${block.timeStart||''}"/></div>
-      <div class="fg"><label class="fl">Конец</label><input class="fi b-te" type="time" value="${block.timeEnd||''}"/></div>
-    </div>
-    <div class="fg">
-      <label class="fl">Заработано</label>
-      <input class="fi b-earn" type="number" placeholder="Заработано" inputmode="decimal" value="${block.earned||''}"/>
-    </div>
-    <div class="fg">
-      <label class="fl">Затраты</label>
-      <div class="xlist b-xlist"></div>
-      <button class="addx" onclick="addX(this.previousElementSibling)">+ Добавить затрату</button>
-    </div>
-  </div>`;
-}
-
-function renderBlocks(blocks) {
-  const container = document.getElementById('blocksContainer');
-  container.innerHTML = '';
-  blocks.forEach((b, i) => {
-    container.insertAdjacentHTML('beforeend', _makeBlockHTML(i, b, blocks.length));
-  });
-  // Populate expenses for each block
-  blocks.forEach((b, i) => {
-    const blockEl = container.querySelector(`.day-block[data-block="${i}"]`);
-    if (!blockEl) return;
-    const xListEl = blockEl.querySelector('.b-xlist');
-    (b.expenses || []).forEach(x => addX(xListEl, x.amount, x.comment));
-  });
-  _updateBlockNums();
-}
-
-function addBlock() {
-  const container = document.getElementById('blocksContainer');
-  const idx = container.querySelectorAll('.day-block').length;
-  const defaultBlock = { color: cfg.acc || '#324E44', label: '', timeStart: '', timeEnd: '', earned: 0, expenses: [] };
-  const total = idx + 1;
-  container.insertAdjacentHTML('beforeend', _makeBlockHTML(idx, defaultBlock, total));
-  _updateBlockNums();
-  // Scroll to new block
-  setTimeout(() => {
-    const newBlock = container.querySelector(`.day-block[data-block="${idx}"]`);
-    if (newBlock) newBlock.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 80);
-}
-
-function removeBlock(idx) {
-  const container = document.getElementById('blocksContainer');
-  const block = container.querySelector(`.day-block[data-block="${idx}"]`);
-  if (block) block.remove();
-  // Re-index remaining blocks
-  const remaining = container.querySelectorAll('.day-block');
-  remaining.forEach((b, i) => { b.dataset.block = i; });
-  // Update onclick references for pickC
-  remaining.forEach((b, i) => {
-    b.querySelectorAll('.dc').forEach(dc => {
-      const c = dc.dataset.c;
-      if (c) dc.setAttribute('onclick', `pickC(${i},'${c}',this)`);
-    });
-    const cw = b.querySelector('.dc-cw input[type=color]');
-    if (cw) cw.setAttribute('oninput', `pickCHex(${i},this.value)`);
-    const addxBtn = b.querySelector('.addx');
-    if (addxBtn) addxBtn.setAttribute('onclick', `addX(this.previousElementSibling)`);
-    const delBtn = b.querySelector('.day-block-del');
-    if (delBtn && i > 0) delBtn.setAttribute('onclick', `removeBlock(${i})`);
-  });
-  _updateBlockNums();
-}
-
-function _updateBlockNums() {
-  const blocks = document.querySelectorAll('#blocksContainer .day-block');
-  const total = blocks.length;
-  blocks.forEach((b, i) => {
-    const numEl = b.querySelector('.day-block-num');
-    const delEl = b.querySelector('.day-block-del');
-    if (numEl) numEl.textContent = total > 1 ? (i+1) : '';
-    if (numEl) numEl.style.display = total > 1 ? '' : 'none';
-    if (delEl) delEl.style.display = i > 0 ? '' : 'none';
-  });
+  document.getElementById('xList').appendChild(div);
 }
 function _saveDay_orig_unused() {
   if (!eDk) return;
@@ -1852,62 +1710,25 @@ function renderEnt() {
     const dd = it.dd;
     te += dd.earned || 0;
     (dd.expenses || []).forEach(x => ax.push({ ...x, day: it.d, lbl: dd.label }));
-    const blocks = dd.blocks && dd.blocks.length > 1 ? dd.blocks : null;
-    const multiBlock = !!blocks;
-
-    if (multiBlock) {
-      // Render card with multiple sub-blocks
-      let blocksHtml = '';
-      blocks.forEach((bl, bi) => {
-        const ts = bl.timeStart && bl.timeEnd ? `${bl.timeStart}–${bl.timeEnd}` : '';
-        const es = bl.earned ? `+${cur}${bl.earned.toLocaleString()}` : '';
-        const xt = (bl.expenses || []).reduce((s, x) => s + (x.amount || 0), 0);
-        const xs = xt ? `−${cur}${xt.toLocaleString()}` : '';
-        blocksHtml += `
-        <div class="eblock${bi > 0 ? ' eblock-sep' : ''}">
-          <div class="eblock-top">
-            <div class="eblock-num">${bi + 1}</div>
-            <div class="edot" style="background:${bl.color || cfg.acc};margin-top:2px;"></div>
-            ${bl.label ? `<div class="eblock-lbl">${bl.label}</div>` : '<div class="eblock-lbl" style="opacity:0.3;">—</div>'}
-          </div>
-          <div class="enums" style="padding-left:22px;">
-            ${ts ? `<span style="color:var(--text3);">🕐 ${ts}</span>` : ''}
-            ${es ? `<span style="color:var(--accent);font-weight:600;">${es}</span>` : ''}
-            ${xs ? `<span style="color:var(--text2);">${xs}</span>` : ''}
-          </div>
-        </div>`;
-      });
-      html += `<div class="ecard" onclick="openModal('${it.dk}')">
-        <div class="etop" style="margin-bottom:10px;">
-          <div class="enum">${i+1}</div>
-          <div class="einfo">
-            <div class="edate">${it.d} ${MONG[vm]}</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:2px;">${blocks.length} задач${blocks.length===1?'а':blocks.length<5?'и':''}и</div>
-          </div>
+    const ts  = dd.timeStart && dd.timeEnd ? `${dd.timeStart}–${dd.timeEnd}` : '';
+    const es  = dd.earned ? `+${cur}${dd.earned.toLocaleString()}` : '';
+    const xt  = (dd.expenses || []).reduce((s, x) => s + (x.amount || 0), 0);
+    const xs  = xt ? `−${cur}${xt.toLocaleString()}` : '';
+    html += `<div class="ecard" onclick="openModal('${it.dk}')">
+      <div class="etop">
+        <div class="enum">${i+1}</div>
+        <div class="einfo">
+          <div class="edate">${it.d} ${MONG[vm]}</div>
+          ${dd.label ? `<div class="ename">${dd.label}</div>` : ''}
         </div>
-        ${blocksHtml}
-      </div>`;
-    } else {
-      const ts  = dd.timeStart && dd.timeEnd ? `${dd.timeStart}–${dd.timeEnd}` : '';
-      const es  = dd.earned ? `+${cur}${dd.earned.toLocaleString()}` : '';
-      const xt  = (dd.expenses || []).reduce((s, x) => s + (x.amount || 0), 0);
-      const xs  = xt ? `−${cur}${xt.toLocaleString()}` : '';
-      html += `<div class="ecard" onclick="openModal('${it.dk}')">
-        <div class="etop">
-          <div class="enum">${i+1}</div>
-          <div class="einfo">
-            <div class="edate">${it.d} ${MONG[vm]}</div>
-            ${dd.label ? `<div class="ename">${dd.label}</div>` : ''}
-          </div>
-          <div class="edot" style="background:${dd.color || cfg.acc};"></div>
-        </div>
-        <div class="enums">
-          ${ts ? `<span style="color:var(--text3);">🕐 ${ts}</span>` : ''}
-          ${es ? `<span style="color:var(--accent);font-weight:600;">${es}</span>` : ''}
-          ${xs ? `<span style="color:var(--text2);">${xs}</span>` : ''}
-        </div>
-      </div>`;
-    }
+        <div class="edot" style="background:${dd.color || cfg.acc};"></div>
+      </div>
+      <div class="enums">
+        ${ts ? `<span style="color:var(--text3);">🕐 ${ts}</span>` : ''}
+        ${es ? `<span style="color:var(--accent);font-weight:600;">${es}</span>` : ''}
+        ${xs ? `<span style="color:var(--text2);">${xs}</span>` : ''}
+      </div>
+    </div>`;
   });
   ew.innerHTML = html;
 
