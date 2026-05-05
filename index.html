@@ -1266,7 +1266,7 @@ function renderXcurEdit2() {
     if (x.on === false) return;
     const conv = (x.rate && x.sym) ? net * parseFloat(x.rate) : null;
     const amtStr = conv !== null
-      ? `<span style="font-size:22px;font-family:'DM Serif Display',serif;font-weight:400;color:${conv>=0?'var(--accent)':'#c0392b'};">${conv>=0?'+':''}${x.sym}${Math.abs(conv).toLocaleString(undefined,{maximumFractionDigits:0})}</span>`
+      ? `<span style="font-size:22px;font-family:'DM Serif Display',serif;font-weight:400;color:${conv>=0?'var(--accent)':'#c0392b'};">${conv>=0?'+':''}${x.sym}${Math.round(Math.abs(conv)).toLocaleString()}</span>`
       : `<span style="font-size:13px;color:var(--text3);">загрузка…</span>`;
     h += `<div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
       <div style="background:var(--bg3);border-radius:10px;padding:4px 10px;font-size:15px;color:var(--text);min-width:44px;text-align:center;">${x.sym||''}</div>
@@ -1310,7 +1310,7 @@ function summateLayers() {
       .map(x => {
         const conv = total * parseFloat(x.rate);
         const sg = conv >= 0 ? '+' : '';
-        return `${sg}${x.sym}${Math.abs(conv).toLocaleString(undefined,{maximumFractionDigits:0})}`;
+        return `${sg}${x.sym}${Math.round(Math.abs(conv)).toLocaleString()}`;
       });
     if (xcParts.length) xcLine = `  (${xcParts.join('  ')})`;
   }
@@ -1798,7 +1798,7 @@ function renderXcurEdit() {
   cfg.xcurs.forEach((x, i) => {
     const conv = (x.rate && x.sym) ? net * parseFloat(x.rate) : null;
     const amtStr = conv !== null
-      ? `<span style="font-size:22px;font-family:'DM Serif Display',serif;font-weight:400;color:${conv>=0?'var(--accent)':'#c0392b'};">${conv>=0?'+':''}${x.sym}${Math.abs(conv).toLocaleString(undefined,{maximumFractionDigits:0})}</span>`
+      ? `<span style="font-size:22px;font-family:'DM Serif Display',serif;font-weight:400;color:${conv>=0?'var(--accent)':'#c0392b'};">${conv>=0?'+':''}${x.sym}${Math.round(Math.abs(conv)).toLocaleString()}</span>`
       : `<span style="font-size:13px;color:var(--text3);">загрузка…</span>`;
     const opacity = x.on === false ? '0.35' : '1';
     h += `<div style="display:flex;align-items:center;gap:8px;margin-top:10px;opacity:${opacity};">
