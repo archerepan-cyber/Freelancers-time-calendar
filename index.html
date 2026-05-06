@@ -107,7 +107,7 @@ button { font-family: inherit; cursor: pointer; }
 .chdr { display: grid; grid-template-columns: repeat(7,1fr); margin-bottom: 8px; }
 .chdr span { text-align: center; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text3); }
 .chdr .we { color: var(--accent); }
-.cgrid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; }
+.cgrid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; overflow: visible; }
 
 .dot {
   aspect-ratio: 1; border-radius: 50%;
@@ -115,6 +115,7 @@ button { font-family: inherit; cursor: pointer; }
   transition: transform .12s ease;
   cursor: pointer;
   background: var(--dot-bg, rgba(0,0,0,.08));
+  overflow: visible;
 }
 .dot.past   { background: var(--dot-past, rgba(0,0,0,.1)); }
 .dot.today  { background: var(--dot-today-bg, rgba(0,0,0,0.12)); box-shadow: 0 0 0 2px var(--dot-today, var(--accent)); }
@@ -309,6 +310,58 @@ button { font-family: inherit; cursor: pointer; }
 .btnc { flex: 1; padding: 14px; border-radius: 14px; background: var(--bg3); border: none; font-size: 15px; font-weight: 600; color: var(--text2); touch-action: manipulation; }
 .btno { flex: 2; padding: 14px; border-radius: 14px; background: var(--accent); border: none; font-size: 15px; font-weight: 600; color: #fff; touch-action: manipulation; }
 
+/* ── HOLIDAY BUTTON ── */
+.hol-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--bg3); border: none; border-radius: 20px;
+  padding: 7px 14px; font-size: 12px; font-weight: 600;
+  color: var(--text2); letter-spacing: .5px;
+  touch-action: manipulation; cursor: pointer;
+  transition: background .18s, color .18s;
+  margin-bottom: 14px;
+}
+.hol-btn.on { background: #c0392b; color: #fff; }
+.hol-btn .hol-icon { font-size: 14px; }
+
+/* ── HOLIDAY DOT ── */
+.dot.holiday { box-shadow: 0 0 0 2.5px #c0392b !important; }
+.dot.holiday .dnum { color: #c0392b !important; opacity: 1 !important; }
+.dot.holiday.work .dnum { color: #fff !important; }
+
+/* ── HOLIDAY TOOLTIP ── */
+.hol-tip {
+  position: absolute; bottom: calc(100% + 8px); left: 50%;
+  transform: translateX(-50%);
+  background: #c0392b; color: #fff;
+  font-size: 9px; font-weight: 700; letter-spacing: .3px;
+  padding: 3px 7px; border-radius: 8px;
+  white-space: nowrap; pointer-events: none;
+  z-index: 50;
+  max-width: 90px; overflow: hidden; text-overflow: ellipsis;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(192,57,43,.35);
+}
+.hol-tip::after {
+  content: ''; position: absolute; top: 100%; left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: #c0392b;
+}
+
+/* ── COUNTRY SELECT ── */
+.country-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+}
+.country-btn {
+  padding: 10px 12px; border-radius: 12px; border: .5px solid var(--sep);
+  background: var(--bg3); font-size: 13px; color: var(--text);
+  touch-action: manipulation; cursor: pointer;
+  transition: background .15s, color .15s;
+  display: flex; align-items: center; gap: 7px; font-weight: 500;
+}
+.country-btn.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+.country-btn .cflag { font-size: 18px; }
+
 /* ── DRAG GHOST ── */
 #dragGhost {
   position: fixed; z-index: 999; pointer-events: none;
@@ -351,61 +404,6 @@ button { font-family: inherit; cursor: pointer; }
 .ctx-item:active { background: var(--bg3); }
 .ctx-item .ctx-icon { font-size: 17px; }
 .ctx-item.paste { color: var(--accent); }
-
-/* ── HOLIDAYS ── */
-.dot .hflag {
-  position: absolute;
-  top: 3px; right: 3px;
-  font-size: clamp(5px, 1.6vw, 8px);
-  line-height: 1;
-  pointer-events: none;
-}
-.dot.holiday:not(.work) {
-  box-shadow: inset 0 0 0 1.5px var(--accent);
-}
-.holiday-tip {
-  position: fixed;
-  z-index: 600;
-  background: var(--bg2);
-  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-  border: .5px solid var(--sep);
-  border-radius: 12px;
-  padding: 8px 13px;
-  font-size: 13px;
-  color: var(--text);
-  max-width: 220px;
-  box-shadow: 0 6px 24px rgba(0,0,0,.18);
-  pointer-events: none;
-  opacity: 0;
-  transform: translateY(4px) scale(.95);
-  transition: opacity .18s, transform .18s;
-}
-.holiday-tip.on { opacity: 1; transform: translateY(0) scale(1); }
-
-/* country select in settings */
-.country-select-wrap { position: relative; }
-.country-select-wrap select {
-  width: 100%;
-  appearance: none; -webkit-appearance: none;
-  background: var(--bg3);
-  border: none;
-  border-radius: 12px;
-  padding: 12px 36px 12px 14px;
-  font-size: 15px;
-  color: var(--text);
-  font-family: inherit;
-  cursor: pointer;
-  outline: none;
-}
-.country-select-wrap::after {
-  content: '›';
-  position: absolute;
-  right: 14px; top: 50%;
-  transform: translateY(-50%) rotate(90deg);
-  color: var(--text3);
-  pointer-events: none;
-  font-size: 18px;
-}
 </style>
 </head>
 <body>
@@ -413,7 +411,6 @@ button { font-family: inherit; cursor: pointer; }
 <div id="bg"><img id="bgImg" alt=""/></div>
 <div id="ov"></div>
 <div id="dragGhost"></div>
-<div class="holiday-tip" id="holidayTip"></div>
 
 <!-- CONTEXT MENU -->
 <div id="ctxMenu">
@@ -436,6 +433,11 @@ button { font-family: inherit; cursor: pointer; }
         <div class="bigdow" id="bDow">Воскресенье</div>
       </div>
 
+      <button class="hol-btn" id="holBtn" onclick="toggleHolidays()">
+        <span class="hol-icon">🎉</span>
+        <span id="holBtnTxt">Показать праздники</span>
+      </button>
+
       <div class="mnav">
         <button class="marr" onclick="chM(-1)">‹</button>
         <div class="mlbl" id="mLbl">Май 2026</div>
@@ -455,6 +457,20 @@ button { font-family: inherit; cursor: pointer; }
     <!-- SETTINGS -->
     <div class="scr" id="sSett">
       <div class="stitle">Настройки</div>
+
+      <div class="ssec">
+        <div class="sseclbl">Страна (для праздников)</div>
+        <div class="country-grid" id="countryGrid">
+          <button class="country-btn on" data-cc="RU" onclick="setCountry('RU',this)"><span class="cflag">🇷🇺</span>Россия</button>
+          <button class="country-btn" data-cc="KZ" onclick="setCountry('KZ',this)"><span class="cflag">🇰🇿</span>Казахстан</button>
+          <button class="country-btn" data-cc="UA" onclick="setCountry('UA',this)"><span class="cflag">🇺🇦</span>Украина</button>
+          <button class="country-btn" data-cc="US" onclick="setCountry('US',this)"><span class="cflag">🇺🇸</span>США</button>
+          <button class="country-btn" data-cc="DE" onclick="setCountry('DE',this)"><span class="cflag">🇩🇪</span>Германия</button>
+          <button class="country-btn" data-cc="FR" onclick="setCountry('FR',this)"><span class="cflag">🇫🇷</span>Франция</button>
+          <button class="country-btn" data-cc="GB" onclick="setCountry('GB',this)"><span class="cflag">🇬🇧</span>Великобритания</button>
+          <button class="country-btn" data-cc="BY" onclick="setCountry('BY',this)"><span class="cflag">🇧🇾</span>Беларусь</button>
+        </div>
+      </div>
 
       <div class="ssec">
         <div class="sseclbl">Валюта</div>
@@ -515,31 +531,6 @@ button { font-family: inherit; cursor: pointer; }
           <input type="range" id="ovSl" min="0" max="88" value="45" oninput="setOv(this.value)"/>
           <span>Макс</span>
         </div>
-      </div>
-
-      <div class="ssec">
-        <div class="sseclbl">Праздники</div>
-        <div class="country-select-wrap">
-          <select id="countrySelect" onchange="setCountry(this.value)">
-            <option value="">— Не показывать —</option>
-            <option value="RU">🇷🇺 Россия</option>
-            <option value="KZ">🇰🇿 Казахстан</option>
-            <option value="UA">🇺🇦 Украина</option>
-            <option value="BY">🇧🇾 Беларусь</option>
-            <option value="US">🇺🇸 США</option>
-            <option value="GB">🇬🇧 Великобритания</option>
-            <option value="DE">🇩🇪 Германия</option>
-            <option value="FR">🇫🇷 Франция</option>
-            <option value="PL">🇵🇱 Польша</option>
-            <option value="TR">🇹🇷 Турция</option>
-            <option value="AE">🇦🇪 ОАЭ</option>
-            <option value="TH">🇹🇭 Таиланд</option>
-            <option value="GE">🇬🇪 Грузия</option>
-            <option value="AM">🇦🇲 Армения</option>
-            <option value="RS">🇷🇸 Сербия</option>
-          </select>
-        </div>
-        <div style="font-size:12px;color:var(--text3);margin-top:8px;" id="holidayStatus"></div>
       </div>
     </div>
 
@@ -909,9 +900,140 @@ function toHex(val) {
   return '#888888';
 }
 
+// ── HOLIDAYS ──
+const HOLIDAYS = {
+  RU: {
+    '01-01': 'Новый год',
+    '01-02': 'Новогодние каникулы',
+    '01-03': 'Новогодние каникулы',
+    '01-04': 'Новогодние каникулы',
+    '01-05': 'Новогодние каникулы',
+    '01-06': 'Новогодние каникулы',
+    '01-07': 'Рождество',
+    '01-08': 'Новогодние каникулы',
+    '02-23': 'День защитника Отечества',
+    '03-08': 'Международный женский день',
+    '05-01': 'Праздник Весны и Труда',
+    '05-09': 'День Победы',
+    '06-12': 'День России',
+    '11-04': 'День народного единства',
+  },
+  KZ: {
+    '01-01': 'Новый год',
+    '01-02': 'Новый год',
+    '03-08': 'Международный женский день',
+    '03-21': 'Наурыз мейрамы',
+    '03-22': 'Наурыз мейрамы',
+    '03-23': 'Наурыз мейрамы',
+    '05-01': 'День единства народа',
+    '05-07': 'День защитника Отечества',
+    '05-09': 'День Победы',
+    '07-06': 'День столицы',
+    '08-30': 'День Конституции',
+    '10-25': 'День Республики',
+    '12-01': 'День Первого Президента',
+    '12-16': 'День Независимости',
+    '12-17': 'День Независимости',
+  },
+  UA: {
+    '01-01': 'Новий рік',
+    '01-07': 'Різдво Христове',
+    '03-08': 'Міжнародний жіночий день',
+    '05-01': 'День праці',
+    '05-09': 'День Перемоги',
+    '06-28': 'День Конституції',
+    '08-24': 'День незалежності',
+    '10-14': 'День захисника',
+    '12-25': 'Різдво',
+  },
+  US: {
+    '01-01': "New Year's Day",
+    '01-20': 'MLK Day',
+    '02-17': "Presidents' Day",
+    '05-26': 'Memorial Day',
+    '06-19': 'Juneteenth',
+    '07-04': 'Independence Day',
+    '09-01': 'Labor Day',
+    '10-13': 'Columbus Day',
+    '11-11': 'Veterans Day',
+    '11-27': 'Thanksgiving',
+    '12-25': 'Christmas',
+  },
+  DE: {
+    '01-01': 'Neujahr',
+    '04-18': 'Karfreitag',
+    '04-21': 'Ostermontag',
+    '05-01': 'Tag der Arbeit',
+    '05-29': 'Christi Himmelfahrt',
+    '06-09': 'Pfingstmontag',
+    '10-03': 'Tag der Deutschen Einheit',
+    '12-25': '1. Weihnachtstag',
+    '12-26': '2. Weihnachtstag',
+  },
+  FR: {
+    '01-01': 'Jour de l\'An',
+    '04-21': 'Lundi de Pâques',
+    '05-01': 'Fête du Travail',
+    '05-08': 'Victoire 1945',
+    '05-29': 'Ascension',
+    '06-09': 'Lundi de Pentecôte',
+    '07-14': 'Fête Nationale',
+    '08-15': 'Assomption',
+    '11-01': 'Toussaint',
+    '11-11': 'Armistice',
+    '12-25': 'Noël',
+  },
+  GB: {
+    '01-01': "New Year's Day",
+    '04-18': 'Good Friday',
+    '04-21': 'Easter Monday',
+    '05-05': 'Early May Bank Holiday',
+    '05-26': 'Spring Bank Holiday',
+    '08-25': 'Summer Bank Holiday',
+    '12-25': 'Christmas Day',
+    '12-26': 'Boxing Day',
+  },
+  BY: {
+    '01-01': 'Новый год',
+    '01-07': 'Рождество',
+    '03-08': 'Женский день',
+    '04-21': 'Пасха',
+    '05-01': 'Праздник труда',
+    '05-09': 'День Победы',
+    '07-03': 'День Независимости',
+    '11-07': 'Октябрьская революция',
+    '12-25': 'Католическое Рождество',
+  },
+};
+
+let _showHolidays = false;
+
+function toggleHolidays() {
+  _showHolidays = !_showHolidays;
+  const btn = document.getElementById('holBtn');
+  const txt = document.getElementById('holBtnTxt');
+  btn.classList.toggle('on', _showHolidays);
+  txt.textContent = _showHolidays ? 'Скрыть праздники' : 'Показать праздники';
+  renderCal();
+}
+
+function getHolidayName(y, m, d) {
+  const cc = cfg.country || 'RU';
+  const map = HOLIDAYS[cc] || {};
+  const key = `${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  return map[key] || null;
+}
+
+function setCountry(cc, btn) {
+  cfg.country = cc; saveC();
+  document.querySelectorAll('.country-btn').forEach(b => b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  if (_showHolidays) renderCal();
+}
+
 // ── STORAGE ──
 const SK = 'ftc_d1', SS = 'ftc_s1';
-let days = {}, cfg = { cur:'₽', theme:'default', thcls:'', acc:'#D0391B', ov:45, bg:'', xcurs:[], country:'' };
+let days = {}, cfg = { cur:'₽', theme:'default', thcls:'', acc:'#D0391B', ov:45, bg:'', xcurs:[], country:'RU' };
 
 function load() {
   try { days = JSON.parse(localStorage.getItem(SK) || '{}'); } catch { days = {}; }
@@ -934,21 +1056,6 @@ const DOW  = ['Воскресенье','Понедельник','Вторник'
 
 // ── BOOT ──
 load();
-// Auto-detect country on first launch
-if (!cfg.country && cfg.country !== null) {
-  try {
-    const loc = Intl.DateTimeFormat().resolvedOptions().locale || '';
-    const region = loc.split('-')[1] || '';
-    const AUTO_MAP = {
-      RU:'RU', KZ:'KZ', UA:'UA', BY:'BY', US:'US', GB:'GB', DE:'DE',
-      FR:'FR', PL:'PL', TR:'TR', AE:'AE', TH:'TH', GE:'GE', AM:'AM', RS:'RS'
-    };
-    if (region && AUTO_MAP[region]) {
-      cfg.country = AUTO_MAP[region];
-      saveC();
-    }
-  } catch {}
-}
 applyCfg();
 renderBig();
 renderCal();
@@ -969,11 +1076,6 @@ function chM(d) {
   vm += d;
   if (vm < 0) { vm = 11; vy--; }
   if (vm > 11) { vm = 0; vy++; }
-  // Load holidays for new year if needed
-  if (cfg.country && vy !== _hlYear) {
-    _hlYear = vy;
-    loadHolidays(vy, cfg.country);
-  }
   renderCal();
   renderEnt();
 }
@@ -992,26 +1094,27 @@ function renderCal() {
     const dt = new Date(vy, vm, d);
     const isT = dk === tdk;
     const isP = dt < new Date(t.getFullYear(), t.getMonth(), t.getDate());
+    const holName = _showHolidays ? getHolidayName(vy, vm, d) : null;
     let cls = 'dot';
     let sty = '';
     if (dd && dd.color) {
       sty = `background:${dd.color};`;
       cls += ' work';
-      if (isT) cls += ' today-w'; // today but has work color
-    } else if (isT) { cls += ' today'; }  // ring only, no fill
+      if (isT) cls += ' today-w';
+    } else if (isT) { cls += ' today'; }
     else if (isP)   { cls += ' past'; }
     else            { cls += ' future'; }
     if (dd) cls += ' has';
-    const hname = getHolidayName(dk);
-    if (hname) cls += ' holiday';
-    const hflag = hname ? `<div class="hflag" title="${hname}">🎉</div>` : '';
+    if (holName) cls += ' holiday';
+    const tipHtml = holName
+      ? `<div class="hol-tip">${holName}</div>`
+      : '';
     h += `<div class="${cls}" style="${sty}"
       ontouchstart="ts(event,'${dk}')"
       ontouchmove="tm()"
       ontouchend="te(event,'${dk}')"
-      onclick="if(getHolidayName('${dk}'))showHolidayTip(getHolidayName('${dk}'),this)"
 >
-      ${hflag}
+      ${tipHtml}
       <div class="pip"></div>
       <div class="dnum">${d}</div>
     </div>`;
@@ -1520,90 +1623,6 @@ function goTab(tab, fromSwipe = false) {
   }, { passive: true });
 })();
 
-// ── HOLIDAYS ──
-let _holidays = {}; // { 'YYYY-MM-DD': 'Holiday Name' }
-let _hlCountry = '';
-let _hlYear = null;
-let _hlFetching = false;
-let _hlTipTimer = null;
-
-function setCountry(code) {
-  cfg.country = code;
-  saveC();
-  _holidays = {};
-  _hlYear = null;
-  const sel = document.getElementById('countrySelect');
-  if (sel) sel.value = code;
-  if (code) {
-    loadHolidays(vy, code);
-  } else {
-    document.getElementById('holidayStatus').textContent = '';
-    renderCal();
-  }
-}
-
-function _hlCacheKey(country, year) { return `hl_${country}_${year}`; }
-
-async function loadHolidays(year, country) {
-  if (!country) return;
-  _hlCountry = country;
-  const ckey = _hlCacheKey(country, year);
-  // Try localStorage cache first
-  try {
-    const cached = JSON.parse(localStorage.getItem(ckey) || 'null');
-    if (cached && cached.ts && Date.now() - cached.ts < 86400000 * 7) {
-      _holidays = { ..._holidays, ...cached.data };
-      renderCal();
-      return;
-    }
-  } catch {}
-  // Fetch from Nager.Date API
-  if (_hlFetching) return;
-  _hlFetching = true;
-  const statusEl = document.getElementById('holidayStatus');
-  if (statusEl) statusEl.textContent = '⏳ Загрузка праздников…';
-  try {
-    const r = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${country}`);
-    if (!r.ok) throw new Error('API error');
-    const list = await r.json();
-    const map = {};
-    list.forEach(h => { map[h.date] = h.localName || h.name; });
-    _holidays = { ..._holidays, ...map };
-    // Cache it
-    localStorage.setItem(ckey, JSON.stringify({ ts: Date.now(), data: map }));
-    if (statusEl) statusEl.textContent = `✅ Загружено ${list.length} праздников`;
-    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 3000);
-    renderCal();
-  } catch (err) {
-    if (statusEl) statusEl.textContent = '⚠️ Не удалось загрузить праздники';
-    // Try to serve stale cache
-    try {
-      const cached = JSON.parse(localStorage.getItem(ckey) || 'null');
-      if (cached && cached.data) { _holidays = { ..._holidays, ...cached.data }; renderCal(); }
-    } catch {}
-  } finally { _hlFetching = false; }
-}
-
-function getHolidayName(dk) { return _holidays[dk] || null; }
-
-function showHolidayTip(name, el) {
-  clearTimeout(_hlTipTimer);
-  const tip = document.getElementById('holidayTip');
-  if (!tip || !name) return;
-  tip.textContent = name;
-  const rect = el.getBoundingClientRect();
-  const tw = 220, th = 48;
-  let x = rect.left + rect.width / 2 - tw / 2;
-  let y = rect.top - th - 8;
-  if (x < 8) x = 8;
-  if (x + tw > window.innerWidth - 8) x = window.innerWidth - tw - 8;
-  if (y < 8) y = rect.bottom + 8;
-  tip.style.left = x + 'px';
-  tip.style.top = y + 'px';
-  tip.classList.add('on');
-  _hlTipTimer = setTimeout(() => tip.classList.remove('on'), 2200);
-}
-
 // ── SETTINGS ──
 function setCur(sym, btn) {
   cfg.cur = sym; saveC();
@@ -1717,6 +1736,11 @@ function applyCfg() {
   document.getElementById('ovSl').value = cfg.ov;
   // BG
   applyBg();
+  // Country
+  const _cc = cfg.country || 'RU';
+  document.querySelectorAll('.country-btn').forEach(b => {
+    b.classList.toggle('on', b.dataset.cc === _cc);
+  });
   // Currency buttons
   const _stdC = ['₽','$','€','₸','₴'];
   const _isStd = _stdC.includes(cfg.cur);
@@ -1733,13 +1757,6 @@ function applyCfg() {
   });
   // Auto-refresh exchange rates
   if (cfg.xcurs && cfg.xcurs.length) setTimeout(xcRefreshRates, 500);
-  // Country select + holidays
-  const csel = document.getElementById('countrySelect');
-  if (csel) csel.value = cfg.country || '';
-  if (cfg.country) {
-    _hlYear = vy;
-    loadHolidays(vy, cfg.country);
-  }
 }
 </script>
 </body>
