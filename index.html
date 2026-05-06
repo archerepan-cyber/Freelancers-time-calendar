@@ -1178,7 +1178,6 @@ function showHolPopup(e, y, m, d) {
   // Cancel any pending day-open timer
   clearTimeout(_dtTimer);
   _lastTap = 0; _lastDk = null;
-  _mv = true; // prevent te() from opening modal
   const holName = getHolidayName(parseInt(y), parseInt(m), parseInt(d));
   if (!holName) return;
   const MONG2 = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
@@ -1432,6 +1431,7 @@ document.addEventListener('touchstart', e => {
 // ── TOUCH + DRAG ──
 let _t0 = 0, _mv = false, _lpt = null;
 let _lastTap = 0, _lastDk = null, _dtTimer = null;
+let _holTipTapped = false; // set when touchstart lands on .hol-tip
 
 // After long-press fires: did user lift finger (→ ctx menu) or drag (→ move)?
 let _longPressed = false;  // long-press threshold reached
@@ -1533,6 +1533,9 @@ document.addEventListener('touchcancel', e => {
 }, { passive: true });
 
 function ts(e, dk) {
+  // If finger landed on the holiday label — don't start a day tap
+  if (e.target.classList.contains('hol-tip')) { _holTipTapped = true; return; }
+  _holTipTapped = false;
   _mv = false; _t0 = Date.now();
   _longPressed = false; _longPressDk = null;
   const el = e.currentTarget;
@@ -1561,6 +1564,7 @@ function tm() {
 }
 
 function te(e, dk) {
+  if (_holTipTapped) { _holTipTapped = false; return; }
   clearTimeout(_lpt);
   e.currentTarget.classList.remove('press');
   if (_dragActive) return;
