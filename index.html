@@ -351,6 +351,61 @@ button { font-family: inherit; cursor: pointer; }
 .ctx-item:active { background: var(--bg3); }
 .ctx-item .ctx-icon { font-size: 17px; }
 .ctx-item.paste { color: var(--accent); }
+
+/* ── HOLIDAYS ── */
+.dot .hflag {
+  position: absolute;
+  top: 3px; right: 3px;
+  font-size: clamp(5px, 1.6vw, 8px);
+  line-height: 1;
+  pointer-events: none;
+}
+.dot.holiday:not(.work) {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+.holiday-tip {
+  position: fixed;
+  z-index: 600;
+  background: var(--bg2);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border: .5px solid var(--sep);
+  border-radius: 12px;
+  padding: 8px 13px;
+  font-size: 13px;
+  color: var(--text);
+  max-width: 220px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.18);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px) scale(.95);
+  transition: opacity .18s, transform .18s;
+}
+.holiday-tip.on { opacity: 1; transform: translateY(0) scale(1); }
+
+/* country select in settings */
+.country-select-wrap { position: relative; }
+.country-select-wrap select {
+  width: 100%;
+  appearance: none; -webkit-appearance: none;
+  background: var(--bg3);
+  border: none;
+  border-radius: 12px;
+  padding: 12px 36px 12px 14px;
+  font-size: 15px;
+  color: var(--text);
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+}
+.country-select-wrap::after {
+  content: '›';
+  position: absolute;
+  right: 14px; top: 50%;
+  transform: translateY(-50%) rotate(90deg);
+  color: var(--text3);
+  pointer-events: none;
+  font-size: 18px;
+}
 </style>
 </head>
 <body>
@@ -358,6 +413,7 @@ button { font-family: inherit; cursor: pointer; }
 <div id="bg"><img id="bgImg" alt=""/></div>
 <div id="ov"></div>
 <div id="dragGhost"></div>
+<div class="holiday-tip" id="holidayTip"></div>
 
 <!-- CONTEXT MENU -->
 <div id="ctxMenu">
@@ -459,6 +515,31 @@ button { font-family: inherit; cursor: pointer; }
           <input type="range" id="ovSl" min="0" max="88" value="45" oninput="setOv(this.value)"/>
           <span>Макс</span>
         </div>
+      </div>
+
+      <div class="ssec">
+        <div class="sseclbl">Праздники</div>
+        <div class="country-select-wrap">
+          <select id="countrySelect" onchange="setCountry(this.value)">
+            <option value="">— Не показывать —</option>
+            <option value="RU">🇷🇺 Россия</option>
+            <option value="KZ">🇰🇿 Казахстан</option>
+            <option value="UA">🇺🇦 Украина</option>
+            <option value="BY">🇧🇾 Беларусь</option>
+            <option value="US">🇺🇸 США</option>
+            <option value="GB">🇬🇧 Великобритания</option>
+            <option value="DE">🇩🇪 Германия</option>
+            <option value="FR">🇫🇷 Франция</option>
+            <option value="PL">🇵🇱 Польша</option>
+            <option value="TR">🇹🇷 Турция</option>
+            <option value="AE">🇦🇪 ОАЭ</option>
+            <option value="TH">🇹🇭 Таиланд</option>
+            <option value="GE">🇬🇪 Грузия</option>
+            <option value="AM">🇦🇲 Армения</option>
+            <option value="RS">🇷🇸 Сербия</option>
+          </select>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:8px;" id="holidayStatus"></div>
       </div>
     </div>
 
@@ -830,7 +911,7 @@ function toHex(val) {
 
 // ── STORAGE ──
 const SK = 'ftc_d1', SS = 'ftc_s1';
-let days = {}, cfg = { cur:'₽', theme:'default', thcls:'', acc:'#D0391B', ov:45, bg:'', xcurs:[] };
+let days = {}, cfg = { cur:'₽', theme:'default', thcls:'', acc:'#D0391B', ov:45, bg:'', xcurs:[], country:'' };
 
 function load() {
   try { days = JSON.parse(localStorage.getItem(SK) || '{}'); } catch { days = {}; }
@@ -853,6 +934,21 @@ const DOW  = ['Воскресенье','Понедельник','Вторник'
 
 // ── BOOT ──
 load();
+// Auto-detect country on first launch
+if (!cfg.country && cfg.country !== null) {
+  try {
+    const loc = Intl.DateTimeFormat().resolvedOptions().locale || '';
+    const region = loc.split('-')[1] || '';
+    const AUTO_MAP = {
+      RU:'RU', KZ:'KZ', UA:'UA', BY:'BY', US:'US', GB:'GB', DE:'DE',
+      FR:'FR', PL:'PL', TR:'TR', AE:'AE', TH:'TH', GE:'GE', AM:'AM', RS:'RS'
+    };
+    if (region && AUTO_MAP[region]) {
+      cfg.country = AUTO_MAP[region];
+      saveC();
+    }
+  } catch {}
+}
 applyCfg();
 renderBig();
 renderCal();
@@ -873,6 +969,11 @@ function chM(d) {
   vm += d;
   if (vm < 0) { vm = 11; vy--; }
   if (vm > 11) { vm = 0; vy++; }
+  // Load holidays for new year if needed
+  if (cfg.country && vy !== _hlYear) {
+    _hlYear = vy;
+    loadHolidays(vy, cfg.country);
+  }
   renderCal();
   renderEnt();
 }
@@ -901,11 +1002,16 @@ function renderCal() {
     else if (isP)   { cls += ' past'; }
     else            { cls += ' future'; }
     if (dd) cls += ' has';
+    const hname = getHolidayName(dk);
+    if (hname) cls += ' holiday';
+    const hflag = hname ? `<div class="hflag" title="${hname}">🎉</div>` : '';
     h += `<div class="${cls}" style="${sty}"
       ontouchstart="ts(event,'${dk}')"
       ontouchmove="tm()"
       ontouchend="te(event,'${dk}')"
+      onclick="if(getHolidayName('${dk}'))showHolidayTip(getHolidayName('${dk}'),this)"
 >
+      ${hflag}
       <div class="pip"></div>
       <div class="dnum">${d}</div>
     </div>`;
@@ -1414,6 +1520,90 @@ function goTab(tab, fromSwipe = false) {
   }, { passive: true });
 })();
 
+// ── HOLIDAYS ──
+let _holidays = {}; // { 'YYYY-MM-DD': 'Holiday Name' }
+let _hlCountry = '';
+let _hlYear = null;
+let _hlFetching = false;
+let _hlTipTimer = null;
+
+function setCountry(code) {
+  cfg.country = code;
+  saveC();
+  _holidays = {};
+  _hlYear = null;
+  const sel = document.getElementById('countrySelect');
+  if (sel) sel.value = code;
+  if (code) {
+    loadHolidays(vy, code);
+  } else {
+    document.getElementById('holidayStatus').textContent = '';
+    renderCal();
+  }
+}
+
+function _hlCacheKey(country, year) { return `hl_${country}_${year}`; }
+
+async function loadHolidays(year, country) {
+  if (!country) return;
+  _hlCountry = country;
+  const ckey = _hlCacheKey(country, year);
+  // Try localStorage cache first
+  try {
+    const cached = JSON.parse(localStorage.getItem(ckey) || 'null');
+    if (cached && cached.ts && Date.now() - cached.ts < 86400000 * 7) {
+      _holidays = { ..._holidays, ...cached.data };
+      renderCal();
+      return;
+    }
+  } catch {}
+  // Fetch from Nager.Date API
+  if (_hlFetching) return;
+  _hlFetching = true;
+  const statusEl = document.getElementById('holidayStatus');
+  if (statusEl) statusEl.textContent = '⏳ Загрузка праздников…';
+  try {
+    const r = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${country}`);
+    if (!r.ok) throw new Error('API error');
+    const list = await r.json();
+    const map = {};
+    list.forEach(h => { map[h.date] = h.localName || h.name; });
+    _holidays = { ..._holidays, ...map };
+    // Cache it
+    localStorage.setItem(ckey, JSON.stringify({ ts: Date.now(), data: map }));
+    if (statusEl) statusEl.textContent = `✅ Загружено ${list.length} праздников`;
+    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 3000);
+    renderCal();
+  } catch (err) {
+    if (statusEl) statusEl.textContent = '⚠️ Не удалось загрузить праздники';
+    // Try to serve stale cache
+    try {
+      const cached = JSON.parse(localStorage.getItem(ckey) || 'null');
+      if (cached && cached.data) { _holidays = { ..._holidays, ...cached.data }; renderCal(); }
+    } catch {}
+  } finally { _hlFetching = false; }
+}
+
+function getHolidayName(dk) { return _holidays[dk] || null; }
+
+function showHolidayTip(name, el) {
+  clearTimeout(_hlTipTimer);
+  const tip = document.getElementById('holidayTip');
+  if (!tip || !name) return;
+  tip.textContent = name;
+  const rect = el.getBoundingClientRect();
+  const tw = 220, th = 48;
+  let x = rect.left + rect.width / 2 - tw / 2;
+  let y = rect.top - th - 8;
+  if (x < 8) x = 8;
+  if (x + tw > window.innerWidth - 8) x = window.innerWidth - tw - 8;
+  if (y < 8) y = rect.bottom + 8;
+  tip.style.left = x + 'px';
+  tip.style.top = y + 'px';
+  tip.classList.add('on');
+  _hlTipTimer = setTimeout(() => tip.classList.remove('on'), 2200);
+}
+
 // ── SETTINGS ──
 function setCur(sym, btn) {
   cfg.cur = sym; saveC();
@@ -1543,6 +1733,13 @@ function applyCfg() {
   });
   // Auto-refresh exchange rates
   if (cfg.xcurs && cfg.xcurs.length) setTimeout(xcRefreshRates, 500);
+  // Country select + holidays
+  const csel = document.getElementById('countrySelect');
+  if (csel) csel.value = cfg.country || '';
+  if (cfg.country) {
+    _hlYear = vy;
+    loadHolidays(vy, cfg.country);
+  }
 }
 </script>
 </body>
