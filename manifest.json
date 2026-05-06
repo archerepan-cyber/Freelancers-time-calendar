@@ -1,6 +1,6 @@
 {
-  "name": "Freelancer Calendar",
-  "short_name": "FreelCal",
+  "name": "MZC Calendar",
+  "short_name": "MZC Cal",
   "description": "Учёт рабочих дней и доходов фрилансера",
   "start_url": "/",
   "display": "standalone",
