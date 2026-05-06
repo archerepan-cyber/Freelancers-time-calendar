@@ -376,19 +376,63 @@ button { font-family: inherit; cursor: pointer; }
   touch-action: manipulation; cursor: pointer;
 }
 
-/* ── COUNTRY SELECT ── */
-.country-grid {
-  display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
-}
-.country-btn {
-  padding: 10px 12px; border-radius: 12px; border: .5px solid var(--sep);
-  background: var(--bg3); font-size: 13px; color: var(--text);
+/* ── COUNTRY PICKER BUTTON ── */
+.country-pick-btn {
+  width: 100%; padding: 14px 16px; border-radius: 14px;
+  background: var(--bg3); border: .5px solid var(--sep);
+  display: flex; align-items: center; gap: 10px;
+  font-size: 15px; font-weight: 500; color: var(--text);
   touch-action: manipulation; cursor: pointer;
-  transition: background .15s, color .15s;
-  display: flex; align-items: center; gap: 7px; font-weight: 500;
+  text-align: left;
 }
-.country-btn.on { background: var(--accent); color: #fff; border-color: var(--accent); }
-.country-btn .cflag { font-size: 18px; }
+.country-pick-btn span:first-child { font-size: 22px; }
+.country-pick-btn span:nth-child(2) { flex: 1; }
+.country-pick-arr { color: var(--text3); font-size: 20px; }
+
+/* ── COUNTRY PICKER SHEET ── */
+#countryPickerOver {
+  position: fixed; inset: 0; z-index: 700;
+  background: rgba(0,0,0,.55);
+  display: flex; align-items: flex-end; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity .25s;
+}
+#countryPickerOver.on { opacity: 1; pointer-events: auto; }
+#countryPickerSheet {
+  width: 100%; max-width: 520px;
+  background: var(--bg); border-radius: 24px 24px 0 0;
+  padding: 14px 0 0;
+  height: 72vh;
+  display: flex; flex-direction: column;
+  transform: translateY(100%); transition: transform .3s cubic-bezier(.4,0,.2,1);
+}
+#countryPickerOver.on #countryPickerSheet { transform: translateY(0); }
+.cp-drag { width: 36px; height: 4px; border-radius: 2px; background: var(--sep); margin: 0 auto 14px; flex-shrink: 0; }
+.cp-search-wrap { padding: 0 16px 12px; flex-shrink: 0; }
+.cp-search {
+  width: 100%; background: var(--bg3); border: none; border-radius: 12px;
+  padding: 11px 14px; font-size: 15px; color: var(--text); outline: none;
+}
+#countryPickerList {
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 0 12px calc(var(--sb) + 16px);
+}
+.cp-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 10px; border-radius: 12px;
+  font-size: 15px; font-weight: 500; color: var(--text);
+  background: none; border: none; width: 100%; text-align: left;
+  cursor: pointer; touch-action: manipulation;
+  transition: background .1s;
+}
+.cp-item:active { background: var(--bg3); }
+.cp-item.on { color: var(--accent); }
+.cp-item.on::after { content: '✓'; margin-left: auto; font-weight: 700; color: var(--accent); }
+.cp-flag { font-size: 22px; flex-shrink: 0; }
+
+/* ── COUNTRY SELECT (old grid, keep for JS compat) ── */
+.country-grid { display: none; }
+.country-btn { display: none; }
 
 /* ── DRAG GHOST ── */
 #dragGhost {
@@ -488,8 +532,11 @@ button { font-family: inherit; cursor: pointer; }
 
       <div class="ssec">
         <div class="sseclbl">Страна (для праздников)</div>
-        <input id="countrySearch" class="fi" placeholder="🔍 Поиск страны..." oninput="filterCountries(this.value)" style="margin-bottom:10px;font-size:14px;"/>
-        <div class="country-grid" id="countryGrid"></div>
+        <button class="country-pick-btn" id="countryPickBtn" onclick="openCountryPicker()">
+          <span id="countryPickFlag">🇷🇺</span>
+          <span id="countryPickName">Россия</span>
+          <span class="country-pick-arr">›</span>
+        </button>
       </div>
 
       <div class="ssec">
@@ -610,6 +657,17 @@ button { font-family: inherit; cursor: pointer; }
       <button class="btnc" onclick="closeModal()">Отмена</button>
       <button class="btno" onclick="saveDay()">Сохранить</button>
     </div>
+  </div>
+</div>
+
+<!-- COUNTRY PICKER -->
+<div id="countryPickerOver" onclick="if(event.target===this)closeCountryPicker()">
+  <div id="countryPickerSheet">
+    <div class="cp-drag"></div>
+    <div class="cp-search-wrap">
+      <input class="cp-search" id="cpSearch" placeholder="🔍 Поиск страны..." oninput="filterCpList(this.value)" autocomplete="off"/>
+    </div>
+    <div id="countryPickerList"></div>
   </div>
 </div>
 
@@ -736,6 +794,35 @@ let _teCustom = {}; // saved custom overrides per theme key
     const dy = e.changedTouches[0].clientY - sy;
     s.style.transition = '';
     if (dragging && dy > 90) { closeTE(false); }
+    else { s.style.transform = ''; }
+    dragging = false;
+  }, {passive:true});
+})();
+
+// Свайп вниз для закрытия окна редактирования дня
+(function(){
+  const sheet = () => document.querySelector('.msheet');
+  let sy = 0, dragging = false;
+  document.addEventListener('touchstart', e => {
+    if (!document.getElementById('modal').classList.contains('on')) return;
+    sy = e.touches[0].clientY;
+    dragging = false;
+  }, {passive:true});
+  document.addEventListener('touchmove', e => {
+    if (!document.getElementById('modal').classList.contains('on')) return;
+    const s = sheet();
+    if (!s) return;
+    if (s.scrollTop > 0) return;
+    const dy = e.touches[0].clientY - sy;
+    if (dy > 10) { dragging = true; s.style.transform = `translateY(${Math.min(dy, 260)}px)`; s.style.transition = 'none'; }
+  }, {passive:true});
+  document.addEventListener('touchend', e => {
+    if (!document.getElementById('modal').classList.contains('on')) return;
+    const s = sheet();
+    if (!s) return;
+    const dy = e.changedTouches[0].clientY - sy;
+    s.style.transition = '';
+    if (dragging && dy > 100) { s.style.transform = ''; closeModal(); }
     else { s.style.transform = ''; }
     dragging = false;
   }, {passive:true});
@@ -1087,6 +1174,11 @@ function getHolidayName(y, m, d) {
 
 function showHolPopup(e, y, m, d) {
   e.stopPropagation();
+  e.preventDefault();
+  // Cancel any pending day-open timer
+  clearTimeout(_dtTimer);
+  _lastTap = 0; _lastDk = null;
+  _mv = true; // prevent te() from opening modal
   const holName = getHolidayName(parseInt(y), parseInt(m), parseInt(d));
   if (!holName) return;
   const MONG2 = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
@@ -1114,27 +1206,82 @@ function closeHolPopup() {
 
 function setCountry(cc, btn) {
   cfg.country = cc; saveC();
-  document.querySelectorAll('.country-btn').forEach(b => b.classList.remove('on'));
-  if (btn) btn.classList.add('on');
+  updateCountryBtn();
   if (_showHolidays) renderCal();
 }
 
-function renderCountryGrid(filter) {
-  const grid = document.getElementById('countryGrid');
-  if (!grid) return;
+function openCountryPicker() {
+  renderCpList('');
+  document.getElementById('cpSearch').value = '';
+  document.getElementById('countryPickerOver').classList.add('on');
+  setTimeout(() => document.getElementById('cpSearch').focus(), 300);
+}
+
+function closeCountryPicker() {
+  document.getElementById('countryPickerOver').classList.remove('on');
+}
+
+function renderCpList(filter) {
   const q = (filter || '').toLowerCase().trim();
   const list = q
     ? ALL_COUNTRIES.filter(c => c.name.toLowerCase().includes(q) || c.cc.toLowerCase().includes(q))
     : ALL_COUNTRIES;
   const cur = cfg.country || 'RU';
-  grid.innerHTML = list.map(c =>
-    `<button class="country-btn${c.cc===cur?' on':''}" data-cc="${c.cc}" onclick="setCountry('${c.cc}',this)"><span class="cflag">${c.flag}</span>${c.name}</button>`
+  document.getElementById('countryPickerList').innerHTML = list.map(c =>
+    `<button class="cp-item${c.cc===cur?' on':''}" onclick="pickCountry('${c.cc}')">
+      <span class="cp-flag">${c.flag}</span>${c.name}
+    </button>`
   ).join('');
 }
 
-function filterCountries(val) {
-  renderCountryGrid(val);
+function filterCpList(val) { renderCpList(val); }
+
+function pickCountry(cc) {
+  cfg.country = cc; saveC();
+  // Update button label
+  const found = ALL_COUNTRIES.find(c => c.cc === cc);
+  if (found) {
+    document.getElementById('countryPickFlag').textContent = found.flag;
+    document.getElementById('countryPickName').textContent = found.name;
+  }
+  closeCountryPicker();
+  if (_showHolidays) renderCal();
 }
+
+function updateCountryBtn() {
+  const cc = cfg.country || 'RU';
+  const found = ALL_COUNTRIES.find(c => c.cc === cc) || {flag:'🌍', name:'Страна'};
+  const fb = document.getElementById('countryPickFlag');
+  const nb = document.getElementById('countryPickName');
+  if (fb) fb.textContent = found.flag;
+  if (nb) nb.textContent = found.name;
+}
+
+// Swipe down to close country picker
+(function(){
+  let sy = 0, dragging = false;
+  document.addEventListener('touchstart', e => {
+    if (!document.getElementById('countryPickerOver').classList.contains('on')) return;
+    sy = e.touches[0].clientY; dragging = false;
+  }, {passive:true});
+  document.addEventListener('touchmove', e => {
+    if (!document.getElementById('countryPickerOver').classList.contains('on')) return;
+    const s = document.getElementById('countryPickerSheet');
+    const list = document.getElementById('countryPickerList');
+    if (list && list.scrollTop > 0) return;
+    const dy = e.touches[0].clientY - sy;
+    if (dy > 10) { dragging = true; s.style.transform = `translateY(${Math.min(dy, 280)}px)`; s.style.transition = 'none'; }
+  }, {passive:true});
+  document.addEventListener('touchend', e => {
+    if (!document.getElementById('countryPickerOver').classList.contains('on')) return;
+    const s = document.getElementById('countryPickerSheet');
+    const dy = e.changedTouches[0].clientY - sy;
+    s.style.transition = '';
+    if (dragging && dy > 110) { s.style.transform = ''; closeCountryPicker(); }
+    else { s.style.transform = ''; }
+    dragging = false;
+  }, {passive:true});
+})();
 
 // ── STORAGE ──
 const SK = 'ftc_d1', SS = 'ftc_s1';
@@ -1212,7 +1359,7 @@ function renderCal() {
     if (dd) cls += ' has';
     if (holName) cls += ' holiday';
     const tipHtml = holName
-      ? `<div class="hol-tip" ontouchend="showHolPopup(event,'${vy}','${vm}','${d}')" onclick="showHolPopup(event,'${vy}','${vm}','${d}')">${holName}</div>`
+      ? `<div class="hol-tip" onclick="showHolPopup(event,'${vy}','${vm}','${d}')" ontouchend="showHolPopup(event,'${vy}','${vm}','${d}');event.stopPropagation()">${holName}</div>`
       : '';
     h += `<div class="${cls}" style="${sty}"
       ontouchstart="ts(event,'${dk}')"
@@ -1841,8 +1988,8 @@ function applyCfg() {
   document.getElementById('ovSl').value = cfg.ov;
   // BG
   applyBg();
-  // Country — build full list and mark selected
-  renderCountryGrid('');
+  // Country — update picker button label
+  updateCountryBtn();
   // Currency buttons
   const _stdC = ['₽','$','€','₸','₴'];
   const _isStd = _stdC.includes(cfg.cur);
