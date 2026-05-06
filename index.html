@@ -335,17 +335,45 @@ button { font-family: inherit; cursor: pointer; }
   background: #c0392b; color: #fff;
   font-size: 9px; font-weight: 700; letter-spacing: .3px;
   padding: 3px 7px; border-radius: 8px;
-  white-space: nowrap; pointer-events: none;
+  white-space: nowrap; pointer-events: auto;
   z-index: 50;
-  max-width: 90px; overflow: hidden; text-overflow: ellipsis;
+  max-width: 80px; overflow: hidden; text-overflow: ellipsis;
   text-align: center;
   box-shadow: 0 2px 8px rgba(192,57,43,.35);
+  cursor: pointer;
 }
 .hol-tip::after {
   content: ''; position: absolute; top: 100%; left: 50%;
   transform: translateX(-50%);
   border: 4px solid transparent;
   border-top-color: #c0392b;
+}
+
+/* ── HOLIDAY POPUP ── */
+#holPopup {
+  position: fixed; inset: 0; z-index: 600;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,.5);
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s;
+}
+#holPopup.on { opacity: 1; pointer-events: auto; }
+#holPopupBox {
+  background: var(--bg); border-radius: 20px;
+  padding: 28px 24px 22px;
+  max-width: 300px; width: 88%;
+  text-align: center;
+  transform: scale(.88); transition: transform .22s cubic-bezier(.34,1.56,.64,1);
+  box-shadow: 0 12px 48px rgba(0,0,0,.28);
+}
+#holPopup.on #holPopupBox { transform: scale(1); }
+#holPopupEmoji { font-size: 44px; margin-bottom: 10px; }
+#holPopupDate { font-size: 12px; color: var(--text3); margin-bottom: 6px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+#holPopupName { font-family: 'DM Serif Display', serif; font-size: 24px; color: var(--text); line-height: 1.2; margin-bottom: 20px; }
+#holPopupClose {
+  padding: 12px 32px; border-radius: 14px; background: #c0392b;
+  border: none; color: #fff; font-size: 15px; font-weight: 600;
+  touch-action: manipulation; cursor: pointer;
 }
 
 /* ── COUNTRY SELECT ── */
@@ -460,16 +488,8 @@ button { font-family: inherit; cursor: pointer; }
 
       <div class="ssec">
         <div class="sseclbl">Страна (для праздников)</div>
-        <div class="country-grid" id="countryGrid">
-          <button class="country-btn on" data-cc="RU" onclick="setCountry('RU',this)"><span class="cflag">🇷🇺</span>Россия</button>
-          <button class="country-btn" data-cc="KZ" onclick="setCountry('KZ',this)"><span class="cflag">🇰🇿</span>Казахстан</button>
-          <button class="country-btn" data-cc="UA" onclick="setCountry('UA',this)"><span class="cflag">🇺🇦</span>Украина</button>
-          <button class="country-btn" data-cc="US" onclick="setCountry('US',this)"><span class="cflag">🇺🇸</span>США</button>
-          <button class="country-btn" data-cc="DE" onclick="setCountry('DE',this)"><span class="cflag">🇩🇪</span>Германия</button>
-          <button class="country-btn" data-cc="FR" onclick="setCountry('FR',this)"><span class="cflag">🇫🇷</span>Франция</button>
-          <button class="country-btn" data-cc="GB" onclick="setCountry('GB',this)"><span class="cflag">🇬🇧</span>Великобритания</button>
-          <button class="country-btn" data-cc="BY" onclick="setCountry('BY',this)"><span class="cflag">🇧🇾</span>Беларусь</button>
-        </div>
+        <input id="countrySearch" class="fi" placeholder="🔍 Поиск страны..." oninput="filterCountries(this.value)" style="margin-bottom:10px;font-size:14px;"/>
+        <div class="country-grid" id="countryGrid"></div>
       </div>
 
       <div class="ssec">
@@ -590,6 +610,16 @@ button { font-family: inherit; cursor: pointer; }
       <button class="btnc" onclick="closeModal()">Отмена</button>
       <button class="btno" onclick="saveDay()">Сохранить</button>
     </div>
+  </div>
+</div>
+
+<!-- HOLIDAY POPUP -->
+<div id="holPopup" onclick="if(event.target===this)closeHolPopup()">
+  <div id="holPopupBox">
+    <div id="holPopupEmoji">🎉</div>
+    <div id="holPopupDate"></div>
+    <div id="holPopupName"></div>
+    <button id="holPopupClose" onclick="closeHolPopup()">Закрыть</button>
   </div>
 </div>
 
@@ -901,109 +931,140 @@ function toHex(val) {
 }
 
 // ── HOLIDAYS ──
+const ALL_COUNTRIES = [
+  {cc:'RU',flag:'🇷🇺',name:'Россия'},
+  {cc:'KZ',flag:'🇰🇿',name:'Казахстан'},
+  {cc:'UA',flag:'🇺🇦',name:'Украина'},
+  {cc:'BY',flag:'🇧🇾',name:'Беларусь'},
+  {cc:'UZ',flag:'🇺🇿',name:'Узбекистан'},
+  {cc:'AM',flag:'🇦🇲',name:'Армения'},
+  {cc:'AZ',flag:'🇦🇿',name:'Азербайджан'},
+  {cc:'GE',flag:'🇬🇪',name:'Грузия'},
+  {cc:'MD',flag:'🇲🇩',name:'Молдова'},
+  {cc:'TM',flag:'🇹🇲',name:'Туркменистан'},
+  {cc:'KG',flag:'🇰🇬',name:'Кыргызстан'},
+  {cc:'TJ',flag:'🇹🇯',name:'Таджикистан'},
+  {cc:'US',flag:'🇺🇸',name:'США'},
+  {cc:'GB',flag:'🇬🇧',name:'Великобритания'},
+  {cc:'DE',flag:'🇩🇪',name:'Германия'},
+  {cc:'FR',flag:'🇫🇷',name:'Франция'},
+  {cc:'IT',flag:'🇮🇹',name:'Италия'},
+  {cc:'ES',flag:'🇪🇸',name:'Испания'},
+  {cc:'PL',flag:'🇵🇱',name:'Польша'},
+  {cc:'NL',flag:'🇳🇱',name:'Нидерланды'},
+  {cc:'BE',flag:'🇧🇪',name:'Бельгия'},
+  {cc:'CH',flag:'🇨🇭',name:'Швейцария'},
+  {cc:'AT',flag:'🇦🇹',name:'Австрия'},
+  {cc:'SE',flag:'🇸🇪',name:'Швеция'},
+  {cc:'NO',flag:'🇳🇴',name:'Норвегия'},
+  {cc:'DK',flag:'🇩🇰',name:'Дания'},
+  {cc:'FI',flag:'🇫🇮',name:'Финляндия'},
+  {cc:'PT',flag:'🇵🇹',name:'Португалия'},
+  {cc:'CZ',flag:'🇨🇿',name:'Чехия'},
+  {cc:'SK',flag:'🇸🇰',name:'Словакия'},
+  {cc:'HU',flag:'🇭🇺',name:'Венгрия'},
+  {cc:'RO',flag:'🇷🇴',name:'Румыния'},
+  {cc:'BG',flag:'🇧🇬',name:'Болгария'},
+  {cc:'HR',flag:'🇭🇷',name:'Хорватия'},
+  {cc:'RS',flag:'🇷🇸',name:'Сербия'},
+  {cc:'GR',flag:'🇬🇷',name:'Греция'},
+  {cc:'TR',flag:'🇹🇷',name:'Турция'},
+  {cc:'CN',flag:'🇨🇳',name:'Китай'},
+  {cc:'JP',flag:'🇯🇵',name:'Япония'},
+  {cc:'KR',flag:'🇰🇷',name:'Южная Корея'},
+  {cc:'IN',flag:'🇮🇳',name:'Индия'},
+  {cc:'TH',flag:'🇹🇭',name:'Таиланд'},
+  {cc:'VN',flag:'🇻🇳',name:'Вьетнам'},
+  {cc:'ID',flag:'🇮🇩',name:'Индонезия'},
+  {cc:'MY',flag:'🇲🇾',name:'Малайзия'},
+  {cc:'SG',flag:'🇸🇬',name:'Сингапур'},
+  {cc:'PH',flag:'🇵🇭',name:'Филиппины'},
+  {cc:'AE',flag:'🇦🇪',name:'ОАЭ'},
+  {cc:'SA',flag:'🇸🇦',name:'Саудовская Аравия'},
+  {cc:'IL',flag:'🇮🇱',name:'Израиль'},
+  {cc:'EG',flag:'🇪🇬',name:'Египет'},
+  {cc:'NG',flag:'🇳🇬',name:'Нигерия'},
+  {cc:'ZA',flag:'🇿🇦',name:'ЮАР'},
+  {cc:'KE',flag:'🇰🇪',name:'Кения'},
+  {cc:'ET',flag:'🇪🇹',name:'Эфиопия'},
+  {cc:'MA',flag:'🇲🇦',name:'Марокко'},
+  {cc:'BR',flag:'🇧🇷',name:'Бразилия'},
+  {cc:'AR',flag:'🇦🇷',name:'Аргентина'},
+  {cc:'MX',flag:'🇲🇽',name:'Мексика'},
+  {cc:'CO',flag:'🇨🇴',name:'Колумбия'},
+  {cc:'CL',flag:'🇨🇱',name:'Чили'},
+  {cc:'PE',flag:'🇵🇪',name:'Перу'},
+  {cc:'CA',flag:'🇨🇦',name:'Канада'},
+  {cc:'AU',flag:'🇦🇺',name:'Австралия'},
+  {cc:'NZ',flag:'🇳🇿',name:'Новая Зеландия'},
+];
+
 const HOLIDAYS = {
-  RU: {
-    '01-01': 'Новый год',
-    '01-02': 'Новогодние каникулы',
-    '01-03': 'Новогодние каникулы',
-    '01-04': 'Новогодние каникулы',
-    '01-05': 'Новогодние каникулы',
-    '01-06': 'Новогодние каникулы',
-    '01-07': 'Рождество',
-    '01-08': 'Новогодние каникулы',
-    '02-23': 'День защитника Отечества',
-    '03-08': 'Международный женский день',
-    '05-01': 'Праздник Весны и Труда',
-    '05-09': 'День Победы',
-    '06-12': 'День России',
-    '11-04': 'День народного единства',
-  },
-  KZ: {
-    '01-01': 'Новый год',
-    '01-02': 'Новый год',
-    '03-08': 'Международный женский день',
-    '03-21': 'Наурыз мейрамы',
-    '03-22': 'Наурыз мейрамы',
-    '03-23': 'Наурыз мейрамы',
-    '05-01': 'День единства народа',
-    '05-07': 'День защитника Отечества',
-    '05-09': 'День Победы',
-    '07-06': 'День столицы',
-    '08-30': 'День Конституции',
-    '10-25': 'День Республики',
-    '12-01': 'День Первого Президента',
-    '12-16': 'День Независимости',
-    '12-17': 'День Независимости',
-  },
-  UA: {
-    '01-01': 'Новий рік',
-    '01-07': 'Різдво Христове',
-    '03-08': 'Міжнародний жіночий день',
-    '05-01': 'День праці',
-    '05-09': 'День Перемоги',
-    '06-28': 'День Конституції',
-    '08-24': 'День незалежності',
-    '10-14': 'День захисника',
-    '12-25': 'Різдво',
-  },
-  US: {
-    '01-01': "New Year's Day",
-    '01-20': 'MLK Day',
-    '02-17': "Presidents' Day",
-    '05-26': 'Memorial Day',
-    '06-19': 'Juneteenth',
-    '07-04': 'Independence Day',
-    '09-01': 'Labor Day',
-    '10-13': 'Columbus Day',
-    '11-11': 'Veterans Day',
-    '11-27': 'Thanksgiving',
-    '12-25': 'Christmas',
-  },
-  DE: {
-    '01-01': 'Neujahr',
-    '04-18': 'Karfreitag',
-    '04-21': 'Ostermontag',
-    '05-01': 'Tag der Arbeit',
-    '05-29': 'Christi Himmelfahrt',
-    '06-09': 'Pfingstmontag',
-    '10-03': 'Tag der Deutschen Einheit',
-    '12-25': '1. Weihnachtstag',
-    '12-26': '2. Weihnachtstag',
-  },
-  FR: {
-    '01-01': 'Jour de l\'An',
-    '04-21': 'Lundi de Pâques',
-    '05-01': 'Fête du Travail',
-    '05-08': 'Victoire 1945',
-    '05-29': 'Ascension',
-    '06-09': 'Lundi de Pentecôte',
-    '07-14': 'Fête Nationale',
-    '08-15': 'Assomption',
-    '11-01': 'Toussaint',
-    '11-11': 'Armistice',
-    '12-25': 'Noël',
-  },
-  GB: {
-    '01-01': "New Year's Day",
-    '04-18': 'Good Friday',
-    '04-21': 'Easter Monday',
-    '05-05': 'Early May Bank Holiday',
-    '05-26': 'Spring Bank Holiday',
-    '08-25': 'Summer Bank Holiday',
-    '12-25': 'Christmas Day',
-    '12-26': 'Boxing Day',
-  },
-  BY: {
-    '01-01': 'Новый год',
-    '01-07': 'Рождество',
-    '03-08': 'Женский день',
-    '04-21': 'Пасха',
-    '05-01': 'Праздник труда',
-    '05-09': 'День Победы',
-    '07-03': 'День Независимости',
-    '11-07': 'Октябрьская революция',
-    '12-25': 'Католическое Рождество',
-  },
+  RU: {'01-01':'Новый год','01-02':'Новогодние каникулы','01-03':'Новогодние каникулы','01-04':'Новогодние каникулы','01-05':'Новогодние каникулы','01-06':'Новогодние каникулы','01-07':'Рождество','01-08':'Новогодние каникулы','02-23':'День защитника Отечества','03-08':'Международный женский день','05-01':'Праздник Весны и Труда','05-09':'День Победы','06-12':'День России','11-04':'День народного единства'},
+  KZ: {'01-01':'Новый год','01-02':'Новый год','03-08':'Международный женский день','03-21':'Наурыз мейрамы','03-22':'Наурыз мейрамы','03-23':'Наурыз мейрамы','05-01':'День единства народа','05-07':'День защитника Отечества','05-09':'День Победы','07-06':'День столицы','08-30':'День Конституции','10-25':'День Республики','12-01':'День Первого Президента','12-16':'День Независимости','12-17':'День Независимости'},
+  UA: {'01-01':'Новий рік','01-07':'Різдво Христове','03-08':'Міжнародний жіночий день','05-01':'День праці','05-09':'День Перемоги','06-28':'День Конституції','08-24':'День незалежності','10-14':'День захисника','12-25':'Різдво'},
+  BY: {'01-01':'Новый год','01-07':'Рождество (православное)','03-08':'День женщин','04-21':'Пасха','05-01':'День труда','05-09':'День Победы','07-03':'День Независимости','11-07':'День Октябрьской революции','12-25':'Рождество (католическое)'},
+  UZ: {'01-01':'Янги йил','03-08':'Xalqaro xotin-qizlar kuni','03-21':'Навруз','05-09':'Xotira va qadrlash kuni','09-01':'Mustaqillik kuni','10-01':'O\'qituvchi va murabbiylar kuni','12-08':'Konstitutsiya kuni'},
+  AM: {'01-01':'Новый год','01-06':'Рождество','01-07':'Рождество','03-08':'Женский день','04-24':'День памяти геноцида','05-01':'День труда','05-09':'День Победы','05-28':'День Республики','07-05':'День Конституции','09-21':'День Независимости'},
+  AZ: {'01-01':'Новый год','01-02':'Новый год','03-08':'Женский день','05-09':'День Победы','05-28':'День Республики','06-15':'День национального спасения','10-18':'День независимости','11-12':'День Конституции','11-17':'День национального возрождения','12-31':'День солидарности'},
+  GE: {'01-01':'Новый год','01-02':'Новый год','01-07':'Рождество','01-19':'Крещение','03-03':'День матери','04-09':'День национального единства','05-09':'День Победы','05-26':'День независимости','08-28':'День Успения','10-14':'Светицховлоба','11-23':'День Гиоргоба'},
+  MD: {'01-01':'Новый год','01-07':'Рождество','03-08':'Женский день','04-21':'Пасха','05-01':'День труда','05-09':'День Победы','06-01':'День защиты детей','08-27':'День Независимости','08-31':'Limba noastră','10-14':'День вина'},
+  TM: {'01-01':'Новый год','03-08':'Женский день','03-21':'Новруз','05-09':'День Победы','05-18':'День конституции','10-27':'День независимости','12-12':'День нейтралитета'},
+  KG: {'01-01':'Новый год','01-07':'Рождество','02-23':'День защитника','03-08':'Женский день','03-21':'Нооруз','05-01':'День труда','05-05':'День Конституции','05-09':'День Победы','06-01':'День детей','08-31':'День Независимости','11-07':'День истории и памяти'},
+  TJ: {'01-01':'Новый год','03-08':'Женский день','03-21':'Навруз','03-22':'Навруз','03-23':'Навруз','05-01':'День труда','05-09':'День Победы','06-27':'День мира и национального единства','09-09':'День Независимости','11-06':'День Конституции'},
+  US: {'01-01':"New Year's Day",'01-20':'MLK Day','02-17':"Presidents' Day",'05-26':'Memorial Day','06-19':'Juneteenth','07-04':'Independence Day','09-01':'Labor Day','10-13':'Columbus Day','11-11':'Veterans Day','11-27':'Thanksgiving','12-25':'Christmas'},
+  GB: {'01-01':"New Year's Day",'04-18':'Good Friday','04-21':'Easter Monday','05-05':'Early May Bank Holiday','05-26':'Spring Bank Holiday','08-25':'Summer Bank Holiday','12-25':'Christmas Day','12-26':'Boxing Day'},
+  DE: {'01-01':'Neujahr','04-18':'Karfreitag','04-21':'Ostermontag','05-01':'Tag der Arbeit','05-29':'Christi Himmelfahrt','06-09':'Pfingstmontag','10-03':'Tag der Deutschen Einheit','12-25':'1. Weihnachtstag','12-26':'2. Weihnachtstag'},
+  FR: {'01-01':"Jour de l'An",'04-21':'Lundi de Pâques','05-01':'Fête du Travail','05-08':'Victoire 1945','05-29':'Ascension','06-09':'Lundi de Pentecôte','07-14':'Fête Nationale','08-15':'Assomption','11-01':'Toussaint','11-11':'Armistice','12-25':'Noël'},
+  IT: {'01-01':'Capodanno','01-06':'Epifania','04-21':'Lunedì di Pasqua','04-25':'Festa della Liberazione','05-01':'Festa del Lavoro','06-02':'Festa della Repubblica','08-15':'Ferragosto','11-01':'Tutti i Santi','12-08':'Immacolata','12-25':'Natale','12-26':'Santo Stefano'},
+  ES: {'01-01':'Año Nuevo','01-06':'Reyes Magos','04-18':'Viernes Santo','05-01':'Día del Trabajo','08-15':'Asunción','10-12':'Fiesta Nacional','11-01':'Todos los Santos','12-06':'Día de la Constitución','12-08':'Inmaculada Concepción','12-25':'Navidad'},
+  PL: {'01-01':'Nowy Rok','01-06':'Trzech Króli','04-21':'Poniedziałek Wielkanocny','05-01':'Święto Pracy','05-03':'Święto Konstytucji','06-09':'Zielone Świątki','06-19':'Boże Ciało','08-15':'Wniebowzięcie','11-01':'Wszystkich Świętych','11-11':'Święto Niepodległości','12-25':'Boże Narodzenie','12-26':'Drugi dzień Bożego Narodzenia'},
+  NL: {'01-01':'Nieuwjaar','04-18':'Goede Vrijdag','04-21':'Tweede Paasdag','04-27':'Koningsdag','05-05':'Bevrijdingsdag','05-29':'Hemelvaartsdag','06-09':'Tweede Pinksterdag','12-25':'Eerste Kerstdag','12-26':'Tweede Kerstdag'},
+  BE: {'01-01':'Nouvel An','04-21':'Lundi de Pâques','05-01':'Fête du Travail','05-29':'Ascension','06-09':'Lundi de Pentecôte','07-21':'Fête nationale','08-15':'Assomption','11-01':'Toussaint','11-11':'Armistice','12-25':'Noël'},
+  CH: {'01-01':'Neujahr','04-18':'Karfreitag','04-21':'Ostermontag','05-01':'Tag der Arbeit','05-29':'Auffahrt','06-09':'Pfingstmontag','08-01':'Nationalfeiertag','12-25':'Weihnachten','12-26':'Stephanstag'},
+  AT: {'01-01':'Neujahr','01-06':'Heilige Drei Könige','04-21':'Ostermontag','05-01':'Staatsfeiertag','05-29':'Christi Himmelfahrt','06-09':'Pfingstmontag','06-19':'Fronleichnam','08-15':'Mariä Himmelfahrt','10-26':'Nationalfeiertag','11-01':'Allerheiligen','12-08':'Mariä Empfängnis','12-25':'Christtag','12-26':'Stefanitag'},
+  SE: {'01-01':'Nyårsdagen','01-06':'Trettondag jul','04-18':'Långfredagen','04-20':'Påskdagen','04-21':'Annandag påsk','05-01':'Första maj','05-29':'Kristi himmelsfärds dag','06-06':'Sveriges nationaldag','06-21':'Midsommarafton','12-24':'Julafton','12-25':'Juldagen','12-26':'Annandag jul'},
+  NO: {'01-01':'Nyttårsdag','04-17':'Skjærtorsdag','04-18':'Langfredag','04-20':'Påskedag','04-21':'Andre påskedag','05-01':'Arbeidernes dag','05-17':'Grunnlovsdag','05-29':'Kristi himmelfartsdag','06-08':'Pinsedag','06-09':'Andre pinsedag','12-25':'Første juledag','12-26':'Andre juledag'},
+  DK: {'01-01':'Nytårsdag','04-17':'Skærtorsdag','04-18':'Langfredag','04-20':'Påskedag','04-21':'Anden påskedag','05-01':'Store bededag','05-29':'Kristi himmelfartsdag','06-08':'Pinsedag','06-09':'Anden pinsedag','12-25':'Juledag','12-26':'Anden juledag'},
+  FI: {'01-01':'Uudenvuodenpäivä','01-06':'Loppiainen','04-18':'Pitkäperjantai','04-21':'Toinen pääsiäispäivä','05-01':'Vappu','05-29':'Helatorstai','06-21':'Juhannus','11-01':'Pyhäinpäivä','12-06':'Itsenäisyyspäivä','12-25':'Joulupäivä','12-26':'Tapaninpäivä'},
+  PT: {'01-01':'Ano Novo','04-18':'Sexta-feira Santa','04-21':'Páscoa','04-25':'Dia da Liberdade','05-01':'Dia do Trabalhador','06-10':'Dia de Portugal','06-19':'Corpo de Deus','08-15':'Assunção de Nossa Senhora','10-05':'Implantação da República','11-01':'Todos-os-Santos','12-01':'Restauração da Independência','12-08':'Imaculada Conceição','12-25':'Natal'},
+  CZ: {'01-01':'Nový rok','04-18':'Velký pátek','04-21':'Velikonoční pondělí','05-01':'Svátek práce','05-08':'Den vítězství','07-05':'Den slovanských věrozvěstů','07-06':'Den upálení mistra Jana Husa','09-28':'Den české státnosti','10-28':'Den vzniku Československa','11-17':'Den boje za svobodu','12-24':'Štědrý den','12-25':'1. svátek vánoční','12-26':'2. svátek vánoční'},
+  SK: {'01-01':'Deň vzniku SR','01-06':'Zjavenie Pána','04-18':'Veľký piatok','04-21':'Veľkonočný pondelok','05-01':'Sviatok práce','05-08':'Deň víťazstva','07-05':'Sviatok sv. Cyrila a Metoda','08-29':'Výročie SNP','09-01':'Deň Ústavy SR','09-15':'Sedembolestná Panna Mária','11-01':'Sviatok všetkých svätých','11-17':'Deň boja za slobodu','12-24':'Štedrý deň','12-25':'1. sviatok vianočný','12-26':'2. sviatok vianočný'},
+  HU: {'01-01':'Újév','03-15':'Nemzeti ünnep','04-18':'Nagypéntek','04-21':'Húsvét hétfő','05-01':'A munka ünnepe','06-09':'Pünkösdminden','08-20':'Az államalapítás ünnepe','10-23':'Az 1956-os forradalom','11-01':'Mindenszentek','12-25':'Karácsony','12-26':'Karácsony 2. napja'},
+  RO: {'01-01':'Anul Nou','01-02':'Anul Nou','04-21':'Paștele','04-22':'Paștele','05-01':'Ziua Muncii','06-01':'Ziua Copilului','06-09':'Rusalii','06-10':'Rusalii','08-15':'Adormirea Maicii Domnului','11-30':'Sfântul Andrei','12-01':'Ziua Națională','12-25':'Crăciunul','12-26':'Crăciunul'},
+  BG: {'01-01':'Нова година','03-03':'Ден на Освобождението','04-21':'Великден','04-22':'Великден','05-01':'Ден на труда','05-06':'Гергьовден','05-24':'Ден на буквите','09-06':'Ден на Съединението','09-22':'Ден на Независимостта','11-01':'Ден на народните будители','12-24':'Бъдни вечер','12-25':'Рождество Христово','12-26':'Рождество Христово'},
+  HR: {'01-01':'Nova godina','01-06':'Sveta tri kralja','04-21':'Uskrsni ponedjeljak','05-01':'Praznik rada','05-30':'Dan državnosti','06-19':'Tijelovo','06-22':'Dan antifašizma','08-05':'Dan pobjede','08-15':'Velika Gospa','10-08':'Dan neovisnosti','11-01':'Svi sveti','12-25':'Božić','12-26':'Sveti Stjepan'},
+  RS: {'01-01':'Nova godina','01-02':'Nova godina','01-07':'Božić','02-15':'Dan državnosti','04-18':'Veliki petak','04-21':'Vaskrs','04-22':'Vaskrs','05-01':'Praznik rada','05-02':'Praznik rada','11-11':'Dan primirja'},
+  GR: {'01-01':'Πρωτοχρονιά','01-06':'Θεοφάνια','03-25':'Εθνική Εορτή','04-18':'Μεγάλη Παρασκευή','04-21':'Δευτέρα του Πάσχα','05-01':'Πρωτομαγιά','06-09':'Αγίου Πνεύματος','08-15':'Κοίμηση Θεοτόκου','10-28':'Εθνική Εορτή','12-25':'Χριστούγεννα','12-26':'Σύναξη Θεοτόκου'},
+  TR: {'01-01':'Yılbaşı','04-23':'Ulusal Egemenlik ve Çocuk Bayramı','05-01':'Emek ve Dayanışma Günü','05-19':'Atatürk\'ü Anma','07-15':'Demokrasi ve Millî Birlik Günü','08-30':'Zafer Bayramı','10-29':'Cumhuriyet Bayramı'},
+  CN: {'01-01':'元旦','01-28':'春节','01-29':'春节','01-30':'春节','01-31':'春节','02-01':'春节','02-02':'春节','04-05':'清明节','05-01':'劳动节','06-02':'端午节','10-01':'国庆节','10-02':'国庆节','10-03':'国庆节','10-06':'中秋节'},
+  JP: {'01-01':'元日','01-13':'成人の日','02-11':'建国記念の日','02-23':'天皇誕生日','03-20':'春分の日','04-29':'昭和の日','05-03':'憲法記念日','05-04':'みどりの日','05-05':'こどもの日','07-21':'海の日','08-11':'山の日','09-15':'敬老の日','09-23':'秋分の日','10-13':'スポーツの日','11-03':'文化の日','11-23':'勤労感謝の日'},
+  KR: {'01-01':'새해','01-28':'설날','01-29':'설날','01-30':'설날','03-01':'삼일절','05-05':'어린이날','05-15':'부처님오신날','06-06':'현충일','08-15':'광복절','10-03':'개천절','10-06':'추석','10-07':'추석','10-08':'추석','10-09':'한글날','12-25':'크리스마스'},
+  IN: {'01-26':'Republic Day','03-17':'Holi','04-14':'Ambedkar Jayanti','04-18':'Good Friday','05-01':'Labour Day','08-15':'Independence Day','10-02':'Gandhi Jayanti','10-20':'Dussehra','11-05':'Diwali','11-15':'Guru Nanak Jayanti','12-25':'Christmas'},
+  TH: {'01-01':'วันขึ้นปีใหม่','02-12':'วันมาฆบูชา','04-06':'วันจักรี','04-13':'วันสงกรานต์','04-14':'วันสงกรานต์','04-15':'วันสงกรานต์','05-01':'วันแรงงาน','05-05':'วันฉัตรมงคล','05-13':'วันวิสาขบูชา','07-11':'วันอาสาฬหบูชา','07-12':'วันเข้าพรรษา','07-28':'วันเฉลิมพระชนมพรรษา','08-12':'วันแม่','10-13':'วันนวมินทรมหาราช','10-23':'วันปิยมหาราช','12-05':'วันพ่อ','12-10':'วันรัฐธรรมนูญ','12-31':'วันสิ้นปี'},
+  VN: {'01-01':'Tết Dương lịch','01-28':'Tết Nguyên Đán','01-29':'Tết Nguyên Đán','01-30':'Tết Nguyên Đán','01-31':'Tết Nguyên Đán','02-01':'Tết Nguyên Đán','04-07':'Giỗ Tổ Hùng Vương','04-30':'Ngày Giải phóng','05-01':'Ngày Quốc tế Lao động','09-02':'Quốc khánh'},
+  ID: {'01-01':'Tahun Baru','01-29':'Tahun Baru Imlek','03-29':'Isra Miraj','04-18':'Wafat Isa Almasih','04-20':'Paskah','05-01':'Hari Buruh','05-29':'Kenaikan Isa Almasih','06-01':'Hari Lahir Pancasila','06-06':'Idul Adha','06-27':'Tahun Baru Islam','08-17':'Hari Kemerdekaan','09-05':'Maulid Nabi','12-25':'Hari Natal'},
+  MY: {'01-01':'New Year','01-29':'Chinese New Year','01-30':'Chinese New Year','02-01':'Federal Territory Day','04-14':'Hari Raya Puasa','04-15':'Hari Raya Puasa','05-01':'Labour Day','06-02':'Agong Birthday','06-06':'Hari Raya Haji','08-31':'Merdeka Day','09-16':'Malaysia Day','12-25':'Christmas'},
+  SG: {'01-01':'New Year','01-29':'Chinese New Year','01-30':'Chinese New Year','04-18':'Good Friday','05-01':'Labour Day','05-12':'Vesak Day','06-07':'Hari Raya Haji','08-09':'National Day','10-20':'Deepavali','12-25':'Christmas'},
+  PH: {'01-01':'New Year','04-09':'Day of Valor','04-17':'Maundy Thursday','04-18':'Good Friday','04-19':'Black Saturday','05-01':'Labour Day','06-12':'Independence Day','08-25':'National Heroes Day','11-01':'All Saints Day','11-02':'All Souls Day','11-30':'Bonifacio Day','12-08':'Feast of Immaculate Conception','12-25':'Christmas','12-30':'Rizal Day','12-31':'New Year\'s Eve'},
+  AE: {'01-01':'New Year','04-01':'Eid Al Fitr','04-02':'Eid Al Fitr','04-03':'Eid Al Fitr','06-07':'Arafat (Eid Al Adha) Day','06-08':'Eid Al Adha','06-09':'Eid Al Adha','06-10':'Eid Al Adha','06-27':'Islamic New Year','09-05':'Prophet Muhammad\'s Birthday','12-02':'National Day','12-03':'National Day'},
+  SA: {'02-22':'Founding Day','04-01':'Eid Al Fitr','04-02':'Eid Al Fitr','04-03':'Eid Al Fitr','06-07':'Arafat Day','06-08':'Eid Al Adha','06-09':'Eid Al Adha','06-10':'Eid Al Adha','09-23':'National Day'},
+  IL: {'01-01':'New Year','04-13':'Passover','04-14':'Passover','04-23':'Yom HaAtzmaut','06-02':'Shavuot','09-23':'Rosh Hashana','09-24':'Rosh Hashana','10-02':'Yom Kippur','10-07':'Sukkot','10-14':'Simchat Torah','12-25':'Christmas'},
+  EG: {'01-07':'Coptic Christmas','01-25':'Revolution Day','04-25':'Sinai Liberation Day','05-01':'Labour Day','07-23':'Revolution Day','10-06':'Armed Forces Day'},
+  NG: {'01-01':'New Year','04-18':'Good Friday','04-21':'Easter Monday','05-01':'Workers Day','06-12':'Democracy Day','10-01':'National Day','12-25':'Christmas','12-26':'Boxing Day'},
+  ZA: {'01-01':'New Year','03-21':'Human Rights Day','04-18':'Good Friday','04-21':'Family Day','04-27':'Freedom Day','05-01':'Workers Day','06-16':'Youth Day','08-09':'National Women\'s Day','09-24':'Heritage Day','12-16':'Day of Reconciliation','12-25':'Christmas','12-26':'Day of Goodwill'},
+  KE: {'01-01':'New Year','04-18':'Good Friday','04-21':'Easter Monday','05-01':'Labour Day','06-01':'Madaraka Day','07-04':'Sabasaba Day','10-10':'Huduma Day','10-20':'Mashujaa Day','12-12':'Jamhuri Day','12-25':'Christmas','12-26':'Boxing Day'},
+  ET: {'01-07':'Ethiopian Christmas','01-19':'Ethiopian Epiphany','03-02':'Victory of Adwa','04-06':'Good Friday','04-11':'Ethiopian Easter','05-01':'Labour Day','05-05':'Patriots Day','09-11':'Ethiopian New Year','09-27':'Finding of the True Cross'},
+  MA: {'01-01':'Fête du Trône','01-11':'Manifeste de l\'Indépendance','05-01':'Fête du Travail','07-30':'Fête du Trône','08-14':'Allégeance de l\'Oued Ed-Dahab','08-20':'Révolution du Roi et du Peuple','08-21':'Fête de la Jeunesse','11-06':'Marche Verte','11-18':'Fête de l\'Indépendance'},
+  BR: {'01-01':'Ano Novo','02-28':'Carnaval','03-01':'Carnaval','04-18':'Sexta-Feira Santa','04-21':'Tiradentes','05-01':'Dia do Trabalho','06-19':'Corpus Christi','09-07':'Independência','10-12':'Nossa Senhora Aparecida','11-02':'Finados','11-15':'Proclamação da República','11-20':'Consciência Negra','12-25':'Natal'},
+  AR: {'01-01':'Año Nuevo','02-24':'Carnaval','03-23':'Día de la Memoria','04-02':'Día del Veterano','04-18':'Viernes Santo','05-01':'Día del Trabajador','05-25':'Día de la Patria','06-17':'Paso a la Inmortalidad','07-09':'Día de la Independencia','10-12':'Día del Respeto','11-20':'Día de la Soberanía','12-08':'Inmaculada Concepción','12-25':'Navidad'},
+  MX: {'01-01':'Año Nuevo','02-03':'Día de la Constitución','03-17':'Natalicio de Benito Juárez','04-17':'Jueves Santo','04-18':'Viernes Santo','05-01':'Día del Trabajo','09-16':'Día de la Independencia','11-17':'Revolución Mexicana','12-12':'Virgen de Guadalupe','12-25':'Navidad'},
+  CO: {'01-01':'Año Nuevo','01-06':'Epifanía','03-24':'San José','04-13':'Jueves Santo','04-14':'Viernes Santo','05-01':'Día del Trabajo','06-02':'Ascensión','06-23':'Corpus Christi','06-30':'Sagrado Corazón','07-04':'San Pedro y San Pablo','07-20':'Día de la Independencia','08-07':'Batalla de Boyacá','08-18':'Asunción','10-13':'Día de la Raza','11-03':'Todos los Santos','11-17':'Independencia de Cartagena','12-08':'Inmaculada Concepción','12-25':'Navidad'},
+  CL: {'01-01':'Año Nuevo','04-18':'Viernes Santo','04-19':'Sábado Santo','05-01':'Día del Trabajo','05-21':'Día de las Glorias Navales','06-20':'Día de los Pueblos Indígenas','06-29':'San Pedro y San Pablo','07-16':'Virgen del Carmen','08-15':'Asunción','09-18':'Primera Junta Nacional de Gobierno','09-19':'Glorias del Ejército','09-20':'Fiestas Patrias','10-12':'Día del Encuentro de Dos Mundos','10-27':'Día de las Iglesias Evangélicas','11-01':'Día de Todos los Santos','12-08':'Inmaculada Concepción','12-25':'Navidad'},
+  PE: {'01-01':'Año Nuevo','04-17':'Jueves Santo','04-18':'Viernes Santo','05-01':'Día del Trabajo','06-07':'Batalla de Arica','06-24':'Inti Raymi','06-29':'San Pedro y San Pablo','07-28':'Día de la Independencia','07-29':'Gran Parada Militar','08-06':'Batalla de Junín','08-30':'Santa Rosa de Lima','10-08':'Combate de Angamos','11-01':'Día de Todos los Santos','12-08':'Inmaculada Concepción','12-25':'Navidad'},
+  CA: {'01-01':'New Year','02-17':'Family Day','04-18':'Good Friday','05-19':'Victoria Day','07-01':'Canada Day','09-01':'Labour Day','10-13':'Thanksgiving','11-11':'Remembrance Day','12-25':'Christmas','12-26':'Boxing Day'},
+  AU: {'01-01':'New Year','01-27':'Australia Day','04-18':'Good Friday','04-19':'Easter Saturday','04-21':'Easter Monday','04-25':'Anzac Day','06-09':'King\'s Birthday','12-25':'Christmas','12-26':'Boxing Day'},
+  NZ: {'01-01':'New Year','01-02':'Day after New Year','02-06':'Waitangi Day','04-18':'Good Friday','04-21':'Easter Monday','04-25':'Anzac Day','06-02':'King\'s Birthday','10-27':'Labour Day','12-25':'Christmas','12-26':'Boxing Day'},
 };
 
 let _showHolidays = false;
@@ -1024,11 +1085,55 @@ function getHolidayName(y, m, d) {
   return map[key] || null;
 }
 
+function showHolPopup(e, y, m, d) {
+  e.stopPropagation();
+  const holName = getHolidayName(parseInt(y), parseInt(m), parseInt(d));
+  if (!holName) return;
+  const MONG2 = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+  document.getElementById('holPopupDate').textContent = `${d} ${MONG2[parseInt(m)]} ${y}`;
+  document.getElementById('holPopupName').textContent = holName;
+  // emoji by keyword
+  const nm = holName.toLowerCase();
+  let em = '🎉';
+  if (nm.includes('рождест') || nm.includes('christmas') || nm.includes('natal') || nm.includes('weihnacht') || nm.includes('noël') || nm.includes('jul')) em = '🎄';
+  else if (nm.includes('новый год') || nm.includes('new year') || nm.includes('año nuevo') || nm.includes('neujahr') || nm.includes('nový rok') || nm.includes('noel') || nm.includes('год')) em = '🥂';
+  else if (nm.includes('победа') || nm.includes('victory') || nm.includes('independence') || nm.includes('независим') || nm.includes('liberac') || nm.includes('özgürlük')) em = '🏆';
+  else if (nm.includes('труд') || nm.includes('labor') || nm.includes('travail') || nm.includes('arbeit') || nm.includes('work')) em = '🔨';
+  else if (nm.includes('женщин') || nm.includes('women') || nm.includes('мать') || nm.includes('anneler')) em = '💐';
+  else if (nm.includes('детей') || nm.includes('child') || nm.includes('kinder')) em = '👶';
+  else if (nm.includes('пасх') || nm.includes('easter') || nm.includes('pasqu') || nm.includes('ostern') || nm.includes('páscoa')) em = '🐣';
+  else if (nm.includes('навруз') || nm.includes('наурыз') || nm.includes('noorouz') || nm.includes('весна')) em = '🌸';
+  else if (nm.includes('день защит') || nm.includes('veteran') || nm.includes('armed')) em = '🎖️';
+  document.getElementById('holPopupEmoji').textContent = em;
+  document.getElementById('holPopup').classList.add('on');
+}
+
+function closeHolPopup() {
+  document.getElementById('holPopup').classList.remove('on');
+}
+
 function setCountry(cc, btn) {
   cfg.country = cc; saveC();
   document.querySelectorAll('.country-btn').forEach(b => b.classList.remove('on'));
   if (btn) btn.classList.add('on');
   if (_showHolidays) renderCal();
+}
+
+function renderCountryGrid(filter) {
+  const grid = document.getElementById('countryGrid');
+  if (!grid) return;
+  const q = (filter || '').toLowerCase().trim();
+  const list = q
+    ? ALL_COUNTRIES.filter(c => c.name.toLowerCase().includes(q) || c.cc.toLowerCase().includes(q))
+    : ALL_COUNTRIES;
+  const cur = cfg.country || 'RU';
+  grid.innerHTML = list.map(c =>
+    `<button class="country-btn${c.cc===cur?' on':''}" data-cc="${c.cc}" onclick="setCountry('${c.cc}',this)"><span class="cflag">${c.flag}</span>${c.name}</button>`
+  ).join('');
+}
+
+function filterCountries(val) {
+  renderCountryGrid(val);
 }
 
 // ── STORAGE ──
@@ -1107,7 +1212,7 @@ function renderCal() {
     if (dd) cls += ' has';
     if (holName) cls += ' holiday';
     const tipHtml = holName
-      ? `<div class="hol-tip">${holName}</div>`
+      ? `<div class="hol-tip" ontouchend="showHolPopup(event,'${vy}','${vm}','${d}')" onclick="showHolPopup(event,'${vy}','${vm}','${d}')">${holName}</div>`
       : '';
     h += `<div class="${cls}" style="${sty}"
       ontouchstart="ts(event,'${dk}')"
@@ -1736,11 +1841,8 @@ function applyCfg() {
   document.getElementById('ovSl').value = cfg.ov;
   // BG
   applyBg();
-  // Country
-  const _cc = cfg.country || 'RU';
-  document.querySelectorAll('.country-btn').forEach(b => {
-    b.classList.toggle('on', b.dataset.cc === _cc);
-  });
+  // Country — build full list and mark selected
+  renderCountryGrid('');
   // Currency buttons
   const _stdC = ['₽','$','€','₸','₴'];
   const _isStd = _stdC.includes(cfg.cur);
