@@ -281,6 +281,7 @@ button { font-family: inherit; cursor: pointer; }
 .fg { margin-bottom: 14px; }
 .fl { display: block; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
 .fi { width: 100%; background: var(--bg3); border: none; border-radius: 12px; padding: 12px 14px; font-size: 16px; color: var(--text); outline: none; }
+.fi-time { box-sizing: border-box; max-width: 100%; -webkit-appearance: none; appearance: none; }
 .frow { display: flex; gap: 8px; }
 .frow .fg { flex: 1; }
 
@@ -637,9 +638,13 @@ button { font-family: inherit; cursor: pointer; }
       <input class="fi" id="fLbl" placeholder="Название / комментарий"/>
     </div>
 
-    <div class="frow">
-      <div class="fg"><label class="fl">Начало</label><input class="fi" id="fS" type="time"/></div>
-      <div class="fg"><label class="fl">Конец</label><input class="fi" id="fE" type="time"/></div>
+    <div class="fg">
+      <label class="fl">Начало</label>
+      <input class="fi fi-time" id="fS" type="time"/>
+    </div>
+    <div class="fg">
+      <label class="fl">Конец</label>
+      <input class="fi fi-time" id="fE" type="time"/>
     </div>
 
     <div class="fg">
