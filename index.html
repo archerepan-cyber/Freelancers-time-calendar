@@ -1324,6 +1324,10 @@ setInterval(renderBig, 30000);
 
 // ── CALENDAR ──
 function chM(d) {
+  clearTimeout(_dtTimer); clearTimeout(_lpt);
+  _lastTap = 0; _lastDk = null; _mv = false;
+  _longPressed = false; _longPressDk = null;
+  document.querySelectorAll('.dot.press').forEach(el => el.classList.remove('press'));
   vm += d;
   if (vm < 0) { vm = 11; vy--; }
   if (vm > 11) { vm = 0; vy++; }
@@ -1431,7 +1435,21 @@ document.addEventListener('touchstart', e => {
 // ── TOUCH + DRAG ──
 let _t0 = 0, _mv = false, _lpt = null;
 let _lastTap = 0, _lastDk = null, _dtTimer = null;
-let _holTipTapped = false; // set when touchstart lands on .hol-tip
+let _holTipTapped = false;
+
+// ── iOS GHOST-CLICK BLOCKER ──
+// iOS standalone generates a synthetic click ~300ms after touchend.
+// After any tap action (delete, open modal) we block clicks for 400ms.
+let _blockClick = false;
+let _blockClickTimer = null;
+function _iosBlockClick() {
+  _blockClick = true;
+  clearTimeout(_blockClickTimer);
+  _blockClickTimer = setTimeout(() => { _blockClick = false; }, 400);
+}
+document.addEventListener('click', e => {
+  if (_blockClick) { e.stopPropagation(); e.preventDefault(); }
+}, true); // capture phase — fires before any handler
 
 // After long-press fires: did user lift finger (→ ctx menu) or drag (→ move)?
 let _longPressed = false;  // long-press threshold reached
@@ -1532,22 +1550,26 @@ document.addEventListener('touchcancel', e => {
   _longPressed = false; _longPressDk = null;
 }, { passive: true });
 
+let _tx0 = 0, _ty0 = 0; // touchstart coords for drift check
+
 function ts(e, dk) {
-  // If finger landed on the holiday label — don't start a day tap
   if (e.target.classList.contains('hol-tip')) { _holTipTapped = true; return; }
   _holTipTapped = false;
   _mv = false; _t0 = Date.now();
+  // Store start position for iOS drift check
+  if (e.touches && e.touches.length) {
+    _tx0 = e.touches[0].clientX;
+    _ty0 = e.touches[0].clientY;
+  }
   _longPressed = false; _longPressDk = null;
   const el = e.currentTarget;
   el.classList.add('press');
   _lpt = setTimeout(() => {
     el.classList.remove('press');
     navigator.vibrate && navigator.vibrate(32);
-    // Mark that long-press fired; wait to see if finger moves (drag) or lifts (menu)
     _longPressed  = true;
     _longPressDk  = dk;
     _longPressE   = e;
-    // Pre-position src el reference for drag
     _dragSrcEl    = el;
   }, 500);
 }
@@ -1566,16 +1588,29 @@ function tm() {
 function te(e, dk) {
   if (_holTipTapped) { _holTipTapped = false; return; }
   clearTimeout(_lpt);
-  e.currentTarget.classList.remove('press');
+  if (e.currentTarget) e.currentTarget.classList.remove('press');
   if (_dragActive) return;
-  if (_longPressed) return; // handled by global touchend
+  if (_longPressed) return;
   if (_mv) return;
   if (Date.now() - _t0 >= 500) return;
   if (document.getElementById('ctxMenu').classList.contains('on')) return;
+
+  // Verify finger didn't move far from touchstart (extra iOS safety)
+  if (e.changedTouches && e.changedTouches.length) {
+    const ct = e.changedTouches[0];
+    // We stash start coords in ts()
+    if (typeof _tx0 === 'number') {
+      const dx = Math.abs(ct.clientX - _tx0);
+      const dy = Math.abs(ct.clientY - _ty0);
+      if (dx > 12 || dy > 12) return; // finger drifted — not a tap
+    }
+  }
+
   const now = Date.now();
-  if (_lastDk === dk && now - _lastTap < 350) {
+  if (_lastDk === dk && now - _lastTap < 400) {
     clearTimeout(_dtTimer);
     _lastTap = 0; _lastDk = null;
+    _iosBlockClick(); // block the ghost click iOS will fire after this
     clrD(dk);
     return;
   }
@@ -1583,6 +1618,7 @@ function te(e, dk) {
   clearTimeout(_dtTimer);
   _dtTimer = setTimeout(() => {
     _lastTap = 0; _lastDk = null;
+    _iosBlockClick();
     openModal(dk);
   }, 350);
 }
@@ -1591,7 +1627,9 @@ function clrD(dk) {
   if (!days[dk]) return;
   navigator.vibrate && navigator.vibrate([20, 30, 20]);
   delete days[dk];
-  saveD(); renderCal(); renderEnt();
+  saveD();
+  // Small delay before re-render so iOS ghost-click blocker is already active
+  requestAnimationFrame(() => { renderCal(); renderEnt(); });
 }
 
 // ── MODAL ──
