@@ -1291,6 +1291,23 @@ function _dayColor(raw) {
   const t = _normDay(raw);
   return t.length ? (t[0].color || cfg.acc) : null;
 }
+// Build pizza conic-gradient for multiple task colors
+function _pizzaStyle(raw) {
+  const tasks = _normDay(raw);
+  if (!tasks.length) return '';
+  const colors = tasks.map(t => t.color || cfg.acc);
+  if (colors.length === 1) return `background:${colors[0]};`;
+  // Build conic-gradient segments
+  const seg = 360 / colors.length;
+  let stops = '';
+  colors.forEach((c, i) => {
+    const from = i * seg;
+    const to = (i + 1) * seg;
+    stops += `${c} ${from}deg ${to}deg, `;
+  });
+  stops = stops.slice(0, -2); // remove trailing comma
+  return `background: conic-gradient(${stops});`;
+}
 const SK = 'ftc_d1', SS = 'ftc_s1';
 let days = {}, cfg = { cur:'₽', theme:'dark', thcls:'t-dark', acc:'#D0391B', ov:45, bg:'', xcurs:[], country:'RU' };
 
@@ -1362,7 +1379,7 @@ function renderCal() {
     let cls = 'dot';
     let sty = '';
     if (dd && dayColor) {
-      sty = `background:${dayColor};`;
+      sty = _pizzaStyle(dd);
       cls += ' work';
       if (isT) cls += ' today-w';
     } else if (isT) { cls += ' today'; }
@@ -1493,7 +1510,13 @@ function _startDrag(touch, dk, srcEl) {
   _dragSrcDk  = dk;
   _dragSrcEl  = srcEl;
   const dd = days[dk];
-  _ghost.style.background = _dayColor(dd) || (cfg.acc || '#324E44');
+  const pizzaSty = _pizzaStyle(dd);
+  if (pizzaSty) {
+    const match = pizzaSty.match(/background:\s*(.+);/);
+    if (match) _ghost.style.background = match[1];
+  } else {
+    _ghost.style.background = cfg.acc || '#324E44';
+  }
   _ghost.style.left = touch.clientX + 'px';
   _ghost.style.top  = touch.clientY + 'px';
   _ghost.classList.add('on');
