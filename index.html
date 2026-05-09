@@ -435,7 +435,45 @@ button { font-family: inherit; cursor: pointer; }
 .country-grid { display: none; }
 .country-btn { display: none; }
 
-/* ── DRAG GHOST ── */
+/* ── MULTI-TASK MODAL ── */
+.mtit-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.mtit { font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--text); }
+.task-add-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--accent); border: none; color: #fff;
+  font-size: 22px; line-height: 1; display: flex; align-items: center; justify-content: center;
+  touch-action: manipulation; cursor: pointer; flex-shrink: 0;
+}
+.task-tabs {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;
+}
+.task-tab {
+  padding: 6px 14px; border-radius: 20px; border: none;
+  background: var(--bg3); color: var(--text2);
+  font-size: 13px; font-weight: 600;
+  touch-action: manipulation; cursor: pointer;
+  transition: background .15s, color .15s;
+  display: flex; align-items: center; gap: 6px;
+}
+.task-tab.on { background: var(--accent); color: #fff; }
+.task-tab .tab-del {
+  font-size: 11px; opacity: .7; margin-left: 2px;
+  padding: 0 2px;
+}
+.task-form-inner { animation: fadeIn .18s ease; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
+
+
+/* ── TASK ROWS IN CARDS ── */
+.etask-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-top: .5px solid var(--sep); }
+.etask-num {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #fff;
+  flex-shrink: 0; margin-top: 2px;
+}
+.etask-info { flex: 1; }
+
 #dragGhost {
   position: fixed; z-index: 999; pointer-events: none;
   border-radius: 50%; width: 46px; height: 46px;
@@ -614,49 +652,16 @@ button { font-family: inherit; cursor: pointer; }
 <div class="mover" id="modal" onclick="if(event.target===this)closeModal()">
   <div class="msheet">
     <div class="mdrg"></div>
-    <div class="mtit" id="mTit">3 мая</div>
-
-    <div class="fg">
-      <label class="fl">Цвет дня</label>
-      <div class="dcs" id="dcs">
-        <div class="dc on" style="background:#324E44;" data-c="#324E44" onclick="pickC('#324E44',this)"></div>
-        <div class="dc" style="background:#D0391B;" data-c="#D0391B" onclick="pickC('#D0391B',this)"></div>
-        <div class="dc" style="background:#FBC359;" data-c="#FBC359" onclick="pickC('#FBC359',this)"></div>
-        <div class="dc" style="background:#7BA7AF;" data-c="#7BA7AF" onclick="pickC('#7BA7AF',this)"></div>
-        <div class="dc" style="background:#9F4125;" data-c="#9F4125" onclick="pickC('#9F4125',this)"></div>
-        <div class="dc" style="background:#73A642;" data-c="#73A642" onclick="pickC('#73A642',this)"></div>
-        <div class="dc" style="background:#4E6851;" data-c="#4E6851" onclick="pickC('#4E6851',this)"></div>
-        <div class="dc-cw" title="Свой цвет">
-          <span style="font-size:18px;font-weight:300;color:#fff;line-height:1;">+</span>
-          <input type="color" value="#324E44" oninput="pickCHex(this.value)"/>
-        </div>
-      </div>
+    <div class="mtit-row">
+      <div class="mtit" id="mTit">3 мая</div>
+      <button class="task-add-btn" onclick="addTask()" title="Добавить задачу">＋</button>
     </div>
 
-    <div class="fg">
-      <label class="fl">Описание</label>
-      <input class="fi" id="fLbl" placeholder="Название / комментарий"/>
-    </div>
+    <!-- Task tabs -->
+    <div class="task-tabs" id="taskTabs"></div>
 
-    <div class="fg">
-      <label class="fl">Начало</label>
-      <input class="fi fi-time" id="fS" type="time"/>
-    </div>
-    <div class="fg">
-      <label class="fl">Конец</label>
-      <input class="fi fi-time" id="fE" type="time"/>
-    </div>
-
-    <div class="fg">
-      <label class="fl">Заработано</label>
-      <input class="fi" id="fEarn" type="number" placeholder="Заработано" inputmode="decimal"/>
-    </div>
-
-    <div class="fg">
-      <label class="fl">Затраты</label>
-      <div class="xlist" id="xList"></div>
-      <button class="addx" onclick="addX()">+ Добавить затрату</button>
-    </div>
+    <!-- Task form (rendered dynamically) -->
+    <div id="taskForm"></div>
 
     <div class="mact">
       <button class="btnc" onclick="closeModal()">Отмена</button>
@@ -1288,6 +1293,16 @@ function updateCountryBtn() {
 })();
 
 // ── STORAGE ──
+function _normDay(raw) {
+  // Returns array of tasks always
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  return [raw]; // migrate old format
+}
+function _dayColor(raw) {
+  const tasks = _normDay(raw);
+  return tasks.length ? (tasks[0].color || cfg.acc) : null;
+}
 const SK = 'ftc_d1', SS = 'ftc_s1';
 let days = {}, cfg = { cur:'₽', theme:'dark', thcls:'t-dark', acc:'#D0391B', ov:45, bg:'', xcurs:[], country:'RU' };
 
@@ -1302,7 +1317,7 @@ function dkey(y, m, d) { return `${y}-${String(m+1).padStart(2,'0')}-${String(d)
 // ── STATE ──
 const now = new Date();
 let vy = now.getFullYear(), vm = now.getMonth();
-let eDk = null, dc = '#324E44';
+let dc = '#324E44';
 const curTab_ref = { v: 'main' };
 
 const MON  = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
@@ -1351,14 +1366,15 @@ function renderCal() {
   for (let d = 1; d <= dim; d++) {
     const dk = dkey(vy, vm, d);
     const dd = days[dk];
+    const dayColor = _dayColor(dd);
     const dt = new Date(vy, vm, d);
     const isT = dk === tdk;
     const isP = dt < new Date(t.getFullYear(), t.getMonth(), t.getDate());
     const holName = _showHolidays ? getHolidayName(vy, vm, d) : null;
     let cls = 'dot';
     let sty = '';
-    if (dd && dd.color) {
-      sty = `background:${dd.color};`;
+    if (dd && dayColor) {
+      sty = `background:${dayColor};`;
       cls += ' work';
       if (isT) cls += ' today-w';
     } else if (isT) { cls += ' today'; }
@@ -1489,7 +1505,7 @@ function _startDrag(touch, dk, srcEl) {
   _dragSrcDk  = dk;
   _dragSrcEl  = srcEl;
   const dd = days[dk];
-  _ghost.style.background = (dd && dd.color) ? dd.color : (cfg.acc || '#324E44');
+  _ghost.style.background = _dayColor(dd) || (cfg.acc || '#324E44');
   _ghost.style.left = touch.clientX + 'px';
   _ghost.style.top  = touch.clientY + 'px';
   _ghost.classList.add('on');
@@ -1638,34 +1654,164 @@ function clrD(dk) {
 }
 
 // ── MODAL ──
+// ── MULTI-TASK MODAL ──
+let eDk = null;
+let _tasks = []; // array of task objects for current day
+let _taskIdx = 0; // currently active task tab
+
+function _emptyTask() {
+  return { color: cfg.acc || '#324E44', label: '', timeStart: '', timeEnd: '', earned: 0, expenses: [] };
+}
+
+function _taskFormHTML(idx) {
+  const t = _tasks[idx];
+  const colors = ['#324E44','#D0391B','#FBC359','#7BA7AF','#9F4125','#73A642','#4E6851'];
+  const dcs = colors.map(c =>
+    `<div class="dc${t.color===c?' on':''}" style="background:${c};" data-c="${c}" onclick="pickC('${c}',this,${idx})"></div>`
+  ).join('');
+  const xs = (t.expenses||[]).map((x,i) =>
+    `<div class="xrow2">
+      <input class="fi" type="number" placeholder="Сумма" value="${x.amount||''}" style="max-width:110px;" inputmode="decimal"/>
+      <input class="fi" placeholder="На такси, еду..." value="${x.comment||''}"/>
+      <button class="xdel" onclick="this.parentElement.remove()">✕</button>
+    </div>`
+  ).join('');
+  return `<div class="task-form-inner" id="taskFormInner">
+    <div class="fg">
+      <label class="fl">Цвет задачи</label>
+      <div class="dcs" id="dcs">
+        ${dcs}
+        <div class="dc-cw" title="Свой цвет">
+          <span style="font-size:18px;font-weight:300;color:#fff;line-height:1;">+</span>
+          <input type="color" value="${t.color||'#324E44'}" oninput="pickCHex(this.value,${idx})"/>
+        </div>
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl">Описание</label>
+      <input class="fi" id="fLbl" placeholder="Название / комментарий" value="${t.label||''}"/>
+    </div>
+    <div class="fg">
+      <label class="fl">Начало</label>
+      <input class="fi fi-time" id="fS" type="time" value="${t.timeStart||''}"/>
+    </div>
+    <div class="fg">
+      <label class="fl">Конец</label>
+      <input class="fi fi-time" id="fE" type="time" value="${t.timeEnd||''}"/>
+    </div>
+    <div class="fg">
+      <label class="fl">Заработано</label>
+      <input class="fi" id="fEarn" type="number" placeholder="Заработано" inputmode="decimal" value="${t.earned||''}"/>
+    </div>
+    <div class="fg">
+      <label class="fl">Затраты</label>
+      <div class="xlist" id="xList">${xs}</div>
+      <button class="addx" onclick="addX()">+ Добавить затрату</button>
+    </div>
+  </div>`;
+}
+
+function _renderTabs() {
+  const tabs = document.getElementById('taskTabs');
+  tabs.innerHTML = _tasks.map((t, i) => {
+    const delBtn = _tasks.length > 1
+      ? `<span class="tab-del" onclick="deleteTask(event,${i})">✕</span>`
+      : '';
+    return `<button class="task-tab${i===_taskIdx?' on':''}" onclick="switchTask(${i})">
+      <span style="width:10px;height:10px;border-radius:50%;background:${t.color||cfg.acc};display:inline-block;"></span>
+      Задача ${i+1}${delBtn}
+    </button>`;
+  }).join('');
+}
+
+function _saveCurrentTaskFields() {
+  if (!_tasks[_taskIdx]) return;
+  const t = _tasks[_taskIdx];
+  const lbl = document.getElementById('fLbl');
+  const fS = document.getElementById('fS');
+  const fE = document.getElementById('fE');
+  const fEarn = document.getElementById('fEarn');
+  if (lbl) t.label = lbl.value.trim();
+  if (fS) t.timeStart = fS.value;
+  if (fE) t.timeEnd = fE.value;
+  if (fEarn) t.earned = parseFloat(fEarn.value) || 0;
+  const xs = [];
+  document.querySelectorAll('#xList .xrow2').forEach(r => {
+    const ins = r.querySelectorAll('input');
+    const a = parseFloat(ins[0].value) || 0;
+    const c = ins[1].value.trim();
+    if (a > 0 || c) xs.push({ amount: a, comment: c });
+  });
+  t.expenses = xs;
+}
+
+function switchTask(idx) {
+  _saveCurrentTaskFields();
+  _taskIdx = idx;
+  _renderTabs();
+  document.getElementById('taskForm').innerHTML = _taskFormHTML(_taskIdx);
+}
+
+function addTask() {
+  _saveCurrentTaskFields();
+  _tasks.push(_emptyTask());
+  _taskIdx = _tasks.length - 1;
+  _renderTabs();
+  document.getElementById('taskForm').innerHTML = _taskFormHTML(_taskIdx);
+  // scroll sheet to top
+  document.querySelector('.msheet').scrollTop = 0;
+}
+
+function deleteTask(e, idx) {
+  e.stopPropagation();
+  if (_tasks.length <= 1) return;
+  _tasks.splice(idx, 1);
+  _taskIdx = Math.min(_taskIdx, _tasks.length - 1);
+  _renderTabs();
+  document.getElementById('taskForm').innerHTML = _taskFormHTML(_taskIdx);
+}
+
 function openModal(dk) {
   eDk = dk;
   const [y, m, d] = dk.split('-').map(Number);
   document.getElementById('mTit').textContent = `${d} ${MONG[m-1]}`;
-  const dd = days[dk] || {};
-  dc = dd.color || cfg.acc || '#324E44';
-  document.querySelectorAll('#dcs .dc').forEach(el => el.classList.toggle('on', el.dataset.c === dc));
-  document.getElementById('fLbl').value   = dd.label || '';
-  document.getElementById('fS').value     = dd.timeStart || '';
-  document.getElementById('fE').value     = dd.timeEnd || '';
-  document.getElementById('fEarn').value  = dd.earned || '';
-  document.getElementById('xList').innerHTML = '';
-  (dd.expenses || []).forEach(x => addX(x.amount, x.comment));
+
+  // Support both old format (single object) and new format (array of tasks)
+  const raw = days[dk];
+  if (!raw) {
+    _tasks = [_emptyTask()];
+  } else if (Array.isArray(raw)) {
+    _tasks = raw.map(t => ({ ..._emptyTask(), ...t }));
+  } else {
+    // Migrate old single-task format
+    _tasks = [{ ..._emptyTask(), ...raw }];
+  }
+  _taskIdx = 0;
+  _renderTabs();
+  document.getElementById('taskForm').innerHTML = _taskFormHTML(0);
   document.getElementById('modal').classList.add('on');
 }
+
 function closeModal() {
   document.getElementById('modal').classList.remove('on');
-  eDk = null;
+  eDk = null; _tasks = []; _taskIdx = 0;
 }
-function pickC(c, el) {
-  dc = c;
+
+function pickC(c, el, idx) {
+  const i = idx !== undefined ? idx : _taskIdx;
+  if (_tasks[i]) _tasks[i].color = c;
   document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
   if (el) el.classList.add('on');
+  _renderTabs();
 }
-function pickCHex(c) {
-  dc = c;
+
+function pickCHex(c, idx) {
+  const i = idx !== undefined ? idx : _taskIdx;
+  if (_tasks[i]) _tasks[i].color = c;
   document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
+  _renderTabs();
 }
+
 function addX(amount = '', comment = '') {
   const div = document.createElement('div');
   div.className = 'xrow2';
@@ -1675,23 +1821,20 @@ function addX(amount = '', comment = '') {
     <button class="xdel" onclick="this.parentElement.remove()">✕</button>`;
   document.getElementById('xList').appendChild(div);
 }
+
 function saveDay() {
   if (!eDk) return;
-  const xs = [];
-  document.querySelectorAll('#xList .xrow2').forEach(r => {
-    const ins = r.querySelectorAll('input');
-    const a = parseFloat(ins[0].value) || 0;
-    const c = ins[1].value.trim();
-    if (a > 0 || c) xs.push({ amount: a, comment: c });
-  });
-  days[eDk] = {
-    color:     dc,
-    label:     document.getElementById('fLbl').value.trim(),
-    timeStart: document.getElementById('fS').value,
-    timeEnd:   document.getElementById('fE').value,
-    earned:    parseFloat(document.getElementById('fEarn').value) || 0,
-    expenses:  xs
-  };
+  _saveCurrentTaskFields();
+  // Remove completely empty tasks
+  const valid = _tasks.filter(t =>
+    t.label || t.timeStart || t.earned || (t.expenses && t.expenses.length)
+  );
+  if (valid.length === 0) {
+    // At least keep one with color if user just picked a color
+    valid.push(_tasks[0]);
+  }
+  // Use first task's color as the dot color on calendar
+  days[eDk] = valid.length === 1 ? valid[0] : valid;
   saveD(); closeModal(); renderCal(); renderEnt();
 }
 
@@ -1702,7 +1845,7 @@ function renderEnt() {
     const dk = dkey(vy, vm, d);
     const dt = new Date(vy, vm, d);
     if (dt.getMonth() !== vm) break;
-    if (days[dk]) items.push({ dk, d, dd: days[dk] });
+    if (days[dk]) items.push({ dk, d, tasks: _normDay(days[dk]) });
   }
   const ew = document.getElementById('entWrap');
   const tw = document.getElementById('totWrap');
@@ -1711,31 +1854,51 @@ function renderEnt() {
   const cur = cfg.cur;
   let html = `<div class="slbl">${MON[vm]} ${vy}</div>`;
   let te = 0; const ax = [];
+  let cardNum = 0;
 
-  items.forEach((it, i) => {
-    const dd = it.dd;
-    te += dd.earned || 0;
-    (dd.expenses || []).forEach(x => ax.push({ ...x, day: it.d, lbl: dd.label }));
-    const ts  = dd.timeStart
-      ? (dd.timeEnd ? `${dd.timeStart}–${dd.timeEnd}` : dd.timeStart)
-      : '';
-    const es  = dd.earned ? `+${cur}${dd.earned.toLocaleString()}` : '';
-    const xt  = (dd.expenses || []).reduce((s, x) => s + (x.amount || 0), 0);
-    const xs  = xt ? `−${cur}${xt.toLocaleString()}` : '';
+  items.forEach((it) => {
+    cardNum++;
+    const tasks = it.tasks;
+    // Sum up all tasks for totals
+    tasks.forEach(t => {
+      te += t.earned || 0;
+      (t.expenses || []).forEach(x => ax.push({ ...x, day: it.d, lbl: t.label }));
+    });
+
+    // Card header uses first task's color
+    const firstColor = tasks[0].color || cfg.acc;
+
+    // Build task rows inside card
+    let taskRows = '';
+    tasks.forEach((t, ti) => {
+      const ts = t.timeStart
+        ? (t.timeEnd ? `${t.timeStart}–${t.timeEnd}` : t.timeStart)
+        : '';
+      const es = t.earned ? `+${cur}${t.earned.toLocaleString()}` : '';
+      const xt = (t.expenses || []).reduce((s, x) => s + (x.amount || 0), 0);
+      const xs = xt ? `−${cur}${xt.toLocaleString()}` : '';
+      taskRows += `<div class="etask-row">
+        <div class="etask-num" style="background:${t.color||cfg.acc};">${ti+1}</div>
+        <div class="etask-info">
+          ${t.label ? `<div class="ename">${t.label}</div>` : ''}
+          <div class="enums">
+            ${ts ? `<span style="color:var(--text3);">🕐 ${ts}</span>` : ''}
+            ${es ? `<span style="color:var(--accent);font-weight:600;">${es}</span>` : ''}
+            ${xs ? `<span style="color:var(--text2);">${xs}</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+    });
+
     html += `<div class="ecard" onclick="openModal('${it.dk}')">
       <div class="etop">
-        <div class="enum">${i+1}</div>
+        <div class="enum">${cardNum}</div>
         <div class="einfo">
           <div class="edate">${it.d} ${MONG[vm]}</div>
-          ${dd.label ? `<div class="ename">${dd.label}</div>` : ''}
         </div>
-        <div class="edot" style="background:${dd.color || cfg.acc};"></div>
+        <div class="edot" style="background:${firstColor};"></div>
       </div>
-      <div class="enums">
-        ${ts ? `<span style="color:var(--text3);">🕐 ${ts}</span>` : ''}
-        ${es ? `<span style="color:var(--accent);font-weight:600;">${es}</span>` : ''}
-        ${xs ? `<span style="color:var(--text2);">${xs}</span>` : ''}
-      </div>
+      ${taskRows}
     </div>`;
   });
   ew.innerHTML = html;
