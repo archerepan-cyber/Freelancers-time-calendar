@@ -755,7 +755,6 @@ button { font-family: inherit; cursor: pointer; }
 window.addEventListener('orientationchange', () => {
   const mv = document.querySelector('meta[name=viewport]');
   if (mv) {
-    // Force reset by temporarily removing and re-adding
     mv.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
   }
   setTimeout(() => {
@@ -813,20 +812,18 @@ let _teCustom = {}; // saved custom overrides per theme key
 
 // Свайп вниз для закрытия окна редактирования дня
 (function(){
-  const sheet = () => document.getElementById('mSheet');
-  let sy = 0, dragging = false, scrollAtStart = 0;
+  const sheet = () => document.querySelector('.msheet');
+  let sy = 0, dragging = false;
   document.addEventListener('touchstart', e => {
     if (!document.getElementById('modal').classList.contains('on')) return;
     sy = e.touches[0].clientY;
     dragging = false;
-    const s = sheet();
-    scrollAtStart = s ? s.scrollTop : 0;
   }, {passive:true});
   document.addEventListener('touchmove', e => {
     if (!document.getElementById('modal').classList.contains('on')) return;
     const s = sheet();
     if (!s) return;
-    if (scrollAtStart > 0) return;
+    if (s.scrollTop > 0) return;
     const dy = e.touches[0].clientY - sy;
     if (dy > 10) { dragging = true; s.style.transform = `translateY(${Math.min(dy, 260)}px)`; s.style.transition = 'none'; }
   }, {passive:true});
@@ -1312,9 +1309,9 @@ function _dayColor(raw) {
 function _pizzaStyle(raw) {
   const tasks = _normDay(raw);
   if (!tasks.length) return '';
-  const fallback = (typeof cfg !== 'undefined' ? cfg.acc : null) || '#324E44';
-  const colors = tasks.map(t => t.color || fallback);
+  const colors = tasks.map(t => t.color || cfg.acc);
   if (colors.length === 1) return `background:${colors[0]};`;
+  // Build conic-gradient segments
   const seg = 360 / colors.length;
   let stops = '';
   colors.forEach((c, i) => {
@@ -1322,7 +1319,7 @@ function _pizzaStyle(raw) {
     const to = (i + 1) * seg;
     stops += `${c} ${from}deg ${to}deg, `;
   });
-  stops = stops.slice(0, -2);
+  stops = stops.slice(0, -2); // remove trailing comma
   return `background: conic-gradient(${stops});`;
 }
 const SK = 'ftc_d1', SS = 'ftc_s1';
@@ -1750,7 +1747,6 @@ let _tasks = [];
 function _pickColor(e, col, idx) {
   e.stopPropagation(); e.preventDefault();
   if (!_tasks[idx]) return;
-  _saveTaskFields();
   _tasks[idx].color = col;
   _renderTasks();
 }
@@ -1867,7 +1863,6 @@ function saveDay() {
     (t.expenses && t.expenses.length > 0)
   );
   if (!valid.length) {
-    // Nothing filled — save just the color so dot shows on calendar
     const t0 = _tasks[0] || {};
     days[eDk] = { color: t0.color || cfg.acc, label:'', timeStart:'', timeEnd:'', earned:0, expenses:[] };
   } else {
@@ -1926,15 +1921,13 @@ function renderEnt() {
       </div>`;
     });
 
-    html += `<div class="ecard"
-      ontouchend="_iosBlockClick();openModal('${it.dk}')"
-      onclick="openModal('${it.dk}')">
+    html += `<div class="ecard" onclick="openModal('${it.dk}')">
       <div class="etop">
         <div class="enum">${i+1}</div>
         <div class="einfo">
           <div class="edate">${it.d} ${MONG[vm]}</div>
         </div>
-        <div class="edot" style="${_pizzaStyle(it.dd)}"></div>
+        <div class="edot" style="background:${firstColor};"></div>
       </div>
       ${taskRows}
     </div>`;
