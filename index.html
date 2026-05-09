@@ -1711,7 +1711,9 @@ function renderEnt() {
     const dd = it.dd;
     te += dd.earned || 0;
     (dd.expenses || []).forEach(x => ax.push({ ...x, day: it.d, lbl: dd.label }));
-    const ts  = dd.timeStart && dd.timeEnd ? `${dd.timeStart}–${dd.timeEnd}` : '';
+    const ts  = dd.timeStart
+      ? (dd.timeEnd ? `${dd.timeStart}–${dd.timeEnd}` : dd.timeStart)
+      : '';
     const es  = dd.earned ? `+${cur}${dd.earned.toLocaleString()}` : '';
     const xt  = (dd.expenses || []).reduce((s, x) => s + (x.amount || 0), 0);
     const xs  = xt ? `−${cur}${xt.toLocaleString()}` : '';
