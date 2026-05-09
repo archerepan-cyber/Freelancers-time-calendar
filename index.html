@@ -1289,7 +1289,7 @@ function updateCountryBtn() {
 
 // ── STORAGE ──
 const SK = 'ftc_d1', SS = 'ftc_s1';
-let days = {}, cfg = { cur:'₽', theme:'default', thcls:'', acc:'#D0391B', ov:45, bg:'', xcurs:[], country:'RU' };
+let days = {}, cfg = { cur:'₽', theme:'dark', thcls:'t-dark', acc:'#D0391B', ov:45, bg:'', xcurs:[], country:'RU' };
 
 function load() {
   try { days = JSON.parse(localStorage.getItem(SK) || '{}'); } catch { days = {}; }
