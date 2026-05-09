@@ -86,8 +86,6 @@ button { font-family: inherit; cursor: pointer; }
   background: var(--bg2);
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-top: .5px solid var(--sep);
-  touch-action: none;
-  user-select: none;
 }
 .tbtn { background: none; border: none; font-size: 34px; padding: 6px 14px; opacity: .35; transition: opacity .2s; touch-action: manipulation; }
 .tbtn.on { opacity: 1; }
@@ -279,7 +277,38 @@ button { font-family: inherit; cursor: pointer; }
 }
 .mover.on .msheet { transform: translateY(0); }
 .mdrg { width: 36px; height: 4px; border-radius: 2px; background: var(--sep); margin: 0 auto 16px; }
-.mtit { font-family: 'DM Serif Display', serif; font-size: 26px; margin-bottom: 18px; color: var(--text); }
+.mtit { font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--text); }
+.mtit-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.task-add-btn {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: var(--accent); border: none; color: #fff;
+  font-size: 24px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  touch-action: manipulation; cursor: pointer; flex-shrink: 0;
+}
+.task-block {
+  border: 1px solid var(--sep); border-radius: 16px;
+  padding: 14px; margin-bottom: 14px;
+  background: var(--bg3);
+}
+.task-block-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.task-block-num {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--text3);
+}
+.task-block-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  display: inline-block; flex-shrink: 0;
+}
+.task-block-del {
+  background: none; border: none; font-size: 18px;
+  color: var(--text3); touch-action: manipulation;
+  padding: 4px 8px; cursor: pointer;
+}
 .fg { margin-bottom: 14px; }
 .fl { display: block; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
 .fi { width: 100%; background: var(--bg3); border: none; border-radius: 12px; padding: 12px 14px; font-size: 16px; color: var(--text); outline: none; }
@@ -437,45 +466,7 @@ button { font-family: inherit; cursor: pointer; }
 .country-grid { display: none; }
 .country-btn { display: none; }
 
-/* ── MULTI-TASK MODAL ── */
-.mtit-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-.mtit { font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--text); }
-.task-add-btn {
-  width: 36px; height: 36px; border-radius: 50%;
-  background: var(--accent); border: none; color: #fff;
-  font-size: 22px; line-height: 1; display: flex; align-items: center; justify-content: center;
-  touch-action: manipulation; cursor: pointer; flex-shrink: 0;
-}
-.task-tabs {
-  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;
-}
-.task-tab {
-  padding: 6px 14px; border-radius: 20px; border: none;
-  background: var(--bg3); color: var(--text2);
-  font-size: 13px; font-weight: 600;
-  touch-action: manipulation; cursor: pointer;
-  transition: background .15s, color .15s;
-  display: flex; align-items: center; gap: 6px;
-}
-.task-tab.on { background: var(--accent); color: #fff; }
-.task-tab .tab-del {
-  font-size: 11px; opacity: .7; margin-left: 2px;
-  padding: 0 2px;
-}
-.task-form-inner { animation: fadeIn .18s ease; }
-@keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
-
-
-/* ── TASK ROWS IN CARDS ── */
-.etask-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-top: .5px solid var(--sep); }
-.etask-num {
-  width: 22px; height: 22px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 700; color: #fff;
-  flex-shrink: 0; margin-top: 2px;
-}
-.etask-info { flex: 1; }
-
+/* ── DRAG GHOST ── */
 #dragGhost {
   position: fixed; z-index: 999; pointer-events: none;
   border-radius: 50%; width: 46px; height: 46px;
@@ -652,22 +643,16 @@ button { font-family: inherit; cursor: pointer; }
 
 <!-- DAY MODAL -->
 <div class="mover" id="modal" onclick="if(event.target===this)closeModal()">
-  <div class="msheet">
+  <div class="msheet" id="mSheet">
     <div class="mdrg"></div>
     <div class="mtit-row">
       <div class="mtit" id="mTit">3 мая</div>
-      <button class="task-add-btn" onclick="addTask()" title="Добавить задачу">＋</button>
+      <button class="task-add-btn" ontouchend="addTaskBlock(event)" onclick="addTaskBlock(event)">＋</button>
     </div>
-
-    <!-- Task tabs -->
-    <div class="task-tabs" id="taskTabs"></div>
-
-    <!-- Task form (rendered dynamically) -->
-    <div id="taskForm"></div>
-
+    <div id="tasksContainer"></div>
     <div class="mact">
-      <button class="btnc" onclick="closeModal()">Отмена</button>
-      <button class="btno" onclick="saveDay()">Сохранить</button>
+      <button class="btnc" ontouchend="closeModal()" onclick="closeModal()">Отмена</button>
+      <button class="btno" ontouchend="saveDay()" onclick="saveDay()">Сохранить</button>
     </div>
   </div>
 </div>
@@ -1295,15 +1280,16 @@ function updateCountryBtn() {
 })();
 
 // ── STORAGE ──
+// Normalize any day value to array of tasks
 function _normDay(raw) {
-  // Returns array of tasks always
   if (!raw) return [];
   if (Array.isArray(raw)) return raw;
-  return [raw]; // migrate old format
+  return [raw];
 }
+// Get first task's color for calendar dot
 function _dayColor(raw) {
-  const tasks = _normDay(raw);
-  return tasks.length ? (tasks[0].color || cfg.acc) : null;
+  const t = _normDay(raw);
+  return t.length ? (t[0].color || cfg.acc) : null;
 }
 const SK = 'ftc_d1', SS = 'ftc_s1';
 let days = {}, cfg = { cur:'₽', theme:'dark', thcls:'t-dark', acc:'#D0391B', ov:45, bg:'', xcurs:[], country:'RU' };
@@ -1319,7 +1305,7 @@ function dkey(y, m, d) { return `${y}-${String(m+1).padStart(2,'0')}-${String(d)
 // ── STATE ──
 const now = new Date();
 let vy = now.getFullYear(), vm = now.getMonth();
-let dc = '#324E44';
+let dc = '#324E44'; // legacy, kept for compat
 const curTab_ref = { v: 'main' };
 
 const MON  = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
@@ -1656,148 +1642,169 @@ function clrD(dk) {
 }
 
 // ── MODAL ──
-// ── MULTI-TASK MODAL ──
 let eDk = null;
-let _tasks = []; // array of task objects for current day
-let _taskIdx = 0; // currently active task tab
+const COLORS = ['#324E44','#D0391B','#FBC359','#7BA7AF','#9F4125','#73A642','#4E6851'];
 
-function _emptyTask() {
-  return { color: cfg.acc || '#324E44', label: '', timeStart: '', timeEnd: '', earned: 0, expenses: [] };
-}
-
-function _taskFormHTML(idx) {
-  const t = _tasks[idx];
-  const colors = ['#324E44','#D0391B','#FBC359','#7BA7AF','#9F4125','#73A642','#4E6851'];
-  const dcs = colors.map(c =>
-    `<div class="dc${t.color===c?' on':''}" style="background:${c};" data-c="${c}" onclick="pickC('${c}',this,${idx})"></div>`
+function _taskBlockHTML(t, idx, total) {
+  const col = t.color || cfg.acc || COLORS[0];
+  const colBtns = COLORS.map(c =>
+    `<div class="dc${col===c?' on':''}" style="background:${c};" data-c="${c}"
+      ontouchend="_pickColor(event,'${c}',${idx})"
+      onclick="_pickColor(event,'${c}',${idx})"></div>`
   ).join('');
-  const xs = (t.expenses||[]).map((x,i) =>
+  const xRows = (t.expenses||[]).map(x =>
     `<div class="xrow2">
       <input class="fi" type="number" placeholder="Сумма" value="${x.amount||''}" style="max-width:110px;" inputmode="decimal"/>
       <input class="fi" placeholder="На такси, еду..." value="${x.comment||''}"/>
-      <button class="xdel" onclick="this.parentElement.remove()">✕</button>
+      <button class="xdel" ontouchend="_delX(event,this)" onclick="_delX(event,this)">✕</button>
     </div>`
   ).join('');
-  return `<div class="task-form-inner" id="taskFormInner">
+  const delBtn = total > 1
+    ? `<button class="task-block-del" ontouchend="_delTask(event,${idx})" onclick="_delTask(event,${idx})">✕</button>`
+    : '';
+  return `<div class="task-block" data-idx="${idx}">
+    <div class="task-block-header">
+      <div class="task-block-num">
+        <span class="task-block-dot" style="background:${col};"></span>
+        Задача ${idx+1}
+      </div>
+      ${delBtn}
+    </div>
     <div class="fg">
       <label class="fl">Цвет задачи</label>
-      <div class="dcs" id="dcs">
-        ${dcs}
+      <div class="dcs">
+        ${colBtns}
         <div class="dc-cw" title="Свой цвет">
           <span style="font-size:18px;font-weight:300;color:#fff;line-height:1;">+</span>
-          <input type="color" value="${t.color||'#324E44'}" oninput="pickCHex(this.value,${idx})"/>
+          <input type="color" value="${col}" oninput="_pickColorHex(this.value,${idx})"/>
         </div>
       </div>
     </div>
-    <div class="fg">
-      <label class="fl">Описание</label>
-      <input class="fi" id="fLbl" placeholder="Название / комментарий" value="${t.label||''}"/>
+    <div class="fg"><label class="fl">Описание</label>
+      <input class="fi task-lbl" placeholder="Название / комментарий" value="${t.label||''}"/>
     </div>
-    <div class="fg">
-      <label class="fl">Начало</label>
-      <input class="fi fi-time" id="fS" type="time" value="${t.timeStart||''}"/>
+    <div class="fg"><label class="fl">Начало</label>
+      <input class="fi fi-time task-ts" type="time" value="${t.timeStart||''}"/>
     </div>
-    <div class="fg">
-      <label class="fl">Конец</label>
-      <input class="fi fi-time" id="fE" type="time" value="${t.timeEnd||''}"/>
+    <div class="fg"><label class="fl">Конец</label>
+      <input class="fi fi-time task-te" type="time" value="${t.timeEnd||''}"/>
     </div>
-    <div class="fg">
-      <label class="fl">Заработано</label>
-      <input class="fi" id="fEarn" type="number" placeholder="Заработано" inputmode="decimal" value="${t.earned||''}"/>
+    <div class="fg"><label class="fl">Заработано</label>
+      <input class="fi task-earn" type="number" placeholder="Заработано" inputmode="decimal" value="${t.earned||''}"/>
     </div>
-    <div class="fg">
-      <label class="fl">Затраты</label>
-      <div class="xlist" id="xList">${xs}</div>
-      <button class="addx" onclick="addX()">+ Добавить затрату</button>
+    <div class="fg"><label class="fl">Затраты</label>
+      <div class="xlist task-xlist">${xRows}</div>
+      <button class="addx" ontouchend="_addX(event,${idx})" onclick="_addX(event,${idx})">+ Добавить затрату</button>
     </div>
   </div>`;
 }
 
-function _renderTabs() {
-  const tabs = document.getElementById('taskTabs');
-  tabs.innerHTML = _tasks.map((t, i) => {
-    const delBtn = _tasks.length > 1
-      ? `<span class="tab-del" onclick="deleteTask(event,${i})">✕</span>`
-      : '';
-    return `<button class="task-tab${i===_taskIdx?' on':''}" onclick="switchTask(${i})">
-      <span style="width:10px;height:10px;border-radius:50%;background:${t.color||cfg.acc};display:inline-block;"></span>
-      Задача ${i+1}${delBtn}
-    </button>`;
-  }).join('');
+function _renderTasks() {
+  const c = document.getElementById('tasksContainer');
+  if (!c) return;
+  c.innerHTML = _tasks.map((t,i) => _taskBlockHTML(t, i, _tasks.length)).join('');
 }
 
-function _saveCurrentTaskFields() {
-  if (!_tasks[_taskIdx]) return;
-  const t = _tasks[_taskIdx];
-  const lbl = document.getElementById('fLbl');
-  const fS = document.getElementById('fS');
-  const fE = document.getElementById('fE');
-  const fEarn = document.getElementById('fEarn');
-  if (lbl) t.label = lbl.value.trim();
-  if (fS) t.timeStart = fS.value;
-  if (fE) t.timeEnd = fE.value;
-  if (fEarn) t.earned = parseFloat(fEarn.value) || 0;
-  const xs = [];
-  document.querySelectorAll('#xList .xrow2').forEach(r => {
-    const ins = r.querySelectorAll('input');
-    const a = parseFloat(ins[0].value) || 0;
-    const c = ins[1].value.trim();
-    if (a > 0 || c) xs.push({ amount: a, comment: c });
-  });
-  t.expenses = xs;
-}
+let _tasks = [];
 
-function switchTask(idx) {
-  _saveCurrentTaskFields();
-  _taskIdx = idx;
-  _renderTabs();
-  document.getElementById('taskForm').innerHTML = _taskFormHTML(_taskIdx);
+function _pickColor(e, col, idx) {
+  e.stopPropagation(); e.preventDefault();
+  if (!_tasks[idx]) return;
+  _tasks[idx].color = col;
+  _renderTasks();
 }
-
-function addTask() {
-  _saveCurrentTaskFields();
-  _tasks.push(_emptyTask());
-  _taskIdx = _tasks.length - 1;
-  _renderTabs();
-  document.getElementById('taskForm').innerHTML = _taskFormHTML(_taskIdx);
-  // scroll sheet to top
-  document.querySelector('.msheet').scrollTop = 0;
+function _pickColorHex(col, idx) {
+  if (!_tasks[idx]) return;
+  _tasks[idx].color = col;
+  // update dot only, don't re-render (would reset input focus)
+  const block = document.querySelector(`.task-block[data-idx="${idx}"]`);
+  if (block) {
+    const dot = block.querySelector('.task-block-dot');
+    if (dot) dot.style.background = col;
+  }
 }
-
-function deleteTask(e, idx) {
-  e.stopPropagation();
+function _delX(e, btn) {
+  e.stopPropagation(); e.preventDefault();
+  btn.parentElement.remove();
+}
+function _addX(e, idx) {
+  e.stopPropagation(); e.preventDefault();
+  const block = document.querySelector(`.task-block[data-idx="${idx}"]`);
+  if (!block) return;
+  const xlist = block.querySelector('.task-xlist');
+  const div = document.createElement('div');
+  div.className = 'xrow2';
+  div.innerHTML = `<input class="fi" type="number" placeholder="Сумма" style="max-width:110px;" inputmode="decimal"/>
+    <input class="fi" placeholder="На такси, еду..."/>
+    <button class="xdel" ontouchend="_delX(event,this)" onclick="_delX(event,this)">✕</button>`;
+  xlist.appendChild(div);
+}
+function _delTask(e, idx) {
+  e.stopPropagation(); e.preventDefault();
   if (_tasks.length <= 1) return;
+  _saveTaskFields();
   _tasks.splice(idx, 1);
-  _taskIdx = Math.min(_taskIdx, _tasks.length - 1);
-  _renderTabs();
-  document.getElementById('taskForm').innerHTML = _taskFormHTML(_taskIdx);
+  _renderTasks();
+}
+function addTaskBlock(e) {
+  e.stopPropagation(); e.preventDefault();
+  _saveTaskFields();
+  _tasks.push({ color: COLORS[_tasks.length % COLORS.length], label:'', timeStart:'', timeEnd:'', earned:0, expenses:[] });
+  _renderTasks();
+  // scroll to bottom to show new task
+  setTimeout(() => {
+    const s = document.getElementById('mSheet');
+    if (s) s.scrollTop = s.scrollHeight;
+  }, 50);
+}
+function _saveTaskFields() {
+  // Read current DOM state into _tasks
+  document.querySelectorAll('.task-block').forEach(block => {
+    const idx = parseInt(block.dataset.idx);
+    if (!_tasks[idx]) return;
+    const t = _tasks[idx];
+    const lbl  = block.querySelector('.task-lbl');
+    const ts   = block.querySelector('.task-ts');
+    const te   = block.querySelector('.task-te');
+    const earn = block.querySelector('.task-earn');
+    if (lbl)  t.label     = lbl.value.trim();
+    if (ts)   t.timeStart = ts.value;
+    if (te)   t.timeEnd   = te.value;
+    if (earn) t.earned    = parseFloat(earn.value) || 0;
+    const xs = [];
+    block.querySelectorAll('.xrow2').forEach(r => {
+      const ins = r.querySelectorAll('input');
+      const a = parseFloat(ins[0]?.value) || 0;
+      const c = ins[1]?.value.trim() || '';
+      if (a > 0 || c) xs.push({ amount: a, comment: c });
+    });
+    t.expenses = xs;
+  });
 }
 
 function openModal(dk) {
   eDk = dk;
   const [y, m, d] = dk.split('-').map(Number);
   document.getElementById('mTit').textContent = `${d} ${MONG[m-1]}`;
-
-  // Support both old format (single object) and new format (array of tasks)
+  // Load tasks — support old single-object format and new array format
   const raw = days[dk];
   if (!raw) {
-    _tasks = [_emptyTask()];
+    _tasks = [{ color: cfg.acc || COLORS[0], label:'', timeStart:'', timeEnd:'', earned:0, expenses:[] }];
   } else if (Array.isArray(raw)) {
-    _tasks = raw.map(t => ({ ..._emptyTask(), ...t }));
+    _tasks = raw.map(t => ({ color:COLORS[0], label:'', timeStart:'', timeEnd:'', earned:0, expenses:[], ...t }));
   } else {
-    // Migrate old single-task format
-    _tasks = [{ ..._emptyTask(), ...raw }];
+    _tasks = [{ color:COLORS[0], label:'', timeStart:'', timeEnd:'', earned:0, expenses:[], ...raw }];
   }
-  _taskIdx = 0;
-  _renderTabs();
-  document.getElementById('taskForm').innerHTML = _taskFormHTML(0);
+  _renderTasks();
+  const sheet = document.getElementById('mSheet');
+  if (sheet) sheet.scrollTop = 0;
   document.getElementById('modal').classList.add('on');
 }
 
 function closeModal() {
   document.getElementById('modal').classList.remove('on');
-  eDk = null; _tasks = []; _taskIdx = 0;
-  // Reset all touch/drag state to prevent scroll lock after modal closes
+  eDk = null; _tasks = [];
+  // Reset all touch state to prevent scroll lock
   clearTimeout(_lpt); clearTimeout(_dtTimer);
   _mv = false; _longPressed = false; _longPressDk = null;
   _lastTap = 0; _lastDk = null;
@@ -1805,44 +1812,17 @@ function closeModal() {
   document.querySelectorAll('.dot.press').forEach(el => el.classList.remove('press'));
 }
 
-function pickC(c, el, idx) {
-  const i = idx !== undefined ? idx : _taskIdx;
-  if (_tasks[i]) _tasks[i].color = c;
-  document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
-  if (el) el.classList.add('on');
-  _renderTabs();
-}
-
-function pickCHex(c, idx) {
-  const i = idx !== undefined ? idx : _taskIdx;
-  if (_tasks[i]) _tasks[i].color = c;
-  document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
-  _renderTabs();
-}
-
-function addX(amount = '', comment = '') {
-  const div = document.createElement('div');
-  div.className = 'xrow2';
-  div.innerHTML = `
-    <input class="fi" type="number" placeholder="Сумма" value="${amount}" style="max-width:110px;" inputmode="decimal"/>
-    <input class="fi" placeholder="На такси, еду..." value="${comment}"/>
-    <button class="xdel" onclick="this.parentElement.remove()">✕</button>`;
-  document.getElementById('xList').appendChild(div);
-}
+// Keep these for backward compat (called from old code paths)
+function pickC(c, el) {}
+function pickCHex(c) {}
+function addX(amount='', comment='') {}
 
 function saveDay() {
   if (!eDk) return;
-  _saveCurrentTaskFields();
-  // Remove completely empty tasks
-  const valid = _tasks.filter(t =>
-    t.label || t.timeStart || t.earned || (t.expenses && t.expenses.length)
-  );
-  if (valid.length === 0) {
-    // At least keep one with color if user just picked a color
-    valid.push(_tasks[0]);
-  }
-  // Use first task's color as the dot color on calendar
-  days[eDk] = valid.length === 1 ? valid[0] : valid;
+  _saveTaskFields();
+  const valid = _tasks.filter(t => t.label || t.timeStart || t.earned || (t.expenses && t.expenses.length) || t.color);
+  const toSave = valid.length ? valid : [_tasks[0]];
+  days[eDk] = toSave.length === 1 ? toSave[0] : toSave;
   saveD(); closeModal(); renderCal(); renderEnt();
 }
 
@@ -1853,7 +1833,7 @@ function renderEnt() {
     const dk = dkey(vy, vm, d);
     const dt = new Date(vy, vm, d);
     if (dt.getMonth() !== vm) break;
-    if (days[dk]) items.push({ dk, d, tasks: _normDay(days[dk]) });
+    if (days[dk]) items.push({ dk, d, dd: days[dk] });
   }
   const ew = document.getElementById('entWrap');
   const tw = document.getElementById('totWrap');
@@ -1862,32 +1842,30 @@ function renderEnt() {
   const cur = cfg.cur;
   let html = `<div class="slbl">${MON[vm]} ${vy}</div>`;
   let te = 0; const ax = [];
-  let cardNum = 0;
 
-  items.forEach((it) => {
-    cardNum++;
-    const tasks = it.tasks;
-    // Sum up all tasks for totals
+  items.forEach((it, i) => {
+    const tasks = _normDay(it.dd);
+    const firstColor = _dayColor(it.dd) || cfg.acc;
+
+    // Accumulate totals across all tasks
     tasks.forEach(t => {
       te += t.earned || 0;
       (t.expenses || []).forEach(x => ax.push({ ...x, day: it.d, lbl: t.label }));
     });
 
-    // Card header uses first task's color
-    const firstColor = tasks[0].color || cfg.acc;
-
-    // Build task rows inside card
+    // Build task rows
     let taskRows = '';
     tasks.forEach((t, ti) => {
       const ts = t.timeStart
         ? (t.timeEnd ? `${t.timeStart}–${t.timeEnd}` : t.timeStart)
         : '';
       const es = t.earned ? `+${cur}${t.earned.toLocaleString()}` : '';
-      const xt = (t.expenses || []).reduce((s, x) => s + (x.amount || 0), 0);
+      const xt = (t.expenses||[]).reduce((s,x) => s+(x.amount||0), 0);
       const xs = xt ? `−${cur}${xt.toLocaleString()}` : '';
-      taskRows += `<div class="etask-row">
-        <div class="etask-num" style="background:${t.color||cfg.acc};">${ti+1}</div>
-        <div class="etask-info">
+      const dotColor = t.color || cfg.acc;
+      taskRows += `<div style="display:flex;align-items:flex-start;gap:10px;padding:${ti>0?'8px 0 0':'4px 0 0'};">
+        <div style="width:20px;height:20px;border-radius:50%;background:${dotColor};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px;">${ti+1}</div>
+        <div style="flex:1;">
           ${t.label ? `<div class="ename">${t.label}</div>` : ''}
           <div class="enums">
             ${ts ? `<span style="color:var(--text3);">🕐 ${ts}</span>` : ''}
@@ -1900,7 +1878,7 @@ function renderEnt() {
 
     html += `<div class="ecard" onclick="openModal('${it.dk}')">
       <div class="etop">
-        <div class="enum">${cardNum}</div>
+        <div class="enum">${i+1}</div>
         <div class="einfo">
           <div class="edate">${it.d} ${MONG[vm]}</div>
         </div>
