@@ -86,6 +86,8 @@ button { font-family: inherit; cursor: pointer; }
   background: var(--bg2);
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-top: .5px solid var(--sep);
+  touch-action: none;
+  user-select: none;
 }
 .tbtn { background: none; border: none; font-size: 34px; padding: 6px 14px; opacity: .35; transition: opacity .2s; touch-action: manipulation; }
 .tbtn.on { opacity: 1; }
@@ -1795,6 +1797,12 @@ function openModal(dk) {
 function closeModal() {
   document.getElementById('modal').classList.remove('on');
   eDk = null; _tasks = []; _taskIdx = 0;
+  // Reset all touch/drag state to prevent scroll lock after modal closes
+  clearTimeout(_lpt); clearTimeout(_dtTimer);
+  _mv = false; _longPressed = false; _longPressDk = null;
+  _lastTap = 0; _lastDk = null;
+  if (_dragActive) _endDrag(false);
+  document.querySelectorAll('.dot.press').forEach(el => el.classList.remove('press'));
 }
 
 function pickC(c, el, idx) {
