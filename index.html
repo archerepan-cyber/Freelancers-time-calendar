@@ -755,9 +755,15 @@ button { font-family: inherit; cursor: pointer; }
 window.addEventListener('orientationchange', () => {
   const mv = document.querySelector('meta[name=viewport]');
   if (mv) {
+    // Force reset by temporarily removing and re-adding
     mv.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
   }
-  setTimeout(() => { window.scrollTo(0, 0); }, 100);
+  setTimeout(() => {
+    window.scrollTo(0, 0);
+    if (mv) {
+      mv.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+    }
+  }, 300);
 });
 
 
@@ -1860,8 +1866,13 @@ function saveDay() {
     (t.earned && t.earned > 0) ||
     (t.expenses && t.expenses.length > 0)
   );
-  const toSave = valid.length ? valid : [{ ..._tasks[0], label:'', timeStart:'', timeEnd:'', earned:0, expenses:[] }];
-  days[eDk] = toSave.length === 1 ? toSave[0] : toSave;
+  if (!valid.length) {
+    // Nothing filled — save just the color so dot shows on calendar
+    const t0 = _tasks[0] || {};
+    days[eDk] = { color: t0.color || cfg.acc, label:'', timeStart:'', timeEnd:'', earned:0, expenses:[] };
+  } else {
+    days[eDk] = valid.length === 1 ? valid[0] : valid;
+  }
   saveD(); closeModal(); renderCal(); renderEnt();
 }
 
