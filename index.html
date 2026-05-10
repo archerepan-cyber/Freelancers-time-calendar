@@ -284,14 +284,12 @@ button { font-family: inherit; cursor: pointer; }
   background: var(--bg); border-radius: 24px 24px 0 0;
   padding: 14px 20px calc(var(--sb) + 20px);
   max-height: 90vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
-  transform: translateY(100%); transition: transform .3s cubic-bezier(.4,0,.2,1);
-  /* keyboard offset applied via JS */
+  transform: translateY(100%);
+  transition: transform .3s cubic-bezier(.4,0,.2,1);
+  will-change: transform;
   margin-bottom: 0;
 }
 .mover.on .msheet { transform: translateY(0); }
-.mover.keyboard-up .msheet {
-  border-radius: 16px 16px 0 0;
-}
 .mdrg { width: 36px; height: 4px; border-radius: 2px; background: var(--sep); margin: 0 auto 16px; }
 .mtit { font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--text); }
 .mtit-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
@@ -2273,59 +2271,41 @@ function applyBg() {
 (function () {
   const modal = document.getElementById('modal');
   const sheet = document.getElementById('mSheet');
-  if (!modal || !sheet) return;
+  if (!modal || !sheet || !window.visualViewport) return;
 
-  function onViewportResize() {
+  const vv = window.visualViewport;
+  let raf = null;
+
+  function applyLayout() {
+    raf = null;
     if (!modal.classList.contains('on')) return;
-    const vv = window.visualViewport;
-    if (!vv) return;
-    // How much the keyboard has pushed the viewport up
-    const keyboardH = window.innerHeight - vv.height - vv.offsetTop;
-    if (keyboardH > 60) {
-      // Keyboard is visible — shift sheet up above keyboard
-      const maxH = vv.height * 0.92;
-      sheet.style.maxHeight = maxH + 'px';
-      sheet.style.marginBottom = keyboardH + 'px';
-      modal.classList.add('keyboard-up');
+    const kbH = window.innerHeight - vv.offsetTop - vv.height;
+    if (kbH > 80) {
+      sheet.style.maxHeight = (vv.height * 0.93) + 'px';
+      sheet.style.marginBottom = kbH + 'px';
     } else {
       sheet.style.maxHeight = '';
       sheet.style.marginBottom = '';
-      modal.classList.remove('keyboard-up');
     }
   }
 
-  function resetSheetSize() {
+  function scheduleLayout() {
+    if (raf) cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(applyLayout);
+  }
+
+  function resetLayout() {
+    if (raf) cancelAnimationFrame(raf);
     sheet.style.maxHeight = '';
     sheet.style.marginBottom = '';
-    modal.classList.remove('keyboard-up');
   }
 
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', onViewportResize);
-    window.visualViewport.addEventListener('scroll', onViewportResize);
-  }
-
-  // Also listen on focusin/focusout inside the sheet as fallback
-  sheet.addEventListener('focusin', () => {
-    setTimeout(onViewportResize, 350); // wait for keyboard animation
-    setTimeout(() => {
-      const el = document.activeElement;
-      if (el && sheet.contains(el)) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }, 400);
-  });
-  sheet.addEventListener('focusout', () => {
-    setTimeout(() => {
-      // Only reset if no focused element remains inside modal
-      if (!sheet.contains(document.activeElement)) resetSheetSize();
-    }, 350);
-  });
+  vv.addEventListener('resize', scheduleLayout);
 
   // Reset when modal closes
   const _origClose = window.closeModal;
   window.closeModal = function () {
-    resetSheetSize();
+    resetLayout();
     if (_origClose) _origClose();
   };
 })();
