@@ -33,9 +33,19 @@
 
 /* ── RESET ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html { height: 100%; overflow: hidden; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: manipulation; }
-body { height: 100%; max-height: 100%; overflow: hidden; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: manipulation; }
-body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); }
+html {
+  height: 100%; width: 100%;
+  overflow: hidden;
+  -webkit-text-size-adjust: none; text-size-adjust: none;
+  touch-action: pan-x pan-y;
+}
+body {
+  height: 100%; width: 100%;
+  overflow: hidden;
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg); color: var(--text);
+  -webkit-text-size-adjust: none; text-size-adjust: none;
+}
 input, textarea, select { font-family: inherit; user-select: text; -webkit-user-select: text; }
 button { font-family: inherit; cursor: pointer; }
 * { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
@@ -752,9 +762,19 @@ button { font-family: inherit; cursor: pointer; }
 </div>
 
 <script>
-// ── iOS ORIENTATION / ZOOM FIX ──
+// ── iOS PWA ORIENTATION FIX ──
 (function(){
-  var _vp = window.visualViewport;
+  // Принудительный reflow — именно это сбрасывает zoom в iOS PWA.
+  // Кнопка "праздники" работала потому что вызывала reflow DOM.
+  // Воспроизводим это программно: меняем display туда-обратно.
+  function forceReflow(){
+    var app = document.getElementById('app');
+    if(!app) return;
+    app.style.display = 'none';
+    // читаем offsetHeight — это синхронный reflow
+    void app.offsetHeight;
+    app.style.display = '';
+  }
 
   function resetViewport(){
     var mv = document.querySelector('meta[name=viewport]');
@@ -762,15 +782,12 @@ button { font-family: inherit; cursor: pointer; }
   }
 
   function fixSize(){
-    // Берём реальные размеры через visualViewport (самый точный API на iOS)
-    var h = _vp ? _vp.height : window.innerHeight;
-    var w = _vp ? _vp.width  : window.innerWidth;
-    // Записываем в CSS-переменную — #app использует var(--app-h)
+    var vp = window.visualViewport;
+    var h = vp ? vp.height : window.innerHeight;
+    var w = vp ? vp.width  : window.innerWidth;
     document.documentElement.style.setProperty('--app-h', h + 'px');
-    // Принудительно фиксируем размер оболочки
     var app = document.getElementById('app');
     if(app){ app.style.height = h + 'px'; app.style.width = w + 'px'; }
-    // Сбрасываем любой скролл-дрейф
     window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
@@ -779,23 +796,26 @@ button { font-family: inherit; cursor: pointer; }
   function fullFix(){
     resetViewport();
     fixSize();
-    // iOS применяет новые размеры асинхронно — повторяем несколько раз
-    setTimeout(fixSize, 50);
-    setTimeout(fixSize, 150);
-    setTimeout(fixSize, 400);
+    forceReflow();
+    setTimeout(function(){ fixSize(); forceReflow(); }, 100);
+    setTimeout(function(){ fixSize(); forceReflow(); }, 350);
+    setTimeout(function(){ fixSize(); forceReflow(); }, 700);
   }
 
-  // Поворот экрана
-  window.addEventListener('orientationchange', function(){ setTimeout(fullFix, 50); });
+  window.addEventListener('orientationchange', function(){
+    setTimeout(fullFix, 50);
+  });
 
-  // visualViewport.resize перехватывает и поворот, и клавиатуру на всех браузерах
-  if(_vp){
-    _vp.addEventListener('resize', fixSize);
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', function(){
+      fixSize(); forceReflow();
+    });
   } else {
-    window.addEventListener('resize', fixSize);
+    window.addEventListener('resize', function(){
+      fixSize(); forceReflow();
+    });
   }
 
-  // Запуск при старте
   fullFix();
 })();
 
