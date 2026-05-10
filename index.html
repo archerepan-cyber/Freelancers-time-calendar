@@ -781,6 +781,8 @@ button { font-family: inherit; cursor: pointer; }
     if(mv) mv.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
   }
 
+  var _modalClosing = false;
+
   function isKeyboardOpen(){
     // Клавиатура открыта если фокус внутри поля ввода в модальном окне или шторке
     var ae = document.activeElement;
@@ -797,9 +799,13 @@ button { font-family: inherit; cursor: pointer; }
     return false;
   }
 
+  // Экспортируем флаг — closeModal() выставит его чтобы заблокировать fixSize
+  // на время анимации закрытия модалки (пока клавиатура убирается)
+  window._setModalClosing = function(val){ _modalClosing = val; };
+
   function fixSize(){
-    // Не перестраиваем размер пока открыта клавиатура — иначе модалка дёргается
-    if(isKeyboardOpen()) return;
+    // Не перестраиваем размер пока открыта клавиатура или идёт анимация закрытия
+    if(isKeyboardOpen() || _modalClosing) return;
     var vp = window.visualViewport;
     var h = vp ? vp.height : window.innerHeight;
     var w = vp ? vp.width  : window.innerWidth;
@@ -1911,6 +1917,14 @@ function openModal(dk) {
 }
 
 function closeModal() {
+  // Блокируем fixSize на время анимации закрытия (клавиатура убирается ~400мс)
+  if (window._setModalClosing) {
+    window._setModalClosing(true);
+    setTimeout(function(){ window._setModalClosing(false); }, 500);
+  }
+  // Снимаем фокус пока модалка ещё «открыта»
+  var ae = document.activeElement;
+  if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) ae.blur();
   document.getElementById('modal').classList.remove('on');
   eDk = null; _tasks = [];
   // Reset all touch state to prevent scroll lock
