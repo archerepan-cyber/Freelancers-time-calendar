@@ -45,7 +45,7 @@ button { font-family: inherit; cursor: pointer; }
 #ov { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
 
 /* ── APP SHELL ── */
-#app { position: fixed; inset: 0; z-index: 2; display: flex; flex-direction: column; }
+#app { position: fixed; inset: 0; z-index: 2; display: flex; flex-direction: column; height: var(--real-vh, 100svh); }
 
 /* ── SCREENS ── */
 #wrap {
@@ -751,19 +751,36 @@ button { font-family: inherit; cursor: pointer; }
 </div>
 
 <script>
-// ── iOS ORIENTATION FIX ──
-window.addEventListener('orientationchange', () => {
-  const mv = document.querySelector('meta[name=viewport]');
-  if (mv) {
-    mv.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
-  }
-  setTimeout(() => {
+// ── iOS ORIENTATION / RESIZE FIX ──
+(function () {
+  function fixLayout() {
+    // visualViewport даёт реальные размеры после поворота на iOS
+    var h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    var w = window.visualViewport ? window.visualViewport.width  : window.innerWidth;
+    document.documentElement.style.setProperty('--real-vh', h + 'px');
+    document.documentElement.style.setProperty('--real-vw', w + 'px');
+    var app = document.getElementById('app');
+    if (app) app.style.height = h + 'px';
     window.scrollTo(0, 0);
-    if (mv) {
-      mv.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
-    }
-  }, 300);
-});
+    document.body.scrollTop = 0;
+  }
+  function runFix() {
+    fixLayout();
+    setTimeout(fixLayout, 50);
+    setTimeout(fixLayout, 350);
+  }
+  window.addEventListener('orientationchange', function () {
+    var mv = document.querySelector('meta[name=viewport]');
+    if (mv) mv.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+    setTimeout(runFix, 80);
+  });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', runFix);
+  } else {
+    window.addEventListener('resize', runFix);
+  }
+  runFix();
+})();
 
 
 const TE_VARS = ['--bg','--bg2','--bg3','--text','--text2','--text3','--accent','--dot-today','--dot-past','--dot-future'];
@@ -1857,17 +1874,9 @@ function addX(amount='', comment='') {}
 function saveDay() {
   if (!eDk) return;
   _saveTaskFields();
-  const valid = _tasks.filter(t =>
-    t.label || t.timeStart || t.timeEnd ||
-    (t.earned && t.earned > 0) ||
-    (t.expenses && t.expenses.length > 0)
-  );
-  if (!valid.length) {
-    const t0 = _tasks[0] || {};
-    days[eDk] = { color: t0.color || cfg.acc, label:'', timeStart:'', timeEnd:'', earned:0, expenses:[] };
-  } else {
-    days[eDk] = valid.length === 1 ? valid[0] : valid;
-  }
+  const valid = _tasks.filter(t => t.label || t.timeStart || t.earned || (t.expenses && t.expenses.length) || t.color);
+  const toSave = valid.length ? valid : [_tasks[0]];
+  days[eDk] = toSave.length === 1 ? toSave[0] : toSave;
   saveD(); closeModal(); renderCal(); renderEnt();
 }
 
