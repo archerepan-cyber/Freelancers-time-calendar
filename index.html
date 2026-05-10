@@ -826,63 +826,55 @@ button { font-family: inherit; cursor: pointer; }
 })();
 
 // ── iOS KEYBOARD / INPUT VISIBILITY FIX ──
-// Когда iOS показывает клавиатуру — visualViewport.height уменьшается.
-// .msheet стоит fixed и не знает про клавиатуру — поле уходит под неё.
-// Решение: поднимаем .msheet на разницу высот (= высота клавиатуры).
+// Не двигаем шторку — скроллим внутри неё к активному полю.
+// Шторка уже overflow-y:auto, надо только правильно скорректировать
+// её max-height под клавиатуру и прокрутить к полю.
 (function(){
   if (!window.visualViewport) return;
 
-  var fullH = window.visualViewport.height;
+  var _keyboardOpen = false;
 
   window.visualViewport.addEventListener('resize', function(){
-    var currentH = window.visualViewport.height;
-    var keyboardH = Math.max(0, fullH - currentH);
+    var vph = window.visualViewport.height;
+    var winh = window.screen.height;
+    // Клавиатура открыта если viewport значительно меньше экрана
+    var keyboardH = Math.max(0, winh - vph);
+    _keyboardOpen = keyboardH > 100;
 
     var sheet = document.getElementById('mSheet');
     if (sheet) {
-      if (keyboardH > 60) {
-        // Клавиатура открыта — поднимаем шторку вверх
-        sheet.style.transform = 'translateY(-' + keyboardH + 'px)';
-        sheet.style.transition = 'transform 0.25s ease';
-        // Скроллим к активному input внутри шторки
-        setTimeout(function(){
-          var active = document.activeElement;
-          if (active && sheet.contains(active)) {
-            active.scrollIntoView({ block: 'center', behavior: 'smooth' });
-          }
-        }, 50);
+      if (_keyboardOpen) {
+        // Ограничиваем высоту шторки так, чтобы она не лезла под клавиатуру
+        sheet.style.maxHeight = vph * 0.92 + 'px';
       } else {
-        // Клавиатура закрыта — возвращаем на место
-        sheet.style.transform = '';
-        sheet.style.transition = 'transform 0.25s ease';
-        // Обновляем fullH на случай поворота
-        fullH = currentH;
+        sheet.style.maxHeight = '';
       }
     }
 
-    // То же самое для te-sheet (редактор темы)
-    var teSheet = document.querySelector('.te-sheet');
-    if (teSheet) {
-      if (keyboardH > 60) {
-        teSheet.style.transform = 'translateY(-' + keyboardH + 'px)';
-        teSheet.style.transition = 'transform 0.25s ease';
-      } else {
-        teSheet.style.transform = '';
-        teSheet.style.transition = 'transform 0.25s ease';
-        fullH = currentH;
-      }
+    // Скроллим к активному полю внутри шторки
+    if (_keyboardOpen) {
+      setTimeout(function(){
+        var active = document.activeElement;
+        if (!active) return;
+        var s = document.getElementById('mSheet');
+        if (s && s.contains(active)) {
+          active.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+        var ts = document.querySelector('.te-sheet');
+        if (ts && ts.contains(active)) {
+          active.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+      }, 80);
     }
   });
 
-  // При потере фокуса — сброс позиции
-  document.addEventListener('focusout', function(){
+  // Скроллим сразу при фокусе на input
+  document.addEventListener('focusin', function(e){
+    var el = e.target;
+    if (!el || (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA')) return;
     setTimeout(function(){
-      var sheet = document.getElementById('mSheet');
-      if (sheet) { sheet.style.transform = ''; }
-      var teSheet = document.querySelector('.te-sheet');
-      if (teSheet) { teSheet.style.transform = ''; }
-      fullH = window.visualViewport.height;
-    }, 100);
+      el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }, 350);
   });
 })();
 
@@ -934,6 +926,12 @@ let _teCustom = {}; // saved custom overrides per theme key
 (function(){
   const sheet = () => document.querySelector('.msheet');
   let sy = 0, dragging = false;
+
+  function keyboardVisible() {
+    if (!window.visualViewport) return false;
+    return (window.screen.height - window.visualViewport.height) > 100;
+  }
+
   document.addEventListener('touchstart', e => {
     if (!document.getElementById('modal').classList.contains('on')) return;
     sy = e.touches[0].clientY;
@@ -941,6 +939,8 @@ let _teCustom = {}; // saved custom overrides per theme key
   }, {passive:true});
   document.addEventListener('touchmove', e => {
     if (!document.getElementById('modal').classList.contains('on')) return;
+    // Не свайпаем пока открыта клавиатура — пользователь скроллит к полю
+    if (keyboardVisible()) return;
     const s = sheet();
     if (!s) return;
     if (s.scrollTop > 0) return;
@@ -949,6 +949,7 @@ let _teCustom = {}; // saved custom overrides per theme key
   }, {passive:true});
   document.addEventListener('touchend', e => {
     if (!document.getElementById('modal').classList.contains('on')) return;
+    if (keyboardVisible()) { dragging = false; return; }
     const s = sheet();
     if (!s) return;
     const dy = e.changedTouches[0].clientY - sy;
