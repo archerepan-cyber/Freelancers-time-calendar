@@ -781,7 +781,25 @@ button { font-family: inherit; cursor: pointer; }
     if(mv) mv.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
   }
 
+  function isKeyboardOpen(){
+    // Клавиатура открыта если фокус внутри поля ввода в модальном окне или шторке
+    var ae = document.activeElement;
+    if(!ae) return false;
+    var tag = ae.tagName;
+    if(tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') return false;
+    // Проверяем что элемент внутри модалки, шторки тем или пикера стран
+    var modal = document.getElementById('modal');
+    var teOver = document.getElementById('teOver');
+    var cpOver = document.getElementById('countryPickerOver');
+    if(modal && modal.contains(ae)) return true;
+    if(teOver && teOver.contains(ae)) return true;
+    if(cpOver && cpOver.contains(ae)) return true;
+    return false;
+  }
+
   function fixSize(){
+    // Не перестраиваем размер пока открыта клавиатура — иначе модалка дёргается
+    if(isKeyboardOpen()) return;
     var vp = window.visualViewport;
     var h = vp ? vp.height : window.innerHeight;
     var w = vp ? vp.width  : window.innerWidth;
