@@ -276,14 +276,14 @@ button { font-family: inherit; cursor: pointer; }
   background: rgba(0,0,0,.55);
   display: flex; align-items: flex-end; justify-content: center;
   opacity: 0; pointer-events: none;
-  transition: opacity .25s;
+  transition: opacity .25s, bottom .2s ease;
 }
 .mover.on { opacity: 1; pointer-events: auto; }
 .msheet {
   width: 100%; max-width: 520px;
   background: var(--bg); border-radius: 24px 24px 0 0;
   padding: 14px 20px calc(var(--sb) + 20px);
-  max-height: 90vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  max-height: 92vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
   transform: translateY(100%); transition: transform .3s cubic-bezier(.4,0,.2,1);
 }
 .mover.on .msheet { transform: translateY(0); }
@@ -826,55 +826,51 @@ button { font-family: inherit; cursor: pointer; }
 })();
 
 // ── iOS KEYBOARD / INPUT VISIBILITY FIX ──
-// Не двигаем шторку — скроллим внутри неё к активному полю.
-// Шторка уже overflow-y:auto, надо только правильно скорректировать
-// её max-height под клавиатуру и прокрутить к полю.
+// На iOS PWA fixed-элементы не двигаются когда появляется клавиатура.
+// visualViewport.offsetTop показывает насколько viewport сдвинулся вниз
+// (= насколько клавиатура "съела" снизу).
+// Решение: двигаем .mover вверх через style.bottom на высоту клавиатуры.
 (function(){
   if (!window.visualViewport) return;
 
-  var _keyboardOpen = false;
+  function onViewportChange() {
+    var vp = window.visualViewport;
+    // Высота клавиатуры = разница между высотой окна и высотой viewport
+    var keyboardH = window.innerHeight - vp.height - vp.offsetTop;
+    keyboardH = Math.max(0, keyboardH);
 
-  window.visualViewport.addEventListener('resize', function(){
-    var vph = window.visualViewport.height;
-    var winh = window.screen.height;
-    // Клавиатура открыта если viewport значительно меньше экрана
-    var keyboardH = Math.max(0, winh - vph);
-    _keyboardOpen = keyboardH > 100;
-
-    var sheet = document.getElementById('mSheet');
-    if (sheet) {
-      if (_keyboardOpen) {
-        // Ограничиваем высоту шторки так, чтобы она не лезла под клавиатуру
-        sheet.style.maxHeight = vph * 0.92 + 'px';
+    var mover = document.getElementById('modal');
+    if (mover) {
+      if (keyboardH > 60) {
+        mover.style.bottom = keyboardH + 'px';
       } else {
-        sheet.style.maxHeight = '';
+        mover.style.bottom = '';
       }
     }
 
     // Скроллим к активному полю внутри шторки
-    if (_keyboardOpen) {
+    if (keyboardH > 60) {
       setTimeout(function(){
         var active = document.activeElement;
-        if (!active) return;
-        var s = document.getElementById('mSheet');
-        if (s && s.contains(active)) {
-          active.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) return;
+        var sheet = document.getElementById('mSheet');
+        if (sheet && sheet.contains(active)) {
+          active.scrollIntoView({ block: 'center', behavior: 'smooth' });
         }
-        var ts = document.querySelector('.te-sheet');
-        if (ts && ts.contains(active)) {
-          active.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        }
-      }, 80);
+      }, 100);
     }
-  });
+  }
 
-  // Скроллим сразу при фокусе на input
-  document.addEventListener('focusin', function(e){
-    var el = e.target;
-    if (!el || (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA')) return;
+  window.visualViewport.addEventListener('resize', onViewportChange);
+  window.visualViewport.addEventListener('scroll', onViewportChange);
+
+  // Сброс при потере фокуса
+  document.addEventListener('focusout', function(){
     setTimeout(function(){
-      el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    }, 350);
+      if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
+      var mover = document.getElementById('modal');
+      if (mover) mover.style.bottom = '';
+    }, 150);
   });
 })();
 
