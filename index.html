@@ -276,17 +276,22 @@ button { font-family: inherit; cursor: pointer; }
   background: rgba(0,0,0,.55);
   display: flex; align-items: flex-end; justify-content: center;
   opacity: 0; pointer-events: none;
-  transition: opacity .25s, bottom .2s ease;
+  transition: opacity .25s;
 }
 .mover.on { opacity: 1; pointer-events: auto; }
 .msheet {
   width: 100%; max-width: 520px;
   background: var(--bg); border-radius: 24px 24px 0 0;
   padding: 14px 20px calc(var(--sb) + 20px);
-  max-height: 92vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  max-height: 90vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
   transform: translateY(100%); transition: transform .3s cubic-bezier(.4,0,.2,1);
+  /* keyboard offset applied via JS */
+  margin-bottom: 0;
 }
 .mover.on .msheet { transform: translateY(0); }
+.mover.keyboard-up .msheet {
+  border-radius: 16px 16px 0 0;
+}
 .mdrg { width: 36px; height: 4px; border-radius: 2px; background: var(--sep); margin: 0 auto 16px; }
 .mtit { font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--text); }
 .mtit-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
@@ -808,13 +813,7 @@ button { font-family: inherit; cursor: pointer; }
 
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize', function(){
-      // Только при повороте (большое изменение размера) — делаем reflow
-      // При клавиатуре (малое изменение) — не трогаем, клавиатурный фикс сам разберётся
-      var newW = window.visualViewport.width;
-      if(Math.abs(newW - (window._lastVpW||newW)) > 50){
-        fixSize(); forceReflow();
-      }
-      window._lastVpW = newW;
+      fixSize(); forceReflow();
     });
   } else {
     window.addEventListener('resize', function(){
@@ -825,54 +824,6 @@ button { font-family: inherit; cursor: pointer; }
   fullFix();
 })();
 
-// ── iOS KEYBOARD / INPUT VISIBILITY FIX ──
-// На iOS PWA fixed-элементы не двигаются когда появляется клавиатура.
-// visualViewport.offsetTop показывает насколько viewport сдвинулся вниз
-// (= насколько клавиатура "съела" снизу).
-// Решение: двигаем .mover вверх через style.bottom на высоту клавиатуры.
-(function(){
-  if (!window.visualViewport) return;
-
-  function onViewportChange() {
-    var vp = window.visualViewport;
-    // Высота клавиатуры = разница между высотой окна и высотой viewport
-    var keyboardH = window.innerHeight - vp.height - vp.offsetTop;
-    keyboardH = Math.max(0, keyboardH);
-
-    var mover = document.getElementById('modal');
-    if (mover) {
-      if (keyboardH > 60) {
-        mover.style.bottom = keyboardH + 'px';
-      } else {
-        mover.style.bottom = '';
-      }
-    }
-
-    // Скроллим к активному полю внутри шторки
-    if (keyboardH > 60) {
-      setTimeout(function(){
-        var active = document.activeElement;
-        if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) return;
-        var sheet = document.getElementById('mSheet');
-        if (sheet && sheet.contains(active)) {
-          active.scrollIntoView({ block: 'center', behavior: 'smooth' });
-        }
-      }, 100);
-    }
-  }
-
-  window.visualViewport.addEventListener('resize', onViewportChange);
-  window.visualViewport.addEventListener('scroll', onViewportChange);
-
-  // Сброс при потере фокуса
-  document.addEventListener('focusout', function(){
-    setTimeout(function(){
-      if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
-      var mover = document.getElementById('modal');
-      if (mover) mover.style.bottom = '';
-    }, 150);
-  });
-})();
 
 const TE_VARS = ['--bg','--bg2','--bg3','--text','--text2','--text3','--accent','--dot-today','--dot-past','--dot-future'];
 const TE_IDS  = {'--bg':'sw-bg','--bg2':'sw-bg2','--bg3':'sw-bg3','--text':'sw-text','--text2':'sw-text2','--text3':'sw-text3','--accent':'sw-accent','--dot-today-bg':'sw-dot-today-bg','--dot-today':'sw-dot-today','--dot-past':'sw-dot-past','--dot-future':'sw-dot-future'};
@@ -922,12 +873,6 @@ let _teCustom = {}; // saved custom overrides per theme key
 (function(){
   const sheet = () => document.querySelector('.msheet');
   let sy = 0, dragging = false;
-
-  function keyboardVisible() {
-    if (!window.visualViewport) return false;
-    return (window.screen.height - window.visualViewport.height) > 100;
-  }
-
   document.addEventListener('touchstart', e => {
     if (!document.getElementById('modal').classList.contains('on')) return;
     sy = e.touches[0].clientY;
@@ -935,8 +880,6 @@ let _teCustom = {}; // saved custom overrides per theme key
   }, {passive:true});
   document.addEventListener('touchmove', e => {
     if (!document.getElementById('modal').classList.contains('on')) return;
-    // Не свайпаем пока открыта клавиатура — пользователь скроллит к полю
-    if (keyboardVisible()) return;
     const s = sheet();
     if (!s) return;
     if (s.scrollTop > 0) return;
@@ -945,7 +888,6 @@ let _teCustom = {}; // saved custom overrides per theme key
   }, {passive:true});
   document.addEventListener('touchend', e => {
     if (!document.getElementById('modal').classList.contains('on')) return;
-    if (keyboardVisible()) { dragging = false; return; }
     const s = sheet();
     if (!s) return;
     const dy = e.changedTouches[0].clientY - sy;
@@ -2326,6 +2268,67 @@ function applyBg() {
     document.getElementById('ov').style.background = 'rgba(0,0,0,0)';
   }
 }
+
+// ── KEYBOARD / VIEWPORT HANDLING ──
+(function () {
+  const modal = document.getElementById('modal');
+  const sheet = document.getElementById('mSheet');
+  if (!modal || !sheet) return;
+
+  function onViewportResize() {
+    if (!modal.classList.contains('on')) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    // How much the keyboard has pushed the viewport up
+    const keyboardH = window.innerHeight - vv.height - vv.offsetTop;
+    if (keyboardH > 60) {
+      // Keyboard is visible — shift sheet up above keyboard
+      const maxH = vv.height * 0.92;
+      sheet.style.maxHeight = maxH + 'px';
+      sheet.style.marginBottom = keyboardH + 'px';
+      modal.classList.add('keyboard-up');
+    } else {
+      sheet.style.maxHeight = '';
+      sheet.style.marginBottom = '';
+      modal.classList.remove('keyboard-up');
+    }
+  }
+
+  function resetSheetSize() {
+    sheet.style.maxHeight = '';
+    sheet.style.marginBottom = '';
+    modal.classList.remove('keyboard-up');
+  }
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', onViewportResize);
+    window.visualViewport.addEventListener('scroll', onViewportResize);
+  }
+
+  // Also listen on focusin/focusout inside the sheet as fallback
+  sheet.addEventListener('focusin', () => {
+    setTimeout(onViewportResize, 350); // wait for keyboard animation
+    setTimeout(() => {
+      const el = document.activeElement;
+      if (el && sheet.contains(el)) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 400);
+  });
+  sheet.addEventListener('focusout', () => {
+    setTimeout(() => {
+      // Only reset if no focused element remains inside modal
+      if (!sheet.contains(document.activeElement)) resetSheetSize();
+    }, 350);
+  });
+
+  // Reset when modal closes
+  const _origClose = window.closeModal;
+  window.closeModal = function () {
+    resetSheetSize();
+    if (_origClose) _origClose();
+  };
+})();
 
 function applyCfg() {
   // Theme
