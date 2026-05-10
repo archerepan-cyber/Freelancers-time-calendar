@@ -808,7 +808,13 @@ button { font-family: inherit; cursor: pointer; }
 
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize', function(){
-      fixSize(); forceReflow();
+      // Только при повороте (большое изменение размера) — делаем reflow
+      // При клавиатуре (малое изменение) — не трогаем, клавиатурный фикс сам разберётся
+      var newW = window.visualViewport.width;
+      if(Math.abs(newW - (window._lastVpW||newW)) > 50){
+        fixSize(); forceReflow();
+      }
+      window._lastVpW = newW;
     });
   } else {
     window.addEventListener('resize', function(){
@@ -819,6 +825,66 @@ button { font-family: inherit; cursor: pointer; }
   fullFix();
 })();
 
+// ── iOS KEYBOARD / INPUT VISIBILITY FIX ──
+// Когда iOS показывает клавиатуру — visualViewport.height уменьшается.
+// .msheet стоит fixed и не знает про клавиатуру — поле уходит под неё.
+// Решение: поднимаем .msheet на разницу высот (= высота клавиатуры).
+(function(){
+  if (!window.visualViewport) return;
+
+  var fullH = window.visualViewport.height;
+
+  window.visualViewport.addEventListener('resize', function(){
+    var currentH = window.visualViewport.height;
+    var keyboardH = Math.max(0, fullH - currentH);
+
+    var sheet = document.getElementById('mSheet');
+    if (sheet) {
+      if (keyboardH > 60) {
+        // Клавиатура открыта — поднимаем шторку вверх
+        sheet.style.transform = 'translateY(-' + keyboardH + 'px)';
+        sheet.style.transition = 'transform 0.25s ease';
+        // Скроллим к активному input внутри шторки
+        setTimeout(function(){
+          var active = document.activeElement;
+          if (active && sheet.contains(active)) {
+            active.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          }
+        }, 50);
+      } else {
+        // Клавиатура закрыта — возвращаем на место
+        sheet.style.transform = '';
+        sheet.style.transition = 'transform 0.25s ease';
+        // Обновляем fullH на случай поворота
+        fullH = currentH;
+      }
+    }
+
+    // То же самое для te-sheet (редактор темы)
+    var teSheet = document.querySelector('.te-sheet');
+    if (teSheet) {
+      if (keyboardH > 60) {
+        teSheet.style.transform = 'translateY(-' + keyboardH + 'px)';
+        teSheet.style.transition = 'transform 0.25s ease';
+      } else {
+        teSheet.style.transform = '';
+        teSheet.style.transition = 'transform 0.25s ease';
+        fullH = currentH;
+      }
+    }
+  });
+
+  // При потере фокуса — сброс позиции
+  document.addEventListener('focusout', function(){
+    setTimeout(function(){
+      var sheet = document.getElementById('mSheet');
+      if (sheet) { sheet.style.transform = ''; }
+      var teSheet = document.querySelector('.te-sheet');
+      if (teSheet) { teSheet.style.transform = ''; }
+      fullH = window.visualViewport.height;
+    }, 100);
+  });
+})();
 
 const TE_VARS = ['--bg','--bg2','--bg3','--text','--text2','--text3','--accent','--dot-today','--dot-past','--dot-future'];
 const TE_IDS  = {'--bg':'sw-bg','--bg2':'sw-bg2','--bg3':'sw-bg3','--text':'sw-text','--text2':'sw-text2','--text3':'sw-text3','--accent':'sw-accent','--dot-today-bg':'sw-dot-today-bg','--dot-today':'sw-dot-today','--dot-past':'sw-dot-past','--dot-future':'sw-dot-future'};
