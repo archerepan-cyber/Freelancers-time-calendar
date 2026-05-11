@@ -8,6 +8,13 @@
 <meta name="theme-color" content="#080808"/>
 <title>MZC Calendar</title>
 <link rel="manifest" href="manifest.json"/>
+<!-- КРИТИЧНО: этот стиль должен быть ДО любых скриптов — убирает белую вспышку -->
+<style>
+html, body {
+  background: #151515 !important;
+  margin: 0; padding: 0;
+}
+</style>
 <!-- Применяем тему мгновенно — убирает вспышку при запуске PWA -->
 <script>
 (function(){
