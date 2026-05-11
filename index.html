@@ -275,7 +275,7 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
   background: rgba(0,0,0,.55);
   display: flex; align-items: flex-end; justify-content: center;
   opacity: 0; pointer-events: none;
-  transition: opacity .3s cubic-bezier(.4,0,.2,1);
+  transition: opacity .42s cubic-bezier(0.32,0.72,0,1);
 }
 .mover.on { opacity: 1; pointer-events: auto; }
 .msheet {
@@ -283,12 +283,13 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
   background: var(--bg); border-radius: 24px 24px 0 0;
   padding: 14px 20px calc(var(--sb) + 20px);
   max-height: 90vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
-  transform: translateY(100%); transition: transform .3s cubic-bezier(.4,0,.2,1);
+  transform: translateY(100%);
+  transition: transform .42s cubic-bezier(0.32,0.72,0,1);
   will-change: transform;
 }
 .mover.on .msheet { transform: translateY(0); }
-.mover.closing { opacity: 0 !important; pointer-events: none !important; }
-.mover.closing .msheet { transform: translateY(100%) !important; }
+.mover.closing { opacity: 0 !important; pointer-events: none !important; transition: opacity .42s cubic-bezier(0.32,0.72,0,1) !important; }
+.mover.closing .msheet { transform: translateY(100%) !important; transition: transform .42s cubic-bezier(0.32,0.72,0,1) !important; }
 .mdrg { width: 36px; height: 4px; border-radius: 2px; background: var(--sep); margin: 0 auto 16px; }
 .mtit { font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--text); }
 .mtit-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
@@ -1937,7 +1938,7 @@ function closeModal() {
   // После анимации убираем оба класса
   setTimeout(function() {
     modal.classList.remove('on', 'closing');
-  }, 320);
+  }, 450);
   eDk = null; _tasks = [];
   // Reset all touch state to prevent scroll lock
   clearTimeout(_lpt); clearTimeout(_dtTimer);
@@ -1958,7 +1959,7 @@ function saveDay() {
   const valid = _tasks.filter(t => t.label || t.timeStart || t.earned || (t.expenses && t.expenses.length) || t.color);
   const toSave = valid.length ? valid : [_tasks[0]];
   days[eDk] = toSave.length === 1 ? toSave[0] : toSave;
-  saveD(); closeModal(); setTimeout(function(){ renderCal(); renderEnt(); }, 320);
+  saveD(); closeModal(); setTimeout(function(){ renderCal(); renderEnt(); }, 450);
 }
 
 // ── ENTRIES ──
