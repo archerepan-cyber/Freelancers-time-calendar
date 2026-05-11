@@ -526,7 +526,7 @@ button { font-family: inherit; cursor: pointer; }
 .ctx-item.paste { color: var(--accent); }
 </style>
 </head>
-<body>
+<body tabindex="-1">
 
 <div id="bg"><img id="bgImg" alt=""/></div>
 <div id="ov"></div>
@@ -1773,9 +1773,9 @@ function _taskBlockHTML(t, idx, total) {
     </div>`
   ).join('');
   const delBtn = total > 1
-    ? `<button class="task-block-del" ontouchend="event.preventDefault();_delTask(event,${idx})" onclick="_delTask(event,${idx})">✕</button>`
+    ? `<button class="task-block-del" ontouchend="_delTask(event,${idx})" onclick="_delTask(event,${idx})">✕</button>`
     : '';
-  const addBtn = `<button class="task-block-add" ontouchend="event.preventDefault();addTaskBlock(event)" onclick="addTaskBlock(event)">＋</button>`;
+  const addBtn = `<button class="task-block-add" ontouchend="addTaskBlock(event)" onclick="addTaskBlock(event)">＋</button>`;
   return `<div class="task-block" data-idx="${idx}">
     <div class="task-block-header">
       <div class="task-block-num">
@@ -1865,12 +1865,11 @@ function addTaskBlock(e) {
   _saveTaskFields();
   _tasks.push({ color: COLORS[_tasks.length % COLORS.length], label:'', timeStart:'', timeEnd:'', earned:0, expenses:[] });
   _renderTasks();
-  // Плавный скролл к новому блоку
-  requestAnimationFrame(() => {
-    const blocks = document.querySelectorAll('.task-block');
-    const last = blocks[blocks.length - 1];
-    if (last) last.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
+  // scroll to bottom to show new task
+  setTimeout(() => {
+    const s = document.getElementById('mSheet');
+    if (s) s.scrollTop = s.scrollHeight;
+  }, 50);
 }
 function _saveTaskFields() {
   // Read current DOM state into _tasks
@@ -1920,6 +1919,15 @@ function closeModal() {
   const modal = document.getElementById('modal');
   // Защита от двойного вызова
   if (!modal.classList.contains('on') || modal.classList.contains('closing')) return;
+  // Снимаем фокус со всех полей внутри модалки — иначе iOS переносит курсор на основной экран
+  const focused = modal.querySelector('input:focus, textarea:focus, select:focus');
+  if (focused) focused.blur();
+  // Дополнительно — убираем фокус через document.activeElement
+  if (document.activeElement && modal.contains(document.activeElement)) {
+    document.activeElement.blur();
+  }
+  // Переводим фокус на body чтобы iOS не искал следующий фокусируемый элемент
+  if (document.body) document.body.focus();
   // Добавляем .closing — CSS анимирует sheet вниз и фон гаснет
   modal.classList.add('closing');
   // После анимации убираем оба класса
