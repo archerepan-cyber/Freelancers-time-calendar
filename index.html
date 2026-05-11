@@ -8,24 +8,31 @@
 <meta name="theme-color" content="#080808"/>
 <title>MZC Calendar</title>
 <link rel="manifest" href="manifest.json"/>
-<!-- Применяем тему ДО отрисовки страницы — убирает белую вспышку при запуске PWA -->
+<!-- Применяем тему мгновенно — убирает вспышку при запуске PWA -->
 <script>
 (function(){
   try {
     var s = JSON.parse(localStorage.getItem('ftc_s1') || '{}');
     var cls = s.thcls || 't-dark';
-    if (cls) document.documentElement.classList.add(cls);
-    // Обновляем theme-color под текущую тему
     var bgMap = {
       't-dark':'#151515','t-night':'#080808','t-warm':'#EFE8CB',
       't-ocean':'#E2E4D2','t-retro':'#DCC9A9'
     };
-    var bg = bgMap[cls] || '#080808';
+    var bg = bgMap[cls] || '#151515';
+    // Фон на html сразу — до любого CSS
+    document.documentElement.style.background = bg;
+    document.documentElement.classList.add(cls);
     document.querySelector('meta[name="theme-color"]').setAttribute('content', bg);
-  } catch(e){}
+  } catch(e){
+    document.documentElement.style.background = '#151515';
+  }
 })();
 </script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<!-- Шрифты грузим неблокирующим способом -->
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'"/>
+<noscript><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/></noscript>
 <style>
 /* ── VARIABLES ── */
 :root {
@@ -2327,8 +2334,13 @@ function applyBg() {
 }
 
 function applyCfg() {
-  // Theme
-  if (cfg.thcls) document.body.classList.add(cfg.thcls);
+  // Theme — снимаем ранний класс с html, переносим на body
+  if (cfg.thcls) {
+    document.body.classList.add(cfg.thcls);
+    document.documentElement.classList.remove(cfg.thcls);
+  }
+  // Убираем инлайн-фон который был поставлен для мгновенного старта
+  document.documentElement.style.background = '';
   // Custom theme colors
   applyTeCustom(cfg.theme || 'default');
   // Accent
