@@ -5,10 +5,38 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="theme-color" content="#f5f0e8"/>
+<meta name="theme-color" content="#080808" media="(prefers-color-scheme: dark)"/>
+<meta name="theme-color" content="#f5f0e8" media="(prefers-color-scheme: light)"/>
 <title>MZC Calendar</title>
 <link rel="manifest" href="manifest.json"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script>
+// Применяем тему ДО рендера body — иначе будет вспышка дефолтных цветов
+(function(){
+  var THEME_BG = {
+    't-dark':  '#151515',
+    't-warm':  '#EFE8CB',
+    't-ocean': '#E2E4D2',
+    't-retro': '#DCC9A9',
+    't-night': '#080808'
+  };
+  try {
+    var s = JSON.parse(localStorage.getItem('ftc_s1') || '{}');
+    if (s.thcls) document.documentElement.classList.add(s.thcls);
+    if (s.acc)   document.documentElement.style.setProperty('--accent', s.acc);
+    // Применяем кастомные цвета темы
+    if (s.teCustom && s.theme && s.teCustom[s.theme]) {
+      var vars = ['--bg','--bg2','--bg3','--text','--text2','--text3','--accent','--dot-today','--dot-past','--dot-future'];
+      var custom = s.teCustom[s.theme];
+      vars.forEach(function(v){ if(custom[v]) document.documentElement.style.setProperty(v, custom[v]); });
+    }
+    // Обновляем theme-color мета-тег под реальную тему
+    var bg = (s.teCustom && s.theme && s.teCustom[s.theme] && s.teCustom[s.theme]['--bg'])
+      || THEME_BG[s.thcls] || '#080808';
+    document.querySelectorAll('meta[name=theme-color]').forEach(function(m){ m.setAttribute('content', bg); });
+  } catch(e){}
+})();
+</script>
 <style>
 /* ── VARIABLES ── */
 :root {
@@ -24,18 +52,19 @@
   --sb:     env(safe-area-inset-bottom);
 }
 
-/* ── THEMES ── */
-.t-dark  { --bg:#151515; --bg2:rgba(30,30,30,.9); --bg3:rgba(255,255,255,.07); --text:#efefef; --text2:#999; --text3:#555; --sep:rgba(255,255,255,.08); --dot-bg:rgba(255,255,255,.10); --dot-past:rgba(255,255,255,.13); --dot-today-bg:rgba(255,255,255,.18); --dot-today:rgba(255,255,255,.6); --dot-future:rgba(255,255,255,.06); }
-.t-warm  { --bg:#EFE8CB; --bg2:rgba(255,250,230,.85); --bg3:rgba(50,30,0,.06); --text:#2a1a08; --text2:#6b4a28; --text3:#b09060; --sep:rgba(0,0,0,.08); }
-.t-ocean { --bg:#E2E4D2; --bg2:rgba(220,224,210,.9); --bg3:rgba(26,42,40,.06); --text:#1a2826; --text2:#3d5654; --text3:#7BA7AF; --sep:rgba(0,0,0,.08); }
-.t-retro { --bg:#DCC9A9; --bg2:rgba(220,200,165,.9); --bg3:rgba(40,20,10,.06); --text:#2a1508; --text2:#7a4a20; --text3:#b08050; --sep:rgba(0,0,0,.08); }
-.t-night { --bg:#080808; --bg2:rgba(18,18,18,.95); --bg3:rgba(255,255,255,.05); --text:#ddd; --text2:#777; --text3:#404040; --sep:rgba(255,255,255,.06); --dot-bg:rgba(255,255,255,.09); --dot-past:rgba(255,255,255,.12); --dot-today-bg:rgba(255,255,255,.16); --dot-today:rgba(255,255,255,.5); --dot-future:rgba(255,255,255,.05); }
+/* ── THEMES — на html чтобы работали до body ── */
+html.t-dark,  .t-dark  { --bg:#151515; --bg2:rgba(30,30,30,.9); --bg3:rgba(255,255,255,.07); --text:#efefef; --text2:#999; --text3:#555; --sep:rgba(255,255,255,.08); --dot-bg:rgba(255,255,255,.10); --dot-past:rgba(255,255,255,.13); --dot-today-bg:rgba(255,255,255,.18); --dot-today:rgba(255,255,255,.6); --dot-future:rgba(255,255,255,.06); }
+html.t-warm,  .t-warm  { --bg:#EFE8CB; --bg2:rgba(255,250,230,.85); --bg3:rgba(50,30,0,.06); --text:#2a1a08; --text2:#6b4a28; --text3:#b09060; --sep:rgba(0,0,0,.08); }
+html.t-ocean, .t-ocean { --bg:#E2E4D2; --bg2:rgba(220,224,210,.9); --bg3:rgba(26,42,40,.06); --text:#1a2826; --text2:#3d5654; --text3:#7BA7AF; --sep:rgba(0,0,0,.08); }
+html.t-retro, .t-retro { --bg:#DCC9A9; --bg2:rgba(220,200,165,.9); --bg3:rgba(40,20,10,.06); --text:#2a1508; --text2:#7a4a20; --text3:#b08050; --sep:rgba(0,0,0,.08); }
+html.t-night, .t-night { --bg:#080808; --bg2:rgba(18,18,18,.95); --bg3:rgba(255,255,255,.05); --text:#ddd; --text2:#777; --text3:#404040; --sep:rgba(255,255,255,.06); --dot-bg:rgba(255,255,255,.09); --dot-past:rgba(255,255,255,.12); --dot-today-bg:rgba(255,255,255,.16); --dot-today:rgba(255,255,255,.5); --dot-future:rgba(255,255,255,.05); }
 
 /* ── RESET ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 html {
   height: 100%; width: 100%;
   overflow: hidden;
+  background: var(--bg);
   -webkit-text-size-adjust: none; text-size-adjust: none;
   touch-action: pan-x pan-y;
 }
@@ -2228,6 +2257,10 @@ function setTheme(card) {
   const keep = [];
   document.body.className.split(' ').forEach(cl => { if (!cl.startsWith('t-')) keep.push(cl); });
   document.body.className = (keep.join(' ') + ' ' + cfg.thcls).trim();
+  // Синхронизируем класс темы и на html
+  const htmlKeep = [];
+  document.documentElement.className.split(' ').forEach(cl => { if (!cl.startsWith('t-')) htmlKeep.push(cl); });
+  document.documentElement.className = (htmlKeep.join(' ') + ' ' + cfg.thcls).trim();
   applyTeCustom(cfg.theme);
   document.querySelectorAll('.tcrd').forEach(c => c.classList.remove('on'));
   card.classList.add('on');
@@ -2300,8 +2333,11 @@ function applyBg() {
 }
 
 function applyCfg() {
-  // Theme
-  if (cfg.thcls) document.body.classList.add(cfg.thcls);
+  // Theme — добавляем на html (уже мог быть добавлен в head) и на body
+  if (cfg.thcls) {
+    document.documentElement.classList.add(cfg.thcls);
+    document.body.classList.add(cfg.thcls);
+  }
   // Custom theme colors
   applyTeCustom(cfg.theme || 'default');
   // Accent
