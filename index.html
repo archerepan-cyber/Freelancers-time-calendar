@@ -55,7 +55,7 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
 #ov { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
 
 /* ── APP SHELL ── */
-#app { position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: var(--app-h, 100svh); z-index: 2; display: flex; flex-direction: column; overflow: hidden; }
+#app { position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: var(--app-h, 100svh); z-index: 2; display: flex; flex-direction: column; overflow: hidden; opacity: 0; }
 
 /* ── SCREENS ── */
 #wrap {
@@ -768,30 +768,16 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
 <script>
 // ── iOS PWA ORIENTATION FIX ──
 (function(){
-  // Принудительный reflow — именно это сбрасывает zoom в iOS PWA.
-  // Кнопка "праздники" работала потому что вызывала reflow DOM.
-  // Воспроизводим это программно: меняем display туда-обратно.
-  function forceReflow(){
-    var app = document.getElementById('app');
-    if(!app) return;
-    app.style.display = 'none';
-    // читаем offsetHeight — это синхронный reflow
-    void app.offsetHeight;
-    app.style.display = '';
-  }
-
   function resetViewport(){
     var mv = document.querySelector('meta[name=viewport]');
     if(mv) mv.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
   }
 
   function isKeyboardOpen(){
-    // Клавиатура открыта если фокус внутри поля ввода в модальном окне или шторке
     var ae = document.activeElement;
     if(!ae) return false;
     var tag = ae.tagName;
     if(tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') return false;
-    // Проверяем что элемент внутри модалки, шторки тем или пикера стран
     var modal = document.getElementById('modal');
     var teOver = document.getElementById('teOver');
     var cpOver = document.getElementById('countryPickerOver');
@@ -801,44 +787,48 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
     return false;
   }
 
-  function fixSize(){
-    // Не перестраиваем размер пока открыта клавиатура — иначе модалка дёргается
+  function fixSize(showApp){
     if(isKeyboardOpen()) return;
     var vp = window.visualViewport;
     var h = vp ? vp.height : window.innerHeight;
     var w = vp ? vp.width  : window.innerWidth;
     document.documentElement.style.setProperty('--app-h', h + 'px');
     var app = document.getElementById('app');
-    if(app){ app.style.height = h + 'px'; app.style.width = w + 'px'; }
+    if(app){
+      app.style.height = h + 'px';
+      app.style.width  = w + 'px';
+      if(showApp) app.style.opacity = '1';
+    }
     window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
   }
 
-  function fullFix(){
-    resetViewport();
-    fixSize();
-    forceReflow();
-    setTimeout(function(){ fixSize(); forceReflow(); }, 100);
-    setTimeout(function(){ fixSize(); forceReflow(); }, 350);
-    setTimeout(function(){ fixSize(); forceReflow(); }, 700);
-  }
+  // При старте: сначала выставляем размеры, потом плавно показываем
+  resetViewport();
+  fixSize(false);
+  requestAnimationFrame(function(){
+    fixSize(false);
+    requestAnimationFrame(function(){
+      fixSize(true); // показываем приложение — размер уже точный
+    });
+  });
 
   window.addEventListener('orientationchange', function(){
-    setTimeout(fullFix, 50);
+    setTimeout(function(){ resetViewport(); fixSize(false); }, 50);
+    setTimeout(function(){ fixSize(false); }, 300);
+    setTimeout(function(){ fixSize(false); }, 600);
   });
 
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize', function(){
-      fixSize(); forceReflow();
+      fixSize(false);
     });
   } else {
     window.addEventListener('resize', function(){
-      fixSize(); forceReflow();
+      fixSize(false);
     });
   }
-
-  fullFix();
 })();
 
 
