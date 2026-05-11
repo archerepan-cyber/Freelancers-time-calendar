@@ -1475,16 +1475,14 @@ applyCfg();
 renderBig();
 renderCal();
 renderEnt();
-// Скрываем сплэш после первого рендера
-requestAnimationFrame(function() {
-  requestAnimationFrame(function() {
-    var sp = document.getElementById('splash');
-    if (sp) {
-      sp.classList.add('hide');
-      setTimeout(function(){ sp.remove(); }, 420);
-    }
-  });
-});
+// Показываем сплэш минимум 1 секунду — приложение успевает загрузиться без вспышек
+setTimeout(function() {
+  var sp = document.getElementById('splash');
+  if (sp) {
+    sp.classList.add('hide');
+    setTimeout(function(){ sp.remove(); }, 420);
+  }
+}, 1000);
 
 // ── BIG DATE ──
 function renderBig() {
