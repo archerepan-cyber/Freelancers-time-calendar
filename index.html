@@ -665,8 +665,8 @@ button { font-family: inherit; cursor: pointer; }
     </div>
     <div id="tasksContainer"></div>
     <div class="mact">
-      <button class="btnc" ontouchend="closeModal()" onclick="closeModal()">Отмена</button>
-      <button class="btno" ontouchend="saveDay()" onclick="saveDay()">Сохранить</button>
+      <button class="btnc" ontouchend="event.preventDefault();closeModal()" onclick="closeModal()">Отмена</button>
+      <button class="btno" ontouchend="event.preventDefault();saveDay()" onclick="saveDay()">Сохранить</button>
     </div>
   </div>
 </div>
@@ -1915,6 +1915,8 @@ function openModal(dk) {
 
 function closeModal() {
   const modal = document.getElementById('modal');
+  // Защита от двойного вызова
+  if (!modal.classList.contains('on') || modal.classList.contains('closing')) return;
   // Добавляем .closing — CSS анимирует sheet вниз и фон гаснет
   modal.classList.add('closing');
   // После анимации убираем оба класса
