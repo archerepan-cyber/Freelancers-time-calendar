@@ -59,11 +59,11 @@
 }
 
 /* ── THEMES ── */
-.t-dark  { --bg:#151515; --bg2:rgba(30,30,30,.9); --bg3:rgba(255,255,255,.07); --text:#efefef; --text2:#999; --text3:#555; --sep:rgba(255,255,255,.08); --dot-bg:rgba(255,255,255,.10); --dot-past:rgba(255,255,255,.13); --dot-today-bg:rgba(255,255,255,.18); --dot-today:rgba(255,255,255,.6); --dot-future:rgba(255,255,255,.06); }
-.t-warm  { --bg:#EFE8CB; --bg2:rgba(255,250,230,.85); --bg3:rgba(50,30,0,.06); --text:#2a1a08; --text2:#6b4a28; --text3:#b09060; --sep:rgba(0,0,0,.08); }
-.t-ocean { --bg:#E2E4D2; --bg2:rgba(220,224,210,.9); --bg3:rgba(26,42,40,.06); --text:#1a2826; --text2:#3d5654; --text3:#7BA7AF; --sep:rgba(0,0,0,.08); }
-.t-retro { --bg:#DCC9A9; --bg2:rgba(220,200,165,.9); --bg3:rgba(40,20,10,.06); --text:#2a1508; --text2:#7a4a20; --text3:#b08050; --sep:rgba(0,0,0,.08); }
-.t-night { --bg:#080808; --bg2:rgba(18,18,18,.95); --bg3:rgba(255,255,255,.05); --text:#ddd; --text2:#777; --text3:#404040; --sep:rgba(255,255,255,.06); --dot-bg:rgba(255,255,255,.09); --dot-past:rgba(255,255,255,.12); --dot-today-bg:rgba(255,255,255,.16); --dot-today:rgba(255,255,255,.5); --dot-future:rgba(255,255,255,.05); }
+html.t-dark, body.t-dark  { --bg:#151515; --bg2:rgba(30,30,30,.9); --bg3:rgba(255,255,255,.07); --text:#efefef; --text2:#999; --text3:#555; --sep:rgba(255,255,255,.08); --dot-bg:rgba(255,255,255,.10); --dot-past:rgba(255,255,255,.13); --dot-today-bg:rgba(255,255,255,.18); --dot-today:rgba(255,255,255,.6); --dot-future:rgba(255,255,255,.06); }
+html.t-warm, body.t-warm  { --bg:#EFE8CB; --bg2:rgba(255,250,230,.85); --bg3:rgba(50,30,0,.06); --text:#2a1a08; --text2:#6b4a28; --text3:#b09060; --sep:rgba(0,0,0,.08); }
+html.t-ocean, body.t-ocean { --bg:#E2E4D2; --bg2:rgba(220,224,210,.9); --bg3:rgba(26,42,40,.06); --text:#1a2826; --text2:#3d5654; --text3:#7BA7AF; --sep:rgba(0,0,0,.08); }
+html.t-retro, body.t-retro { --bg:#DCC9A9; --bg2:rgba(220,200,165,.9); --bg3:rgba(40,20,10,.06); --text:#2a1508; --text2:#7a4a20; --text3:#b08050; --sep:rgba(0,0,0,.08); }
+html.t-night, body.t-night { --bg:#080808; --bg2:rgba(18,18,18,.95); --bg3:rgba(255,255,255,.05); --text:#ddd; --text2:#777; --text3:#404040; --sep:rgba(255,255,255,.06); --dot-bg:rgba(255,255,255,.09); --dot-past:rgba(255,255,255,.12); --dot-today-bg:rgba(255,255,255,.16); --dot-today:rgba(255,255,255,.5); --dot-future:rgba(255,255,255,.05); }
 
 /* ── RESET ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -802,10 +802,7 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
 <script>
 // ── iOS PWA ORIENTATION FIX ──
 (function(){
-  function resetViewport(){
-    var mv = document.querySelector('meta[name=viewport]');
-    if(mv) mv.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
-  }
+  var _fixTimer = null;
 
   function isKeyboardOpen(){
     var ae = document.activeElement;
@@ -821,31 +818,48 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
     return false;
   }
 
-  function fixSize(){
-    if(isKeyboardOpen()) return;
+  function applySize(){
     var vp = window.visualViewport;
     var h = vp ? vp.height : window.innerHeight;
     var w = vp ? vp.width  : window.innerWidth;
     var app = document.getElementById('app');
     if(app){ app.style.height = h + 'px'; app.style.width = w + 'px'; }
-    window.scrollTo(0, 0);
+    window.scrollTo(0,0);
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
   }
 
+  function fixSize(){
+    if(isKeyboardOpen()) return;
+    applySize();
+  }
+
+  // Дебаунс — применяем размер только когда viewport устоялся
+  function scheduleFixSize(delay){
+    clearTimeout(_fixTimer);
+    _fixTimer = setTimeout(fixSize, delay || 0);
+  }
+
   window.addEventListener('orientationchange', function(){
-    setTimeout(function(){ resetViewport(); fixSize(); }, 50);
-    setTimeout(fixSize, 300);
-    setTimeout(fixSize, 700);
+    // Ждём пока iOS закончит поворот (занимает до 500ms)
+    scheduleFixSize(100);
+    setTimeout(fixSize, 400);
+    setTimeout(fixSize, 800);
   });
 
   if(window.visualViewport){
-    window.visualViewport.addEventListener('resize', function(){ fixSize(); });
+    window.visualViewport.addEventListener('resize', function(){
+      // Клавиатура открыта/закрыта или поворот — применяем с задержкой
+      scheduleFixSize(50);
+    });
   } else {
-    window.addEventListener('resize', function(){ fixSize(); });
+    window.addEventListener('resize', function(){
+      scheduleFixSize(50);
+    });
   }
 
-  fixSize();
+  // Первый запуск — сразу
+  applySize();
 })();
 
 
@@ -2242,9 +2256,14 @@ function setTheme(card) {
   const t = card.dataset.t;
   if (t === 'custom') { openTE('custom', 'Своя тема'); return; }
   cfg.theme = t; cfg.thcls = card.dataset.c; saveC();
-  const keep = [];
-  document.body.className.split(' ').forEach(cl => { if (!cl.startsWith('t-')) keep.push(cl); });
-  document.body.className = (keep.join(' ') + ' ' + cfg.thcls).trim();
+  // Убираем t-* с body и html
+  [document.body, document.documentElement].forEach(el => {
+    el.classList.remove('t-dark','t-warm','t-ocean','t-retro','t-night');
+  });
+  if (cfg.thcls) {
+    document.body.classList.add(cfg.thcls);
+    document.documentElement.classList.add(cfg.thcls);
+  }
   applyTeCustom(cfg.theme);
   document.querySelectorAll('.tcrd').forEach(c => c.classList.remove('on'));
   card.classList.add('on');
@@ -2318,7 +2337,10 @@ function applyBg() {
 
 function applyCfg() {
   // Theme
-  if (cfg.thcls) document.body.classList.add(cfg.thcls);
+  if (cfg.thcls) {
+    document.body.classList.add(cfg.thcls);
+    document.documentElement.classList.add(cfg.thcls);
+  }
   // Custom theme colors
   applyTeCustom(cfg.theme || 'default');
   // Accent
