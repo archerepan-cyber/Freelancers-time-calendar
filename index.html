@@ -9,6 +9,22 @@
 <title>MZC Calendar</title>
 <link rel="manifest" href="manifest.json"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script>
+(function(){
+  try {
+    var cfg = JSON.parse(localStorage.getItem('ftc_s1') || '{}');
+    var thcls = cfg.thcls || 't-dark';
+    var bgMap = {'t-dark':'#151515','t-night':'#080808','t-warm':'#EFE8CB','t-ocean':'#E2E4D2','t-retro':'#DCC9A9'};
+    var bg = bgMap[thcls] || '#151515';
+    document.documentElement.style.background = bg;
+    document.documentElement.classList.add(thcls);
+    var m = document.getElementById('metaThemeColor');
+    if (m) m.setAttribute('content', bg);
+  } catch(e) {
+    document.documentElement.style.background = '#151515';
+  }
+})();
+</script>
 <style>
 /* ── VARIABLES ── */
 :root {
