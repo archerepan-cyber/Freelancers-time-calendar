@@ -1,46 +1,35 @@
 <!DOCTYPE html>
-<html lang="ru" style="background:#080808;color-scheme:dark">
+<html lang="ru" style="background:#080808">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="theme-color" content="#151515"/>
+<meta name="theme-color" content="#080808"/>
 <title>MZC Calendar</title>
 <script>
 (function(){
-  var BG_MAP = {
-    'default':'#f5f0e8','dark':'#151515','warm':'#EFE8CB',
-    'ocean':'#E2E4D2','retro':'#DCC9A9','night':'#080808'
-  };
-  var CLS_MAP = {
-    'default':'','dark':'t-dark','warm':'t-warm',
-    'ocean':'t-ocean','retro':'t-retro','night':'t-night'
-  };
-  try {
-    var s = JSON.parse(localStorage.getItem('ftc_s1') || '{}');
-    var theme = s.theme || 'night';
-    var bg = BG_MAP[theme] || '#080808';
-    if (theme === 'custom' && s.teCustom && s.teCustom.custom && s.teCustom.custom['--bg'])
-      bg = s.teCustom.custom['--bg'];
-    // Фон сразу — никакой вспышки
-    document.documentElement.style.background = bg;
-    document.documentElement.style.setProperty('--bg', bg);
-    var cls = CLS_MAP[theme];
-    if (cls) document.documentElement.classList.add(cls);
-    var m = document.querySelector('meta[name=theme-color]');
-    if (m) m.content = bg;
-    // Скрываем #app через opacity пока не применится тема и размер
-    // — вместо вспышки будет плавное появление за 120ms
-  } catch(e){}
+  var BG={'default':'#f5f0e8','dark':'#151515','warm':'#EFE8CB','ocean':'#E2E4D2','retro':'#DCC9A9','night':'#080808'};
+  var CL={'default':'','dark':'t-dark','warm':'t-warm','ocean':'t-ocean','retro':'t-retro','night':'t-night'};
+  try{
+    var s=JSON.parse(localStorage.getItem('ftc_s1')||'{}');
+    var t=s.theme||'night';
+    var bg=(t==='custom'&&s.teCustom&&s.teCustom.custom&&s.teCustom.custom['--bg'])?s.teCustom.custom['--bg']:(BG[t]||'#080808');
+    var h=document.documentElement;
+    h.style.background=bg;
+    // Пишем CSS-переменную напрямую — body её подхватит сразу
+    h.style.setProperty('--bg',bg);
+    var cl=CL[t]||'';
+    if(cl) h.classList.add(cl);
+    document.querySelector('meta[name=theme-color]').content=bg;
+  }catch(e){}
 })();
 </script>
 <link rel="manifest" href="manifest.json"/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+
 <style>
 /* ── VARIABLES ── */
 :root {
-  /* Дефолт = night тема, совпадает с manifest background_color */
   --bg:     #080808;
   --bg2:    rgba(18,18,18,0.95);
   --bg3:    rgba(255,255,255,0.05);
@@ -59,11 +48,11 @@
 }
 
 /* ── THEMES ── */
-html.t-dark, body.t-dark  { --bg:#151515; --bg2:rgba(30,30,30,.9); --bg3:rgba(255,255,255,.07); --text:#efefef; --text2:#999; --text3:#555; --sep:rgba(255,255,255,.08); --dot-bg:rgba(255,255,255,.10); --dot-past:rgba(255,255,255,.13); --dot-today-bg:rgba(255,255,255,.18); --dot-today:rgba(255,255,255,.6); --dot-future:rgba(255,255,255,.06); }
-html.t-warm, body.t-warm  { --bg:#EFE8CB; --bg2:rgba(255,250,230,.85); --bg3:rgba(50,30,0,.06); --text:#2a1a08; --text2:#6b4a28; --text3:#b09060; --sep:rgba(0,0,0,.08); }
-html.t-ocean, body.t-ocean { --bg:#E2E4D2; --bg2:rgba(220,224,210,.9); --bg3:rgba(26,42,40,.06); --text:#1a2826; --text2:#3d5654; --text3:#7BA7AF; --sep:rgba(0,0,0,.08); }
-html.t-retro, body.t-retro { --bg:#DCC9A9; --bg2:rgba(220,200,165,.9); --bg3:rgba(40,20,10,.06); --text:#2a1508; --text2:#7a4a20; --text3:#b08050; --sep:rgba(0,0,0,.08); }
-html.t-night, body.t-night { --bg:#080808; --bg2:rgba(18,18,18,.95); --bg3:rgba(255,255,255,.05); --text:#ddd; --text2:#777; --text3:#404040; --sep:rgba(255,255,255,.06); --dot-bg:rgba(255,255,255,.09); --dot-past:rgba(255,255,255,.12); --dot-today-bg:rgba(255,255,255,.16); --dot-today:rgba(255,255,255,.5); --dot-future:rgba(255,255,255,.05); }
+html.t-dark,body.t-dark{ --bg:#151515; --bg2:rgba(30,30,30,.9); --bg3:rgba(255,255,255,.07); --text:#efefef; --text2:#999; --text3:#555; --sep:rgba(255,255,255,.08); --dot-bg:rgba(255,255,255,.10); --dot-past:rgba(255,255,255,.13); --dot-today-bg:rgba(255,255,255,.18); --dot-today:rgba(255,255,255,.6); --dot-future:rgba(255,255,255,.06); }
+html.t-warm,body.t-warm{ --bg:#EFE8CB; --bg2:rgba(255,250,230,.85); --bg3:rgba(50,30,0,.06); --text:#2a1a08; --text2:#6b4a28; --text3:#b09060; --sep:rgba(0,0,0,.08); }
+html.t-ocean,body.t-ocean{ --bg:#E2E4D2; --bg2:rgba(220,224,210,.9); --bg3:rgba(26,42,40,.06); --text:#1a2826; --text2:#3d5654; --text3:#7BA7AF; --sep:rgba(0,0,0,.08); }
+html.t-retro,body.t-retro{ --bg:#DCC9A9; --bg2:rgba(220,200,165,.9); --bg3:rgba(40,20,10,.06); --text:#2a1508; --text2:#7a4a20; --text3:#b08050; --sep:rgba(0,0,0,.08); }
+html.t-night,body.t-night{ --bg:#080808; --bg2:rgba(18,18,18,.95); --bg3:rgba(255,255,255,.05); --text:#ddd; --text2:#777; --text3:#404040; --sep:rgba(255,255,255,.06); --dot-bg:rgba(255,255,255,.09); --dot-past:rgba(255,255,255,.12); --dot-today-bg:rgba(255,255,255,.16); --dot-today:rgba(255,255,255,.5); --dot-future:rgba(255,255,255,.05); }
 
 /* ── RESET ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -89,7 +78,7 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
 #ov { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
 
 /* ── APP SHELL ── */
-#app { position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100dvh; z-index: 2; display: flex; flex-direction: column; overflow: hidden; }
+#app { position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: var(--app-h, 100svh); z-index: 2; display: flex; flex-direction: column; overflow: hidden; }
 
 /* ── SCREENS ── */
 #wrap {
@@ -802,64 +791,43 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
 <script>
 // ── iOS PWA ORIENTATION FIX ──
 (function(){
-  var _fixTimer = null;
+  var _t=null;
 
-  function isKeyboardOpen(){
-    var ae = document.activeElement;
+  function isKbd(){
+    var ae=document.activeElement;
     if(!ae) return false;
-    var tag = ae.tagName;
-    if(tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') return false;
-    var modal = document.getElementById('modal');
-    var teOver = document.getElementById('teOver');
-    var cpOver = document.getElementById('countryPickerOver');
-    if(modal && modal.contains(ae)) return true;
-    if(teOver && teOver.contains(ae)) return true;
-    if(cpOver && cpOver.contains(ae)) return true;
-    return false;
+    var tag=ae.tagName;
+    if(tag!=='INPUT'&&tag!=='TEXTAREA'&&tag!=='SELECT') return false;
+    return ['modal','teOver','countryPickerOver'].some(function(id){
+      var el=document.getElementById(id);return el&&el.contains(ae);
+    });
   }
 
-  function applySize(){
-    var vp = window.visualViewport;
-    var h = vp ? vp.height : window.innerHeight;
-    var w = vp ? vp.width  : window.innerWidth;
-    var app = document.getElementById('app');
-    if(app){ app.style.height = h + 'px'; app.style.width = w + 'px'; }
+  function apply(){
+    if(isKbd()) return;
+    var vp=window.visualViewport;
+    var h=vp?vp.height:window.innerHeight;
+    var w=vp?vp.width:window.innerWidth;
+    var app=document.getElementById('app');
+    if(app){app.style.height=h+'px';app.style.width=w+'px';}
     window.scrollTo(0,0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
+    document.documentElement.scrollTop=0;
+    document.body.scrollTop=0;
   }
 
-  function fixSize(){
-    if(isKeyboardOpen()) return;
-    applySize();
-  }
+  function schedule(d){clearTimeout(_t);_t=setTimeout(apply,d||0);}
 
-  // Дебаунс — применяем размер только когда viewport устоялся
-  function scheduleFixSize(delay){
-    clearTimeout(_fixTimer);
-    _fixTimer = setTimeout(fixSize, delay || 0);
-  }
-
-  window.addEventListener('orientationchange', function(){
-    // Ждём пока iOS закончит поворот (занимает до 500ms)
-    scheduleFixSize(100);
-    setTimeout(fixSize, 400);
-    setTimeout(fixSize, 800);
+  window.addEventListener('orientationchange',function(){
+    schedule(50);setTimeout(apply,300);setTimeout(apply,700);
   });
 
   if(window.visualViewport){
-    window.visualViewport.addEventListener('resize', function(){
-      // Клавиатура открыта/закрыта или поворот — применяем с задержкой
-      scheduleFixSize(50);
-    });
+    window.visualViewport.addEventListener('resize',function(){schedule(30);});
   } else {
-    window.addEventListener('resize', function(){
-      scheduleFixSize(50);
-    });
+    window.addEventListener('resize',function(){schedule(30);});
   }
 
-  // Первый запуск — сразу
-  applySize();
+  apply();
 })();
 
 
@@ -2256,14 +2224,11 @@ function setTheme(card) {
   const t = card.dataset.t;
   if (t === 'custom') { openTE('custom', 'Своя тема'); return; }
   cfg.theme = t; cfg.thcls = card.dataset.c; saveC();
-  // Убираем t-* с body и html
-  [document.body, document.documentElement].forEach(el => {
-    el.classList.remove('t-dark','t-warm','t-ocean','t-retro','t-night');
+  ['t-dark','t-warm','t-ocean','t-retro','t-night'].forEach(c=>{
+    document.body.classList.remove(c);
+    document.documentElement.classList.remove(c);
   });
-  if (cfg.thcls) {
-    document.body.classList.add(cfg.thcls);
-    document.documentElement.classList.add(cfg.thcls);
-  }
+  if(cfg.thcls){document.body.classList.add(cfg.thcls);document.documentElement.classList.add(cfg.thcls);}
   applyTeCustom(cfg.theme);
   document.querySelectorAll('.tcrd').forEach(c => c.classList.remove('on'));
   card.classList.add('on');
@@ -2337,10 +2302,7 @@ function applyBg() {
 
 function applyCfg() {
   // Theme
-  if (cfg.thcls) {
-    document.body.classList.add(cfg.thcls);
-    document.documentElement.classList.add(cfg.thcls);
-  }
+  if(cfg.thcls){document.body.classList.add(cfg.thcls);document.documentElement.classList.add(cfg.thcls);}
   // Custom theme colors
   applyTeCustom(cfg.theme || 'default');
   // Accent
@@ -2370,6 +2332,14 @@ function applyCfg() {
   // Auto-refresh exchange rates
   if (cfg.xcurs && cfg.xcurs.length) setTimeout(xcRefreshRates, 500);
 }
+</script>
+<script>
+(function(){
+  var l=document.createElement('link');
+  l.rel='stylesheet';
+  l.href='https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500;600&display=swap';
+  document.head.appendChild(l);
+})();
 </script>
 </body>
 </html>
