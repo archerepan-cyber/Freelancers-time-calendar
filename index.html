@@ -1,12 +1,41 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" style="background:#080808;color-scheme:dark">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="theme-color" content="#f5f0e8"/>
+<meta name="theme-color" content="#151515"/>
 <title>MZC Calendar</title>
+<script>
+(function(){
+  var BG_MAP = {
+    'default':'#f5f0e8','dark':'#151515','warm':'#EFE8CB',
+    'ocean':'#E2E4D2','retro':'#DCC9A9','night':'#080808'
+  };
+  var CLS_MAP = {
+    'default':'','dark':'t-dark','warm':'t-warm',
+    'ocean':'t-ocean','retro':'t-retro','night':'t-night'
+  };
+  try {
+    var s = JSON.parse(localStorage.getItem('ftc_s1') || '{}');
+    var theme = s.theme || 'night';
+    var bg = BG_MAP[theme] || '#080808';
+    if (theme === 'custom' && s.teCustom && s.teCustom.custom && s.teCustom.custom['--bg'])
+      bg = s.teCustom.custom['--bg'];
+    // Фон сразу — никакой вспышки
+    document.documentElement.style.background = bg;
+    document.documentElement.style.setProperty('--bg', bg);
+    var cls = CLS_MAP[theme];
+    if (cls) document.documentElement.classList.add(cls);
+    var m = document.querySelector('meta[name=theme-color]');
+    if (m) m.content = bg;
+    // Скрываем #app через opacity пока не применится тема и размер
+    // — вместо вспышки будет плавное появление за 120ms
+    document.documentElement.style.setProperty('--boot-opacity', '0');
+  } catch(e){}
+})();
+</script>
 <link rel="manifest" href="manifest.json"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
@@ -46,9 +75,8 @@ body {
   background: var(--bg); color: var(--text);
   -webkit-text-size-adjust: none; text-size-adjust: none;
 }
-input, textarea, select { font-family: inherit; user-select: text; -webkit-user-select: text; }
-button { font-family: inherit; cursor: pointer; }
 * { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+input, textarea, select { font-family: inherit; user-select: text !important; -webkit-user-select: text !important; -webkit-touch-callout: default !important; }
 
 /* ── BACKGROUND ── */
 #bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
@@ -56,7 +84,7 @@ button { font-family: inherit; cursor: pointer; }
 #ov { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
 
 /* ── APP SHELL ── */
-#app { position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: var(--app-h, 100svh); z-index: 2; display: flex; flex-direction: column; overflow: hidden; }
+#app { position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100dvh; z-index: 2; display: flex; flex-direction: column; overflow: hidden; opacity: var(--boot-opacity, 1); transition: opacity .12s ease; }
 
 /* ── SCREENS ── */
 #wrap {
@@ -276,7 +304,7 @@ button { font-family: inherit; cursor: pointer; }
   background: rgba(0,0,0,.55);
   display: flex; align-items: flex-end; justify-content: center;
   opacity: 0; pointer-events: none;
-  transition: opacity .25s;
+  transition: opacity .42s cubic-bezier(0.32,0.72,0,1);
 }
 .mover.on { opacity: 1; pointer-events: auto; }
 .msheet {
@@ -284,19 +312,16 @@ button { font-family: inherit; cursor: pointer; }
   background: var(--bg); border-radius: 24px 24px 0 0;
   padding: 14px 20px calc(var(--sb) + 20px);
   max-height: 90vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
-  transform: translateY(100%); transition: transform .3s cubic-bezier(.4,0,.2,1);
+  transform: translateY(100%);
+  transition: transform .42s cubic-bezier(0.32,0.72,0,1);
+  will-change: transform;
 }
 .mover.on .msheet { transform: translateY(0); }
+.mover.closing { opacity: 0 !important; pointer-events: none !important; transition: opacity .42s cubic-bezier(0.32,0.72,0,1) !important; }
+.mover.closing .msheet { transform: translateY(100%) !important; transition: transform .42s cubic-bezier(0.32,0.72,0,1) !important; }
 .mdrg { width: 36px; height: 4px; border-radius: 2px; background: var(--sep); margin: 0 auto 16px; }
 .mtit { font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--text); }
 .mtit-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
-.task-add-btn {
-  width: 38px; height: 38px; border-radius: 50%;
-  background: var(--accent); border: none; color: #fff;
-  font-size: 24px; line-height: 1;
-  display: flex; align-items: center; justify-content: center;
-  touch-action: manipulation; cursor: pointer; flex-shrink: 0;
-}
 .task-block {
   border: 1px solid var(--sep); border-radius: 16px;
   padding: 14px; margin-bottom: 14px;
@@ -318,7 +343,16 @@ button { font-family: inherit; cursor: pointer; }
 .task-block-del {
   background: none; border: none; font-size: 18px;
   color: var(--text3); touch-action: manipulation;
-  padding: 4px 8px; cursor: pointer;
+  padding: 4px 6px; cursor: pointer;
+}
+.task-block-add {
+  background: none; border: none;
+  font-size: 22px; line-height: 1;
+  color: var(--accent); touch-action: manipulation;
+  padding: 4px 6px; cursor: pointer; flex-shrink: 0;
+}
+.task-block-btns {
+  display: flex; align-items: center; gap: 0;
 }
 .fg { margin-bottom: 14px; }
 .fl { display: block; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
@@ -521,7 +555,7 @@ button { font-family: inherit; cursor: pointer; }
 .ctx-item.paste { color: var(--accent); }
 </style>
 </head>
-<body>
+<body tabindex="-1">
 
 <div id="bg"><img id="bgImg" alt=""/></div>
 <div id="ov"></div>
@@ -658,12 +692,11 @@ button { font-family: inherit; cursor: pointer; }
     <div class="mdrg"></div>
     <div class="mtit-row">
       <div class="mtit" id="mTit">3 мая</div>
-      <button class="task-add-btn" ontouchend="addTaskBlock(event)" onclick="addTaskBlock(event)">＋</button>
     </div>
     <div id="tasksContainer"></div>
     <div class="mact">
-      <button class="btnc" ontouchend="closeModal()" onclick="closeModal()">Отмена</button>
-      <button class="btno" ontouchend="saveDay()" onclick="saveDay()">Сохранить</button>
+      <button class="btnc" ontouchend="event.preventDefault();closeModal()" onclick="closeModal()">Отмена</button>
+      <button class="btno" ontouchend="event.preventDefault();saveDay()" onclick="saveDay()">Сохранить</button>
     </div>
   </div>
 </div>
@@ -764,59 +797,62 @@ button { font-family: inherit; cursor: pointer; }
 <script>
 // ── iOS PWA ORIENTATION FIX ──
 (function(){
-  // Принудительный reflow — именно это сбрасывает zoom в iOS PWA.
-  // Кнопка "праздники" работала потому что вызывала reflow DOM.
-  // Воспроизводим это программно: меняем display туда-обратно.
-  function forceReflow(){
-    var app = document.getElementById('app');
-    if(!app) return;
-    app.style.display = 'none';
-    // читаем offsetHeight — это синхронный reflow
-    void app.offsetHeight;
-    app.style.display = '';
-  }
-
   function resetViewport(){
     var mv = document.querySelector('meta[name=viewport]');
     if(mv) mv.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
   }
 
+  function isKeyboardOpen(){
+    var ae = document.activeElement;
+    if(!ae) return false;
+    var tag = ae.tagName;
+    if(tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') return false;
+    var modal = document.getElementById('modal');
+    var teOver = document.getElementById('teOver');
+    var cpOver = document.getElementById('countryPickerOver');
+    if(modal && modal.contains(ae)) return true;
+    if(teOver && teOver.contains(ae)) return true;
+    if(cpOver && cpOver.contains(ae)) return true;
+    return false;
+  }
+
   function fixSize(){
-    var vp = window.visualViewport;
-    var h = vp ? vp.height : window.innerHeight;
-    var w = vp ? vp.width  : window.innerWidth;
-    document.documentElement.style.setProperty('--app-h', h + 'px');
-    var app = document.getElementById('app');
-    if(app){ app.style.height = h + 'px'; app.style.width = w + 'px'; }
+    if(isKeyboardOpen()) return;
     window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
   }
 
-  function fullFix(){
-    resetViewport();
-    fixSize();
-    forceReflow();
-    setTimeout(function(){ fixSize(); forceReflow(); }, 100);
-    setTimeout(function(){ fixSize(); forceReflow(); }, 350);
-    setTimeout(function(){ fixSize(); forceReflow(); }, 700);
+  // Показываем приложение после первого paint — без прыжка и вспышки
+  function revealApp(){
+    document.documentElement.style.removeProperty('--boot-opacity');
   }
 
   window.addEventListener('orientationchange', function(){
-    setTimeout(fullFix, 50);
+    setTimeout(function(){
+      resetViewport();
+      fixSize();
+    }, 100);
   });
 
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize', function(){
-      fixSize(); forceReflow();
+      fixSize();
     });
   } else {
     window.addEventListener('resize', function(){
-      fixSize(); forceReflow();
+      fixSize();
     });
   }
 
-  fullFix();
+  // После первого рендера — убираем скрытие
+  if(document.readyState === 'complete'){
+    requestAnimationFrame(revealApp);
+  } else {
+    window.addEventListener('load', function(){
+      requestAnimationFrame(revealApp);
+    });
+  }
 })();
 
 
@@ -877,6 +913,11 @@ let _teCustom = {}; // saved custom overrides per theme key
     if (!document.getElementById('modal').classList.contains('on')) return;
     const s = sheet();
     if (!s) return;
+    // Снимаем фокус с поля ввода при скролле — иначе iOS выделяет текст
+    const ae = document.activeElement;
+    if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA') && s.contains(ae)) {
+      ae.blur();
+    }
     if (s.scrollTop > 0) return;
     const dy = e.touches[0].clientY - sy;
     if (dy > 10) { dragging = true; s.style.transform = `translateY(${Math.min(dy, 260)}px)`; s.style.transition = 'none'; }
@@ -1377,7 +1418,7 @@ function _pizzaStyle(raw) {
   return `background: conic-gradient(${stops});`;
 }
 const SK = 'ftc_d1', SS = 'ftc_s1';
-let days = {}, cfg = { cur:'₽', theme:'dark', thcls:'t-dark', acc:'#D0391B', ov:45, bg:'', xcurs:[], country:'RU' };
+let days = {}, cfg = { cur:'₽', theme:'night', thcls:'t-night', acc:'#D0391B', ov:45, bg:'', xcurs:[], country:'RU' };
 
 function load() {
   try { days = JSON.parse(localStorage.getItem(SK) || '{}'); } catch { days = {}; }
@@ -1751,15 +1792,16 @@ function _taskBlockHTML(t, idx, total) {
     </div>`
   ).join('');
   const delBtn = total > 1
-    ? `<button class="task-block-del" ontouchend="_delTask(event,${idx})" onclick="_delTask(event,${idx})">✕</button>`
+    ? `<button class="task-block-del" ontouchend="event.preventDefault();_delTask(event,${idx})" onclick="_delTask(event,${idx})">✕</button>`
     : '';
+  const addBtn = `<button class="task-block-add" ontouchend="event.preventDefault();addTaskBlock(event)" onclick="addTaskBlock(event)">＋</button>`;
   return `<div class="task-block" data-idx="${idx}">
     <div class="task-block-header">
       <div class="task-block-num">
         <span class="task-block-dot" style="background:${col};"></span>
         Задача ${idx+1}
       </div>
-      ${delBtn}
+      <div class="task-block-btns">${delBtn}${addBtn}</div>
     </div>
     <div class="fg">
       <label class="fl">Цвет задачи</label>
@@ -1842,11 +1884,11 @@ function addTaskBlock(e) {
   _saveTaskFields();
   _tasks.push({ color: COLORS[_tasks.length % COLORS.length], label:'', timeStart:'', timeEnd:'', earned:0, expenses:[] });
   _renderTasks();
-  // scroll to bottom to show new task
-  setTimeout(() => {
-    const s = document.getElementById('mSheet');
-    if (s) s.scrollTop = s.scrollHeight;
-  }, 50);
+  requestAnimationFrame(() => {
+    const blocks = document.querySelectorAll('.task-block');
+    const last = blocks[blocks.length - 1];
+    if (last) last.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
 }
 function _saveTaskFields() {
   // Read current DOM state into _tasks
@@ -1893,7 +1935,24 @@ function openModal(dk) {
 }
 
 function closeModal() {
-  document.getElementById('modal').classList.remove('on');
+  const modal = document.getElementById('modal');
+  // Защита от двойного вызова
+  if (!modal.classList.contains('on') || modal.classList.contains('closing')) return;
+  // Снимаем фокус со всех полей внутри модалки — иначе iOS переносит курсор на основной экран
+  const focused = modal.querySelector('input:focus, textarea:focus, select:focus');
+  if (focused) focused.blur();
+  // Дополнительно — убираем фокус через document.activeElement
+  if (document.activeElement && modal.contains(document.activeElement)) {
+    document.activeElement.blur();
+  }
+  // Переводим фокус на body чтобы iOS не искал следующий фокусируемый элемент
+  if (document.body) document.body.focus();
+  // Добавляем .closing — CSS анимирует sheet вниз и фон гаснет
+  modal.classList.add('closing');
+  // После анимации убираем оба класса
+  setTimeout(function() {
+    modal.classList.remove('on', 'closing');
+  }, 450);
   eDk = null; _tasks = [];
   // Reset all touch state to prevent scroll lock
   clearTimeout(_lpt); clearTimeout(_dtTimer);
@@ -1914,7 +1973,7 @@ function saveDay() {
   const valid = _tasks.filter(t => t.label || t.timeStart || t.earned || (t.expenses && t.expenses.length) || t.color);
   const toSave = valid.length ? valid : [_tasks[0]];
   days[eDk] = toSave.length === 1 ? toSave[0] : toSave;
-  saveD(); closeModal(); renderCal(); renderEnt();
+  saveD(); closeModal(); setTimeout(function(){ renderCal(); renderEnt(); }, 450);
 }
 
 // ── ENTRIES ──
