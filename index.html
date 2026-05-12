@@ -32,7 +32,6 @@
     if (m) m.content = bg;
     // Скрываем #app через opacity пока не применится тема и размер
     // — вместо вспышки будет плавное появление за 120ms
-    document.documentElement.style.setProperty('--boot-opacity', '0');
   } catch(e){}
 })();
 </script>
@@ -41,14 +40,20 @@
 <style>
 /* ── VARIABLES ── */
 :root {
-  --bg:     #f5f0e8;
-  --bg2:    rgba(255,255,255,0.8);
-  --bg3:    rgba(0,0,0,0.06);
-  --text:   #1a1a1a;
-  --text2:  #666;
-  --text3:  #aaa;
+  /* Дефолт = night тема, совпадает с manifest background_color */
+  --bg:     #080808;
+  --bg2:    rgba(18,18,18,0.95);
+  --bg3:    rgba(255,255,255,0.05);
+  --text:   #ddd;
+  --text2:  #777;
+  --text3:  #404040;
   --accent: #D0391B;
-  --sep:    rgba(0,0,0,0.09);
+  --sep:    rgba(255,255,255,0.06);
+  --dot-bg:       rgba(255,255,255,0.09);
+  --dot-past:     rgba(255,255,255,0.12);
+  --dot-today-bg: rgba(255,255,255,0.16);
+  --dot-today:    rgba(255,255,255,0.5);
+  --dot-future:   rgba(255,255,255,0.05);
   --st:     env(safe-area-inset-top);
   --sb:     env(safe-area-inset-bottom);
 }
@@ -84,7 +89,7 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
 #ov { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
 
 /* ── APP SHELL ── */
-#app { position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100dvh; z-index: 2; display: flex; flex-direction: column; overflow: hidden; opacity: var(--boot-opacity, 1); transition: opacity .12s ease; }
+#app { position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100dvh; z-index: 2; display: flex; flex-direction: column; overflow: hidden; }
 
 /* ── SCREENS ── */
 #wrap {
@@ -818,41 +823,29 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
 
   function fixSize(){
     if(isKeyboardOpen()) return;
+    var vp = window.visualViewport;
+    var h = vp ? vp.height : window.innerHeight;
+    var w = vp ? vp.width  : window.innerWidth;
+    var app = document.getElementById('app');
+    if(app){ app.style.height = h + 'px'; app.style.width = w + 'px'; }
     window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
   }
 
-  // Показываем приложение после первого paint — без прыжка и вспышки
-  function revealApp(){
-    document.documentElement.style.removeProperty('--boot-opacity');
-  }
-
   window.addEventListener('orientationchange', function(){
-    setTimeout(function(){
-      resetViewport();
-      fixSize();
-    }, 100);
+    setTimeout(function(){ resetViewport(); fixSize(); }, 50);
+    setTimeout(fixSize, 300);
+    setTimeout(fixSize, 700);
   });
 
   if(window.visualViewport){
-    window.visualViewport.addEventListener('resize', function(){
-      fixSize();
-    });
+    window.visualViewport.addEventListener('resize', function(){ fixSize(); });
   } else {
-    window.addEventListener('resize', function(){
-      fixSize();
-    });
+    window.addEventListener('resize', function(){ fixSize(); });
   }
 
-  // После первого рендера — убираем скрытие
-  if(document.readyState === 'complete'){
-    requestAnimationFrame(revealApp);
-  } else {
-    window.addEventListener('load', function(){
-      requestAnimationFrame(revealApp);
-    });
-  }
+  fixSize();
 })();
 
 
