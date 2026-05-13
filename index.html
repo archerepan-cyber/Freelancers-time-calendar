@@ -181,8 +181,21 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-top: .5px solid var(--sep);
 }
-.tbtn { background: none; border: none; font-size: 34px; padding: 6px 14px; opacity: .35; transition: opacity .2s; touch-action: manipulation; }
+.tbtn { background: none; border: none; font-size: 34px; padding: 6px 14px; opacity: .35; transition: opacity .2s; touch-action: manipulation; position: relative; }
 .tbtn.on { opacity: 1; }
+.tbtn-badge {
+  position: absolute; top: 2px; right: 6px;
+  min-width: 18px; height: 18px; border-radius: 9px;
+  background: var(--accent); color: #fff;
+  font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 4px; line-height: 1;
+  box-shadow: 0 1px 4px rgba(0,0,0,.25);
+  pointer-events: none;
+  transition: opacity .2s, transform .2s;
+  transform: scale(1);
+}
+.tbtn-badge.hidden { opacity: 0; transform: scale(0.5); }
 
 /* ── BIG DATE ── */
 .big { font-family: 'DM Serif Display', serif; font-size: clamp(96px, 26vw, 144px); line-height: .88; letter-spacing: -3px; color: var(--text); }
@@ -213,7 +226,6 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
 }
 .dot.past   { background: var(--dot-past, rgba(0,0,0,.1)); }
 .dot.today  { background: var(--dot-today-bg, rgba(0,0,0,0.12)); box-shadow: 0 0 0 2px var(--dot-today, var(--accent)); }
-.dot.today-w { box-shadow: 0 0 0 2px var(--dot-today, var(--accent)); }
 .dot.future { background: var(--dot-future, rgba(0,0,0,.05)); }
 .dot.work   { /* color set via inline style */ }
 .dot.empty  { background: transparent; pointer-events: none; }
@@ -750,7 +762,7 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
   </div><!-- /wrap -->
 
   <div id="bar">
-    <button class="tbtn on" id="tbM" onclick="goTab('main')">📅</button>
+    <button class="tbtn on" id="tbM" onclick="goTab('main')">📅<span class="tbtn-badge" id="calBadge">2</span></button>
     <button class="tbtn" id="tbS" onclick="goTab('sett')">⚙️</button>
   </div>
 </div>
@@ -940,7 +952,7 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
 })();
 
 
-const TE_VARS = ['--bg','--bg2','--bg3','--text','--text2','--text3','--accent','--dot-today-bg','--dot-today','--dot-past','--dot-future'];
+const TE_VARS = ['--bg','--bg2','--bg3','--text','--text2','--text3','--accent','--dot-today','--dot-past','--dot-future'];
 const TE_IDS  = {'--bg':'sw-bg','--bg2':'sw-bg2','--bg3':'sw-bg3','--text':'sw-text','--text2':'sw-text2','--text3':'sw-text3','--accent':'sw-accent','--dot-today-bg':'sw-dot-today-bg','--dot-today':'sw-dot-today','--dot-past':'sw-dot-past','--dot-future':'sw-dot-future'};
 
 // Base theme presets (solid hex only — rgba stored separately for live editing)
@@ -1047,24 +1059,17 @@ function closeTE(apply) {
       cfg.theme = 'custom'; cfg.thcls = ''; saveC();
       document.querySelectorAll('.tcrd').forEach(el => el.classList.remove('on'));
       document.getElementById('customThemeCard').classList.add('on');
-    } else if (!apply) {
-      // Cancelled — restore current theme's CSS (editor may have changed live vars)
-      saveC(); applyTeCustom(cfg.theme || 'default');
+    } else if (!apply && _teBase === 'custom' && cfg.theme !== 'custom') {
+      saveC(); applyTeCustom(cfg.theme); // восстановить текущую тему
     } else { saveC(); }
   }
   updateCustomCard();
   document.getElementById('teOver').classList.remove('on');
-  _teBase = null;
 }
 
 function teSet(varName, hex) {
   document.documentElement.style.setProperty(varName, hex);
-  const sw = document.getElementById(TE_IDS[varName]);
-  if (sw) {
-    sw.style.background = hex;
-    const inp = sw.querySelector('input');
-    if (inp) inp.value = hex;
-  }
+  document.getElementById(TE_IDS[varName]).style.background = hex;
 }
 
 function teReset() {
@@ -1543,8 +1548,6 @@ const DOW  = ['Воскресенье','Понедельник','Вторник'
 
 // ── BOOT ──
 load();
-// Sync _teCustom from persisted config
-if (cfg.teCustom) _teCustom = cfg.teCustom;
 applyCfg();
 
 // Подтверждаем цвет сплэша (уже задан через document.write, но страхуемся)
@@ -1554,7 +1557,7 @@ applyCfg();
   var bg = window._splashBg || '#f5f0e8';
   sp.style.background = bg;
   // Цвет точек — тёмных тем белые, светлых — чёрные
-  var isDark = parseInt(bg.slice(1,3),16) < 80;  // грубо: R-канал < 80 → тёмный
+  var isDark = bg.charAt(1) < '5';  // грубо: первый hex-символ < '5' → тёмный
   var dotC = isDark ? 'rgba(255,255,255,.45)' : 'rgba(0,0,0,.22)';
   sp.querySelectorAll('.sp-dot').forEach(function(d){ d.style.background = dotC; });
 })();
@@ -1621,7 +1624,7 @@ function renderCal() {
     if (dd) cls += ' has';
     if (holName) cls += ' holiday';
     const tipHtml = holName
-      ? `<div class="hol-tip" onclick="showHolPopup(event,'${vy}','${vm}','${d}')" ontouchend="showHolPopup(event,'${vy}','${vm}','${d}');event.stopPropagation()">${_esc(holName)}</div>`
+      ? `<div class="hol-tip" onclick="showHolPopup(event,'${vy}','${vm}','${d}')" ontouchend="showHolPopup(event,'${vy}','${vm}','${d}');event.stopPropagation()">${holName}</div>`
       : '';
     h += `<div class="${cls}" style="${sty}"
       ontouchstart="ts(event,'${dk}')"
@@ -1668,8 +1671,12 @@ function ctxDoCopy() {
   if (!_ctxDk) return;
   _copiedDay = JSON.parse(JSON.stringify(days[_ctxDk]));
   navigator.vibrate && navigator.vibrate([15, 20, 15]);
-  closeCtxMenu(); // note: this clears _ctxDk, so we already captured the copy above
-  renderCal(); // re-render to show paste is now available
+  closeCtxMenu();
+  // flash copied dot
+  document.querySelectorAll('.dot').forEach(el => {
+    if (el.dataset && el._dk === _ctxDk) return; // not reliable, skip
+  });
+  renderCal(); // re-render to show copy indicator ring
 }
 
 function ctxDoPaste() {
@@ -1749,14 +1756,14 @@ function _startDrag(touch, dk, srcEl) {
   _ghost.style.left = touch.clientX + 'px';
   _ghost.style.top  = touch.clientY + 'px';
   _ghost.classList.add('on');
-  if (srcEl) srcEl.classList.add('drag-src');
+  srcEl.classList.add('drag-src');
 }
 
 function _endDrag(dropped) {
   _ghost.classList.remove('on');
   if (_dragSrcEl)  _dragSrcEl.classList.remove('drag-src');
   if (_dragOverEl) _dragOverEl.classList.remove('drag-over');
-  if (dropped && _dragOverDk && _dragOverDk !== _dragSrcDk && days[_dragSrcDk]) {
+  if (dropped && _dragOverDk && _dragOverDk !== _dragSrcDk) {
     days[_dragOverDk] = JSON.parse(JSON.stringify(days[_dragSrcDk]));
     delete days[_dragSrcDk];
     saveD(); renderCal(); renderEnt();
@@ -1907,7 +1914,7 @@ function _taskBlockHTML(t, idx, total) {
   const xRows = (t.expenses||[]).map(x =>
     `<div class="xrow2">
       <input class="fi" type="number" placeholder="Сумма" value="${x.amount||''}" style="max-width:110px;" inputmode="decimal"/>
-      <input class="fi" placeholder="На такси, еду..." value="${_esc(x.comment||'')}"/>
+      <input class="fi" placeholder="На такси, еду..." value="${x.comment||''}"/>
       <button class="xdel" ontouchend="_delX(event,this)" onclick="_delX(event,this)">✕</button>
     </div>`
   ).join('');
@@ -1934,7 +1941,7 @@ function _taskBlockHTML(t, idx, total) {
       </div>
     </div>
     <div class="fg"><label class="fl">Описание</label>
-      <input class="fi task-lbl" placeholder="Название / комментарий" value="${_esc(t.label||'')}"/>
+      <input class="fi task-lbl" placeholder="Название / комментарий" value="${t.label||''}"/>
     </div>
     <div class="fg"><label class="fl">Начало</label>
       <input class="fi fi-time task-ts" type="time" value="${t.timeStart||''}"/>
@@ -1963,7 +1970,6 @@ let _tasks = [];
 function _pickColor(e, col, idx) {
   e.stopPropagation(); e.preventDefault();
   if (!_tasks[idx]) return;
-  _saveTaskFields(); // preserve current input values before re-render
   _tasks[idx].color = col;
   _renderTasks();
 }
@@ -2091,21 +2097,13 @@ function addX(amount='', comment='') {}
 function saveDay() {
   if (!eDk) return;
   _saveTaskFields();
-  const valid = _tasks.filter(t => t.label || t.timeStart || t.earned > 0 || (t.expenses && t.expenses.length));
-  if (!valid.length) {
-    // Nothing meaningful entered — treat as clear
-    delete days[eDk];
-    saveD(); closeModal(); setTimeout(function(){ renderCal(); renderEnt(); }, 450);
-    return;
-  }
-  days[eDk] = valid.length === 1 ? valid[0] : valid;
+  const valid = _tasks.filter(t => t.label || t.timeStart || t.earned || (t.expenses && t.expenses.length) || t.color);
+  const toSave = valid.length ? valid : [_tasks[0]];
+  days[eDk] = toSave.length === 1 ? toSave[0] : toSave;
   saveD(); closeModal(); setTimeout(function(){ renderCal(); renderEnt(); }, 450);
 }
 
 // ── ENTRIES ──
-function _esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
 function renderEnt() {
   const items = [];
   for (let d = 1; d <= 31; d++) {
@@ -2128,7 +2126,7 @@ function renderEnt() {
 
     // Accumulate totals across all tasks
     tasks.forEach(t => {
-      te += parseFloat(t.earned) || 0;
+      te += t.earned || 0;
       (t.expenses || []).forEach(x => ax.push({ ...x, day: it.d, lbl: t.label }));
     });
 
@@ -2138,14 +2136,14 @@ function renderEnt() {
       const ts = t.timeStart
         ? (t.timeEnd ? `${t.timeStart}–${t.timeEnd}` : t.timeStart)
         : '';
-      const es = t.earned ? `+${cur}${t.earned.toLocaleString('ru-RU')}` : '';
-      const xt = (t.expenses||[]).reduce((s,x) => s+( parseFloat(x.amount)||0 ), 0);
-      const xs = xt ? `−${cur}${xt.toLocaleString('ru-RU')}` : '';
+      const es = t.earned ? `+${cur}${t.earned.toLocaleString()}` : '';
+      const xt = (t.expenses||[]).reduce((s,x) => s+(x.amount||0), 0);
+      const xs = xt ? `−${cur}${xt.toLocaleString()}` : '';
       const dotColor = t.color || cfg.acc;
       taskRows += `<div style="display:flex;align-items:flex-start;gap:10px;padding:${ti>0?'8px 0 0':'4px 0 0'};">
         <div style="width:20px;height:20px;border-radius:50%;background:${dotColor};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px;">${ti+1}</div>
         <div style="flex:1;">
-          ${t.label ? `<div class="ename">${_esc(t.label)}</div>` : ''}
+          ${t.label ? `<div class="ename">${t.label}</div>` : ''}
           <div class="enums">
             ${ts ? `<span style="color:var(--text3);">🕐 ${ts}</span>` : ''}
             ${es ? `<span style="color:var(--accent);font-weight:600;">${es}</span>` : ''}
@@ -2168,7 +2166,7 @@ function renderEnt() {
   });
   ew.innerHTML = html;
 
-  const tx = ax.reduce((s, x) => s + (parseFloat(x.amount) || 0), 0);
+  const tx = ax.reduce((s, x) => s + (x.amount || 0), 0);
   const net = te - tx; window._lastNet = net;
   let th = '';
   // Группируем одинаковые траты по названию
@@ -2180,14 +2178,14 @@ function renderEnt() {
   });
   Object.entries(grouped).forEach(([name, total]) => {
     th += `<div class="xrow">
-      <span>${_esc(name)}</span>
-      <span style="color:var(--accent);">−${cur}${total.toLocaleString('ru-RU')}</span>
+      <span>${name}</span>
+      <span style="color:var(--accent);">−${cur}${total.toLocaleString()}</span>
     </div>`;
   });
   th += `<div class="trow" style="align-items:flex-start;">
     <div class="tlbl" style="padding-top:10px;">Итого</div>
     <div style="text-align:right;">
-      <div class="tamt" style="color:${net >= 0 ? 'var(--accent)' : '#c0392b'};">${net >= 0 ? '+' : ''}${cur}${Math.abs(net).toLocaleString('ru-RU')}</div>
+      <div class="tamt" style="color:${net >= 0 ? 'var(--accent)' : '#c0392b'};">${net >= 0 ? '+' : ''}${cur}${Math.abs(net).toLocaleString()}</div>
       <div class="xcur-wrap" id="xcurEdit"></div>
     </div>
   </div>`;
@@ -2197,15 +2195,15 @@ function renderEnt() {
 
 // ── EXTRA CURRENCIES ──
 const CUR_CODE = {'₽':'RUB','$':'USD','€':'EUR','₸':'KZT','₴':'UAH','£':'GBP','¥':'JPY','₿':'BTC','₩':'KRW','Fr':'CHF','kr':'SEK','zł':'PLN','₫':'VND','₹':'INR','R$':'BRL','₱':'PHP'};
-let _rateCache = {}, _rateCacheTs = {};
+let _rateCache = {}, _rateTs = 0;
 async function fetchRates(baseSym) {
   const base = CUR_CODE[baseSym] || baseSym.replace(/[^A-Za-z]/g,'').toUpperCase() || 'USD';
   const now = Date.now();
-  if (_rateCache[base] && now - (_rateCacheTs[base] || 0) < 3600000) return _rateCache[base];
+  if (_rateCache[base] && now - _rateTs < 3600000) return _rateCache[base];
   try {
     const r = await fetch(`https://api.exchangerate-api.com/v4/latest/${base}`);
     const d = await r.json();
-    _rateCache[base] = d.rates || {}; _rateCacheTs[base] = now;
+    _rateCache[base] = d.rates || {}; _rateTs = now;
     return _rateCache[base];
   } catch { return {}; }
 }
@@ -2228,9 +2226,9 @@ function renderXcurEdit() {
   const net = window._lastNet || 0;
   let h = '';
   cfg.xcurs.forEach((x, i) => {
-    const conv = (x.sym && x.rate !== '' && x.rate !== null && x.rate !== undefined) ? net * parseFloat(x.rate) : null;
+    const conv = (x.rate && x.sym) ? net * parseFloat(x.rate) : null;
     const amtStr = conv !== null
-      ? `<span style="font-size:22px;font-family:'DM Serif Display',serif;font-weight:400;color:${conv>=0?'var(--accent)':'#c0392b'};">${conv>=0?'+':''}${x.sym}${Math.abs(conv).toLocaleString('ru-RU',{maximumFractionDigits:0})}</span>`
+      ? `<span style="font-size:22px;font-family:'DM Serif Display',serif;font-weight:400;color:${conv>=0?'var(--accent)':'#c0392b'};">${conv>=0?'+':''}${x.sym}${Math.abs(conv).toLocaleString(undefined,{maximumFractionDigits:0})}</span>`
       : `<span style="font-size:13px;color:var(--text3);">загрузка…</span>`;
     const opacity = x.on === false ? '0.35' : '1';
     h += `<div style="display:flex;align-items:center;gap:8px;margin-top:10px;opacity:${opacity};">
@@ -2254,7 +2252,7 @@ function xcAdd() {
 }
 function xcDel(i) { cfg.xcurs.splice(i,1); saveC(); renderEnt(); }
 function xcToggle(i) { cfg.xcurs[i].on = cfg.xcurs[i].on===false?true:false; saveC(); renderEnt(); }
-function xcSym(i,val) { cfg.xcurs[i].sym=val; cfg.xcurs[i].rate=''; saveC(); /* do not call renderEnt() here — it resets focus */ if(val.length>=1) xcRefreshRates(); }
+function xcSym(i,val) { cfg.xcurs[i].sym=val; cfg.xcurs[i].rate=''; saveC(); renderEnt(); if(val.length>=1) xcRefreshRates(); }
 
 // ── TABS ──
 function goTab(tab, fromSwipe = false) {
@@ -2267,6 +2265,9 @@ function goTab(tab, fromSwipe = false) {
   curTab_ref.v = tab;
   document.getElementById('tbM').classList.toggle('on', tab === 'main');
   document.getElementById('tbS').classList.toggle('on', tab === 'sett');
+  // Скрываем значок при переходе в настройки
+  const badge = document.getElementById('calBadge');
+  if (badge) badge.classList.toggle('hidden', tab === 'sett');
   if (fromSwipe) {
     // After swipe: panels are already in motion — just set final position with animation
     m.style.transition = EASE;
@@ -2350,17 +2351,6 @@ function goTab(tab, fromSwipe = false) {
     }
     dragging = false;
   }, { passive: true });
-
-  wrap.addEventListener('touchcancel', () => {
-    if (!dragging) return;
-    // Restore panel positions and transitions after cancelled swipe
-    const EASE = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
-    m.style.transition = EASE;
-    s.style.transition = EASE;
-    m.style.transform = curTab_ref.v === 'main' ? 'translateX(0)' : 'translateX(-100%)';
-    s.style.transform = curTab_ref.v === 'sett' ? 'translateX(0)' : 'translateX(100%)';
-    dragging = false; axis = null;
-  }, { passive: true });
 })();
 
 // ── SETTINGS ──
@@ -2389,12 +2379,6 @@ function setTheme(card) {
   const t = card.dataset.t;
   if (t === 'custom') { openTE('custom', 'Своя тема'); return; }
   cfg.theme = t; cfg.thcls = card.dataset.c; saveC();
-  // Update PWA theme-color meta tag
-  const _mc = document.querySelector('meta[name=theme-color]');
-  if (_mc) {
-    const _THEME_BG = {'default':'#f5f0e8','dark':'#151515','warm':'#EFE8CB','ocean':'#E2E4D2','retro':'#DCC9A9','night':'#080808'};
-    _mc.setAttribute('content', _THEME_BG[t] || '#f5f0e8');
-  }
   const keep = [];
   document.body.className.split(' ').forEach(cl => { if (!cl.startsWith('t-')) keep.push(cl); });
   document.body.className = (keep.join(' ') + ' ' + cfg.thcls).trim();
@@ -2444,8 +2428,8 @@ function setAcc(c, dot) {
 }
 
 function setOv(v) {
-  cfg.ov = parseFloat(v); saveC();
-  document.getElementById('ov').style.background = `rgba(0,0,0,${cfg.ov/100})`;
+  cfg.ov = v; saveC();
+  document.getElementById('ov').style.background = `rgba(0,0,0,${v/100})`;
 }
 
 function loadBg(e) {
@@ -2488,7 +2472,7 @@ function applyCfg() {
   const _stdC = ['₽','$','€','₸','₴'];
   const _isStd = _stdC.includes(cfg.cur);
   document.querySelectorAll('.curbtn').forEach(b => {
-    b.classList.toggle('on', _isStd && b.textContent.trim().startsWith(cfg.cur));
+    b.classList.toggle('on', _isStd && b.textContent.startsWith(cfg.cur));
   });
   if (!_isStd && cfg.cur) {
     const _ci = document.getElementById('cusCurIn');
