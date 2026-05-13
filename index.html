@@ -33,19 +33,8 @@
 
 /* ── RESET ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html {
-  height: 100%; width: 100%;
-  overflow: hidden;
-  -webkit-text-size-adjust: none; text-size-adjust: none;
-  touch-action: pan-x pan-y;
-}
-body {
-  height: 100%; width: 100%;
-  overflow: hidden;
-  font-family: 'DM Sans', sans-serif;
-  background: var(--bg); color: var(--text);
-  -webkit-text-size-adjust: none; text-size-adjust: none;
-}
+html, body { height: 100%; overflow: hidden; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); }
 input, textarea, select { font-family: inherit; user-select: text; -webkit-user-select: text; }
 button { font-family: inherit; cursor: pointer; }
 * { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
@@ -56,7 +45,7 @@ button { font-family: inherit; cursor: pointer; }
 #ov { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
 
 /* ── APP SHELL ── */
-#app { position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: var(--app-h, 100svh); z-index: 2; display: flex; flex-direction: column; overflow: hidden; }
+#app { position: fixed; inset: 0; z-index: 2; display: flex; flex-direction: column; }
 
 /* ── SCREENS ── */
 #wrap {
@@ -288,38 +277,7 @@ button { font-family: inherit; cursor: pointer; }
 }
 .mover.on .msheet { transform: translateY(0); }
 .mdrg { width: 36px; height: 4px; border-radius: 2px; background: var(--sep); margin: 0 auto 16px; }
-.mtit { font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--text); }
-.mtit-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
-.task-add-btn {
-  width: 38px; height: 38px; border-radius: 50%;
-  background: var(--accent); border: none; color: #fff;
-  font-size: 24px; line-height: 1;
-  display: flex; align-items: center; justify-content: center;
-  touch-action: manipulation; cursor: pointer; flex-shrink: 0;
-}
-.task-block {
-  border: 1px solid var(--sep); border-radius: 16px;
-  padding: 14px; margin-bottom: 14px;
-  background: var(--bg3);
-}
-.task-block-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 12px;
-}
-.task-block-num {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
-  text-transform: uppercase; color: var(--text3);
-}
-.task-block-dot {
-  width: 12px; height: 12px; border-radius: 50%;
-  display: inline-block; flex-shrink: 0;
-}
-.task-block-del {
-  background: none; border: none; font-size: 18px;
-  color: var(--text3); touch-action: manipulation;
-  padding: 4px 8px; cursor: pointer;
-}
+.mtit { font-family: 'DM Serif Display', serif; font-size: 26px; margin-bottom: 18px; color: var(--text); }
 .fg { margin-bottom: 14px; }
 .fl { display: block; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
 .fi { width: 100%; background: var(--bg3); border: none; border-radius: 12px; padding: 12px 14px; font-size: 16px; color: var(--text); outline: none; }
@@ -654,16 +612,55 @@ button { font-family: inherit; cursor: pointer; }
 
 <!-- DAY MODAL -->
 <div class="mover" id="modal" onclick="if(event.target===this)closeModal()">
-  <div class="msheet" id="mSheet">
+  <div class="msheet">
     <div class="mdrg"></div>
-    <div class="mtit-row">
-      <div class="mtit" id="mTit">3 мая</div>
-      <button class="task-add-btn" ontouchend="addTaskBlock(event)" onclick="addTaskBlock(event)">＋</button>
+    <div class="mtit" id="mTit">3 мая</div>
+
+    <div class="fg">
+      <label class="fl">Цвет дня</label>
+      <div class="dcs" id="dcs">
+        <div class="dc on" style="background:#324E44;" data-c="#324E44" onclick="pickC('#324E44',this)"></div>
+        <div class="dc" style="background:#D0391B;" data-c="#D0391B" onclick="pickC('#D0391B',this)"></div>
+        <div class="dc" style="background:#FBC359;" data-c="#FBC359" onclick="pickC('#FBC359',this)"></div>
+        <div class="dc" style="background:#7BA7AF;" data-c="#7BA7AF" onclick="pickC('#7BA7AF',this)"></div>
+        <div class="dc" style="background:#9F4125;" data-c="#9F4125" onclick="pickC('#9F4125',this)"></div>
+        <div class="dc" style="background:#73A642;" data-c="#73A642" onclick="pickC('#73A642',this)"></div>
+        <div class="dc" style="background:#4E6851;" data-c="#4E6851" onclick="pickC('#4E6851',this)"></div>
+        <div class="dc-cw" title="Свой цвет">
+          <span style="font-size:18px;font-weight:300;color:#fff;line-height:1;">+</span>
+          <input type="color" value="#324E44" oninput="pickCHex(this.value)"/>
+        </div>
+      </div>
     </div>
-    <div id="tasksContainer"></div>
+
+    <div class="fg">
+      <label class="fl">Описание</label>
+      <input class="fi" id="fLbl" placeholder="Название / комментарий"/>
+    </div>
+
+    <div class="fg">
+      <label class="fl">Начало</label>
+      <input class="fi fi-time" id="fS" type="time"/>
+    </div>
+    <div class="fg">
+      <label class="fl">Конец</label>
+      <input class="fi fi-time" id="fE" type="time"/>
+    </div>
+
+    <div class="fg">
+      <label class="fl">Заработано</label>
+      <input class="fi" id="fEarn" type="number" placeholder="Заработано" inputmode="decimal"/>
+    </div>
+
+    <div class="fg">
+      <label class="fl">Затраты</label>
+      <div class="xlist" id="xList"></div>
+      <button class="addx" onclick="addX()">+ Добавить затрату</button>
+    </div>
+
     <div class="mact">
-      <button class="btnc" ontouchend="closeModal()" onclick="closeModal()">Отмена</button>
-      <button class="btno" ontouchend="saveDay()" onclick="saveDay()">Сохранить</button>
+      <button class="btnc" onclick="closeModal()">Отмена</button>
+      <button class="btno" onclick="saveDay()">Сохранить</button>
     </div>
   </div>
 </div>
@@ -762,64 +759,7 @@ button { font-family: inherit; cursor: pointer; }
 </div>
 
 <script>
-// ── iOS PWA ORIENTATION FIX ──
-(function(){
-  // Принудительный reflow — именно это сбрасывает zoom в iOS PWA.
-  // Кнопка "праздники" работала потому что вызывала reflow DOM.
-  // Воспроизводим это программно: меняем display туда-обратно.
-  function forceReflow(){
-    var app = document.getElementById('app');
-    if(!app) return;
-    app.style.display = 'none';
-    // читаем offsetHeight — это синхронный reflow
-    void app.offsetHeight;
-    app.style.display = '';
-  }
-
-  function resetViewport(){
-    var mv = document.querySelector('meta[name=viewport]');
-    if(mv) mv.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
-  }
-
-  function fixSize(){
-    var vp = window.visualViewport;
-    var h = vp ? vp.height : window.innerHeight;
-    var w = vp ? vp.width  : window.innerWidth;
-    document.documentElement.style.setProperty('--app-h', h + 'px');
-    var app = document.getElementById('app');
-    if(app){ app.style.height = h + 'px'; app.style.width = w + 'px'; }
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-  }
-
-  function fullFix(){
-    resetViewport();
-    fixSize();
-    forceReflow();
-    setTimeout(function(){ fixSize(); forceReflow(); }, 100);
-    setTimeout(function(){ fixSize(); forceReflow(); }, 350);
-    setTimeout(function(){ fixSize(); forceReflow(); }, 700);
-  }
-
-  window.addEventListener('orientationchange', function(){
-    setTimeout(fullFix, 50);
-  });
-
-  if(window.visualViewport){
-    window.visualViewport.addEventListener('resize', function(){
-      fixSize(); forceReflow();
-    });
-  } else {
-    window.addEventListener('resize', function(){
-      fixSize(); forceReflow();
-    });
-  }
-
-  fullFix();
-})();
-
-
+// ── THEME EDITOR ──
 const TE_VARS = ['--bg','--bg2','--bg3','--text','--text2','--text3','--accent','--dot-today','--dot-past','--dot-future'];
 const TE_IDS  = {'--bg':'sw-bg','--bg2':'sw-bg2','--bg3':'sw-bg3','--text':'sw-text','--text2':'sw-text2','--text3':'sw-text3','--accent':'sw-accent','--dot-today-bg':'sw-dot-today-bg','--dot-today':'sw-dot-today','--dot-past':'sw-dot-past','--dot-future':'sw-dot-future'};
 
@@ -1348,34 +1288,6 @@ function updateCountryBtn() {
 })();
 
 // ── STORAGE ──
-// Normalize any day value to array of tasks
-function _normDay(raw) {
-  if (!raw) return [];
-  if (Array.isArray(raw)) return raw;
-  return [raw];
-}
-// Get first task's color for calendar dot
-function _dayColor(raw) {
-  const t = _normDay(raw);
-  return t.length ? (t[0].color || cfg.acc) : null;
-}
-// Build pizza conic-gradient for multiple task colors
-function _pizzaStyle(raw) {
-  const tasks = _normDay(raw);
-  if (!tasks.length) return '';
-  const colors = tasks.map(t => t.color || cfg.acc);
-  if (colors.length === 1) return `background:${colors[0]};`;
-  // Build conic-gradient segments
-  const seg = 360 / colors.length;
-  let stops = '';
-  colors.forEach((c, i) => {
-    const from = i * seg;
-    const to = (i + 1) * seg;
-    stops += `${c} ${from}deg ${to}deg, `;
-  });
-  stops = stops.slice(0, -2); // remove trailing comma
-  return `background: conic-gradient(${stops});`;
-}
 const SK = 'ftc_d1', SS = 'ftc_s1';
 let days = {}, cfg = { cur:'₽', theme:'dark', thcls:'t-dark', acc:'#D0391B', ov:45, bg:'', xcurs:[], country:'RU' };
 
@@ -1390,7 +1302,7 @@ function dkey(y, m, d) { return `${y}-${String(m+1).padStart(2,'0')}-${String(d)
 // ── STATE ──
 const now = new Date();
 let vy = now.getFullYear(), vm = now.getMonth();
-let dc = '#324E44'; // legacy, kept for compat
+let eDk = null, dc = '#324E44';
 const curTab_ref = { v: 'main' };
 
 const MON  = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
@@ -1439,15 +1351,14 @@ function renderCal() {
   for (let d = 1; d <= dim; d++) {
     const dk = dkey(vy, vm, d);
     const dd = days[dk];
-    const dayColor = _dayColor(dd);
     const dt = new Date(vy, vm, d);
     const isT = dk === tdk;
     const isP = dt < new Date(t.getFullYear(), t.getMonth(), t.getDate());
     const holName = _showHolidays ? getHolidayName(vy, vm, d) : null;
     let cls = 'dot';
     let sty = '';
-    if (dd && dayColor) {
-      sty = _pizzaStyle(dd);
+    if (dd && dd.color) {
+      sty = `background:${dd.color};`;
       cls += ' work';
       if (isT) cls += ' today-w';
     } else if (isT) { cls += ' today'; }
@@ -1578,13 +1489,7 @@ function _startDrag(touch, dk, srcEl) {
   _dragSrcDk  = dk;
   _dragSrcEl  = srcEl;
   const dd = days[dk];
-  const pizzaSty = _pizzaStyle(dd);
-  if (pizzaSty) {
-    const match = pizzaSty.match(/background:\s*(.+);/);
-    if (match) _ghost.style.background = match[1];
-  } else {
-    _ghost.style.background = cfg.acc || '#324E44';
-  }
+  _ghost.style.background = (dd && dd.color) ? dd.color : (cfg.acc || '#324E44');
   _ghost.style.left = touch.clientX + 'px';
   _ghost.style.top  = touch.clientY + 'px';
   _ghost.classList.add('on');
@@ -1733,187 +1638,60 @@ function clrD(dk) {
 }
 
 // ── MODAL ──
-let eDk = null;
-const COLORS = ['#324E44','#D0391B','#FBC359','#7BA7AF','#9F4125','#73A642','#4E6851'];
-
-function _taskBlockHTML(t, idx, total) {
-  const col = t.color || cfg.acc || COLORS[0];
-  const colBtns = COLORS.map(c =>
-    `<div class="dc${col===c?' on':''}" style="background:${c};" data-c="${c}"
-      ontouchend="_pickColor(event,'${c}',${idx})"
-      onclick="_pickColor(event,'${c}',${idx})"></div>`
-  ).join('');
-  const xRows = (t.expenses||[]).map(x =>
-    `<div class="xrow2">
-      <input class="fi" type="number" placeholder="Сумма" value="${x.amount||''}" style="max-width:110px;" inputmode="decimal"/>
-      <input class="fi" placeholder="На такси, еду..." value="${x.comment||''}"/>
-      <button class="xdel" ontouchend="_delX(event,this)" onclick="_delX(event,this)">✕</button>
-    </div>`
-  ).join('');
-  const delBtn = total > 1
-    ? `<button class="task-block-del" ontouchend="_delTask(event,${idx})" onclick="_delTask(event,${idx})">✕</button>`
-    : '';
-  return `<div class="task-block" data-idx="${idx}">
-    <div class="task-block-header">
-      <div class="task-block-num">
-        <span class="task-block-dot" style="background:${col};"></span>
-        Задача ${idx+1}
-      </div>
-      ${delBtn}
-    </div>
-    <div class="fg">
-      <label class="fl">Цвет задачи</label>
-      <div class="dcs">
-        ${colBtns}
-        <div class="dc-cw" title="Свой цвет">
-          <span style="font-size:18px;font-weight:300;color:#fff;line-height:1;">+</span>
-          <input type="color" value="${col}" oninput="_pickColorHex(this.value,${idx})"/>
-        </div>
-      </div>
-    </div>
-    <div class="fg"><label class="fl">Описание</label>
-      <input class="fi task-lbl" placeholder="Название / комментарий" value="${t.label||''}"/>
-    </div>
-    <div class="fg"><label class="fl">Начало</label>
-      <input class="fi fi-time task-ts" type="time" value="${t.timeStart||''}"/>
-    </div>
-    <div class="fg"><label class="fl">Конец</label>
-      <input class="fi fi-time task-te" type="time" value="${t.timeEnd||''}"/>
-    </div>
-    <div class="fg"><label class="fl">Заработано</label>
-      <input class="fi task-earn" type="number" placeholder="Заработано" inputmode="decimal" value="${t.earned||''}"/>
-    </div>
-    <div class="fg"><label class="fl">Затраты</label>
-      <div class="xlist task-xlist">${xRows}</div>
-      <button class="addx" ontouchend="_addX(event,${idx})" onclick="_addX(event,${idx})">+ Добавить затрату</button>
-    </div>
-  </div>`;
-}
-
-function _renderTasks() {
-  const c = document.getElementById('tasksContainer');
-  if (!c) return;
-  c.innerHTML = _tasks.map((t,i) => _taskBlockHTML(t, i, _tasks.length)).join('');
-}
-
-let _tasks = [];
-
-function _pickColor(e, col, idx) {
-  e.stopPropagation(); e.preventDefault();
-  if (!_tasks[idx]) return;
-  _tasks[idx].color = col;
-  _renderTasks();
-}
-function _pickColorHex(col, idx) {
-  if (!_tasks[idx]) return;
-  _tasks[idx].color = col;
-  // update dot only, don't re-render (would reset input focus)
-  const block = document.querySelector(`.task-block[data-idx="${idx}"]`);
-  if (block) {
-    const dot = block.querySelector('.task-block-dot');
-    if (dot) dot.style.background = col;
-  }
-}
-function _delX(e, btn) {
-  e.stopPropagation(); e.preventDefault();
-  btn.parentElement.remove();
-}
-function _addX(e, idx) {
-  e.stopPropagation(); e.preventDefault();
-  const block = document.querySelector(`.task-block[data-idx="${idx}"]`);
-  if (!block) return;
-  const xlist = block.querySelector('.task-xlist');
-  const div = document.createElement('div');
-  div.className = 'xrow2';
-  div.innerHTML = `<input class="fi" type="number" placeholder="Сумма" style="max-width:110px;" inputmode="decimal"/>
-    <input class="fi" placeholder="На такси, еду..."/>
-    <button class="xdel" ontouchend="_delX(event,this)" onclick="_delX(event,this)">✕</button>`;
-  xlist.appendChild(div);
-}
-function _delTask(e, idx) {
-  e.stopPropagation(); e.preventDefault();
-  if (_tasks.length <= 1) return;
-  _saveTaskFields();
-  _tasks.splice(idx, 1);
-  _renderTasks();
-}
-function addTaskBlock(e) {
-  e.stopPropagation(); e.preventDefault();
-  _saveTaskFields();
-  _tasks.push({ color: COLORS[_tasks.length % COLORS.length], label:'', timeStart:'', timeEnd:'', earned:0, expenses:[] });
-  _renderTasks();
-  // scroll to bottom to show new task
-  setTimeout(() => {
-    const s = document.getElementById('mSheet');
-    if (s) s.scrollTop = s.scrollHeight;
-  }, 50);
-}
-function _saveTaskFields() {
-  // Read current DOM state into _tasks
-  document.querySelectorAll('.task-block').forEach(block => {
-    const idx = parseInt(block.dataset.idx);
-    if (!_tasks[idx]) return;
-    const t = _tasks[idx];
-    const lbl  = block.querySelector('.task-lbl');
-    const ts   = block.querySelector('.task-ts');
-    const te   = block.querySelector('.task-te');
-    const earn = block.querySelector('.task-earn');
-    if (lbl)  t.label     = lbl.value.trim();
-    if (ts)   t.timeStart = ts.value;
-    if (te)   t.timeEnd   = te.value;
-    if (earn) t.earned    = parseFloat(earn.value) || 0;
-    const xs = [];
-    block.querySelectorAll('.xrow2').forEach(r => {
-      const ins = r.querySelectorAll('input');
-      const a = parseFloat(ins[0]?.value) || 0;
-      const c = ins[1]?.value.trim() || '';
-      if (a > 0 || c) xs.push({ amount: a, comment: c });
-    });
-    t.expenses = xs;
-  });
-}
-
 function openModal(dk) {
   eDk = dk;
   const [y, m, d] = dk.split('-').map(Number);
   document.getElementById('mTit').textContent = `${d} ${MONG[m-1]}`;
-  // Load tasks — support old single-object format and new array format
-  const raw = days[dk];
-  if (!raw) {
-    _tasks = [{ color: cfg.acc || COLORS[0], label:'', timeStart:'', timeEnd:'', earned:0, expenses:[] }];
-  } else if (Array.isArray(raw)) {
-    _tasks = raw.map(t => ({ color:COLORS[0], label:'', timeStart:'', timeEnd:'', earned:0, expenses:[], ...t }));
-  } else {
-    _tasks = [{ color:COLORS[0], label:'', timeStart:'', timeEnd:'', earned:0, expenses:[], ...raw }];
-  }
-  _renderTasks();
-  const sheet = document.getElementById('mSheet');
-  if (sheet) sheet.scrollTop = 0;
+  const dd = days[dk] || {};
+  dc = dd.color || cfg.acc || '#324E44';
+  document.querySelectorAll('#dcs .dc').forEach(el => el.classList.toggle('on', el.dataset.c === dc));
+  document.getElementById('fLbl').value   = dd.label || '';
+  document.getElementById('fS').value     = dd.timeStart || '';
+  document.getElementById('fE').value     = dd.timeEnd || '';
+  document.getElementById('fEarn').value  = dd.earned || '';
+  document.getElementById('xList').innerHTML = '';
+  (dd.expenses || []).forEach(x => addX(x.amount, x.comment));
   document.getElementById('modal').classList.add('on');
 }
-
 function closeModal() {
   document.getElementById('modal').classList.remove('on');
-  eDk = null; _tasks = [];
-  // Reset all touch state to prevent scroll lock
-  clearTimeout(_lpt); clearTimeout(_dtTimer);
-  _mv = false; _longPressed = false; _longPressDk = null;
-  _lastTap = 0; _lastDk = null;
-  if (_dragActive) _endDrag(false);
-  document.querySelectorAll('.dot.press').forEach(el => el.classList.remove('press'));
+  eDk = null;
 }
-
-// Keep these for backward compat (called from old code paths)
-function pickC(c, el) {}
-function pickCHex(c) {}
-function addX(amount='', comment='') {}
-
+function pickC(c, el) {
+  dc = c;
+  document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
+  if (el) el.classList.add('on');
+}
+function pickCHex(c) {
+  dc = c;
+  document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
+}
+function addX(amount = '', comment = '') {
+  const div = document.createElement('div');
+  div.className = 'xrow2';
+  div.innerHTML = `
+    <input class="fi" type="number" placeholder="Сумма" value="${amount}" style="max-width:110px;" inputmode="decimal"/>
+    <input class="fi" placeholder="На такси, еду..." value="${comment}"/>
+    <button class="xdel" onclick="this.parentElement.remove()">✕</button>`;
+  document.getElementById('xList').appendChild(div);
+}
 function saveDay() {
   if (!eDk) return;
-  _saveTaskFields();
-  const valid = _tasks.filter(t => t.label || t.timeStart || t.earned || (t.expenses && t.expenses.length) || t.color);
-  const toSave = valid.length ? valid : [_tasks[0]];
-  days[eDk] = toSave.length === 1 ? toSave[0] : toSave;
+  const xs = [];
+  document.querySelectorAll('#xList .xrow2').forEach(r => {
+    const ins = r.querySelectorAll('input');
+    const a = parseFloat(ins[0].value) || 0;
+    const c = ins[1].value.trim();
+    if (a > 0 || c) xs.push({ amount: a, comment: c });
+  });
+  days[eDk] = {
+    color:     dc,
+    label:     document.getElementById('fLbl').value.trim(),
+    timeStart: document.getElementById('fS').value,
+    timeEnd:   document.getElementById('fE').value,
+    earned:    parseFloat(document.getElementById('fEarn').value) || 0,
+    expenses:  xs
+  };
   saveD(); closeModal(); renderCal(); renderEnt();
 }
 
@@ -1935,47 +1713,29 @@ function renderEnt() {
   let te = 0; const ax = [];
 
   items.forEach((it, i) => {
-    const tasks = _normDay(it.dd);
-    const firstColor = _dayColor(it.dd) || cfg.acc;
-
-    // Accumulate totals across all tasks
-    tasks.forEach(t => {
-      te += t.earned || 0;
-      (t.expenses || []).forEach(x => ax.push({ ...x, day: it.d, lbl: t.label }));
-    });
-
-    // Build task rows
-    let taskRows = '';
-    tasks.forEach((t, ti) => {
-      const ts = t.timeStart
-        ? (t.timeEnd ? `${t.timeStart}–${t.timeEnd}` : t.timeStart)
-        : '';
-      const es = t.earned ? `+${cur}${t.earned.toLocaleString()}` : '';
-      const xt = (t.expenses||[]).reduce((s,x) => s+(x.amount||0), 0);
-      const xs = xt ? `−${cur}${xt.toLocaleString()}` : '';
-      const dotColor = t.color || cfg.acc;
-      taskRows += `<div style="display:flex;align-items:flex-start;gap:10px;padding:${ti>0?'8px 0 0':'4px 0 0'};">
-        <div style="width:20px;height:20px;border-radius:50%;background:${dotColor};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px;">${ti+1}</div>
-        <div style="flex:1;">
-          ${t.label ? `<div class="ename">${t.label}</div>` : ''}
-          <div class="enums">
-            ${ts ? `<span style="color:var(--text3);">🕐 ${ts}</span>` : ''}
-            ${es ? `<span style="color:var(--accent);font-weight:600;">${es}</span>` : ''}
-            ${xs ? `<span style="color:var(--text2);">${xs}</span>` : ''}
-          </div>
-        </div>
-      </div>`;
-    });
-
+    const dd = it.dd;
+    te += dd.earned || 0;
+    (dd.expenses || []).forEach(x => ax.push({ ...x, day: it.d, lbl: dd.label }));
+    const ts  = dd.timeStart
+      ? (dd.timeEnd ? `${dd.timeStart}–${dd.timeEnd}` : dd.timeStart)
+      : '';
+    const es  = dd.earned ? `+${cur}${dd.earned.toLocaleString()}` : '';
+    const xt  = (dd.expenses || []).reduce((s, x) => s + (x.amount || 0), 0);
+    const xs  = xt ? `−${cur}${xt.toLocaleString()}` : '';
     html += `<div class="ecard" onclick="openModal('${it.dk}')">
       <div class="etop">
         <div class="enum">${i+1}</div>
         <div class="einfo">
           <div class="edate">${it.d} ${MONG[vm]}</div>
+          ${dd.label ? `<div class="ename">${dd.label}</div>` : ''}
         </div>
-        <div class="edot" style="background:${firstColor};"></div>
+        <div class="edot" style="background:${dd.color || cfg.acc};"></div>
       </div>
-      ${taskRows}
+      <div class="enums">
+        ${ts ? `<span style="color:var(--text3);">🕐 ${ts}</span>` : ''}
+        ${es ? `<span style="color:var(--accent);font-weight:600;">${es}</span>` : ''}
+        ${xs ? `<span style="color:var(--text2);">${xs}</span>` : ''}
+      </div>
     </div>`;
   });
   ew.innerHTML = html;
