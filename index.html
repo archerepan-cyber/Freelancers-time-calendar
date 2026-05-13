@@ -213,6 +213,7 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
 }
 .dot.past   { background: var(--dot-past, rgba(0,0,0,.1)); }
 .dot.today  { background: var(--dot-today-bg, rgba(0,0,0,0.12)); box-shadow: 0 0 0 2px var(--dot-today, var(--accent)); }
+.dot.today-w { box-shadow: 0 0 0 2px var(--dot-today, var(--accent)); }
 .dot.future { background: var(--dot-future, rgba(0,0,0,.05)); }
 .dot.work   { /* color set via inline style */ }
 .dot.empty  { background: transparent; pointer-events: none; }
@@ -580,80 +581,6 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
 .dot.drag-src  { opacity: .28; transform: scale(.84); transition: opacity .15s, transform .15s; }
 .dot.drag-over { box-shadow: 0 0 0 3px var(--accent) !important; transform: scale(1.14); transition: box-shadow .1s, transform .1s; }
 
-/* ── LAYER 2 BADGE ── */
-#layer2Btn {
-  position: absolute;
-  top: calc(var(--st) + 14px);
-  right: 18px;
-  width: 34px; height: 34px;
-  border-radius: 50%;
-  background: var(--accent);
-  border: none;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 15px; font-weight: 700; color: #fff;
-  z-index: 50;
-  touch-action: manipulation;
-  box-shadow: 0 2px 12px rgba(0,0,0,.22);
-  transition: transform .15s, opacity .2s;
-  cursor: pointer;
-}
-#layer2Btn:active { transform: scale(.88); }
-#layer2Btn.hidden { opacity: 0; pointer-events: none; }
-
-/* ── LAYER 2 SHEET ── */
-#layer2Over {
-  position: fixed; inset: 0; z-index: 600;
-  background: rgba(0,0,0,.45);
-  display: flex; align-items: flex-end; justify-content: center;
-  opacity: 0; pointer-events: none;
-  transition: opacity .38s cubic-bezier(.32,.72,0,1);
-}
-#layer2Over.on { opacity: 1; pointer-events: auto; }
-#layer2Sheet {
-  width: 100%; max-width: 520px;
-  background: var(--bg);
-  border-radius: 26px 26px 0 0;
-  padding: 0 0 0 0;
-  height: 92vh;
-  display: flex; flex-direction: column;
-  transform: translateY(100%);
-  transition: transform .42s cubic-bezier(.32,.72,0,1);
-  will-change: transform;
-  overflow: hidden;
-}
-#layer2Over.on #layer2Sheet { transform: translateY(0); }
-#layer2Over.closing { opacity: 0 !important; pointer-events: none !important; }
-#layer2Over.closing #layer2Sheet { transform: translateY(100%) !important; }
-
-#layer2Header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: calc(var(--st) + 16px) 20px 0;
-  flex-shrink: 0;
-}
-#layer2Title {
-  font-family: 'DM Serif Display', serif;
-  font-size: 22px; color: var(--text);
-}
-#layer2Close {
-  background: var(--bg3); border: none;
-  width: 34px; height: 34px; border-radius: 50%;
-  font-size: 18px; color: var(--text2);
-  display: flex; align-items: center; justify-content: center;
-  touch-action: manipulation; cursor: pointer;
-  flex-shrink: 0;
-}
-#layer2Close:active { opacity: .6; }
-#layer2Handle {
-  width: 36px; height: 4px; border-radius: 2px;
-  background: var(--sep); margin: 10px auto 0;
-  flex-shrink: 0;
-}
-#layer2Body {
-  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-  padding: 20px 22px calc(var(--sb) + 24px);
-}
-
 /* ── CONTEXT MENU ── */
 #ctxMenu {
   position: fixed; z-index: 500;
@@ -718,9 +645,6 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
 
     <!-- MAIN -->
     <div class="scr" id="sMain">
-      <!-- Layer 2 badge -->
-      <button id="layer2Btn" onclick="openLayer2()" aria-label="Открыть второй слой">2</button>
-
       <div class="big" id="bNum">3</div>
       <div class="bigrow">
         <div><span class="bigmon" id="bMon">МАЙ</span><span class="bigyr" id="bYr"> 2026</span></div>
@@ -854,43 +778,6 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
       <input class="cp-search" id="cpSearch" placeholder="🔍 Поиск страны..." oninput="filterCpList(this.value)" autocomplete="off"/>
     </div>
     <div id="countryPickerList"></div>
-  </div>
-</div>
-
-<!-- LAYER 2 -->
-<div id="layer2Over" onclick="if(event.target===this)closeLayer2()">
-  <div id="layer2Sheet">
-    <div id="layer2Handle"></div>
-    <div id="layer2Header">
-      <div id="layer2Title">Слой 2</div>
-      <button id="layer2Close" onclick="closeLayer2()">✕</button>
-    </div>
-    <div id="layer2Body">
-      <!-- Big date mirror -->
-      <div class="big" id="l2bNum" style="pointer-events:none;"></div>
-      <div class="bigrow" style="pointer-events:none;">
-        <div><span class="bigmon" id="l2bMon"></span><span class="bigyr" id="l2bYr"></span></div>
-        <div class="bigdow" id="l2bDow"></div>
-      </div>
-
-      <!-- Month nav -->
-      <div class="mnav" style="margin-top:4px;">
-        <button class="marr" onclick="l2chM(-1)">‹</button>
-        <div class="mlbl" id="l2mLbl"></div>
-        <button class="marr" onclick="l2chM(1)">›</button>
-      </div>
-
-      <!-- Calendar grid -->
-      <div class="chdr">
-        <span>П</span><span>В</span><span>С</span><span>Ч</span><span>П</span>
-        <span class="we">С</span><span class="we">В</span>
-      </div>
-      <div class="cgrid" id="l2grid"></div>
-
-      <!-- Entries + totals -->
-      <div id="l2entWrap"></div>
-      <div id="l2totWrap"></div>
-    </div>
   </div>
 </div>
 
@@ -1053,7 +940,7 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
 })();
 
 
-const TE_VARS = ['--bg','--bg2','--bg3','--text','--text2','--text3','--accent','--dot-today','--dot-past','--dot-future'];
+const TE_VARS = ['--bg','--bg2','--bg3','--text','--text2','--text3','--accent','--dot-today-bg','--dot-today','--dot-past','--dot-future'];
 const TE_IDS  = {'--bg':'sw-bg','--bg2':'sw-bg2','--bg3':'sw-bg3','--text':'sw-text','--text2':'sw-text2','--text3':'sw-text3','--accent':'sw-accent','--dot-today-bg':'sw-dot-today-bg','--dot-today':'sw-dot-today','--dot-past':'sw-dot-past','--dot-future':'sw-dot-future'};
 
 // Base theme presets (solid hex only — rgba stored separately for live editing)
@@ -1160,17 +1047,24 @@ function closeTE(apply) {
       cfg.theme = 'custom'; cfg.thcls = ''; saveC();
       document.querySelectorAll('.tcrd').forEach(el => el.classList.remove('on'));
       document.getElementById('customThemeCard').classList.add('on');
-    } else if (!apply && _teBase === 'custom' && cfg.theme !== 'custom') {
-      saveC(); applyTeCustom(cfg.theme); // восстановить текущую тему
+    } else if (!apply) {
+      // Cancelled — restore current theme's CSS (editor may have changed live vars)
+      saveC(); applyTeCustom(cfg.theme || 'default');
     } else { saveC(); }
   }
   updateCustomCard();
   document.getElementById('teOver').classList.remove('on');
+  _teBase = null;
 }
 
 function teSet(varName, hex) {
   document.documentElement.style.setProperty(varName, hex);
-  document.getElementById(TE_IDS[varName]).style.background = hex;
+  const sw = document.getElementById(TE_IDS[varName]);
+  if (sw) {
+    sw.style.background = hex;
+    const inp = sw.querySelector('input');
+    if (inp) inp.value = hex;
+  }
 }
 
 function teReset() {
@@ -1649,6 +1543,8 @@ const DOW  = ['Воскресенье','Понедельник','Вторник'
 
 // ── BOOT ──
 load();
+// Sync _teCustom from persisted config
+if (cfg.teCustom) _teCustom = cfg.teCustom;
 applyCfg();
 
 // Подтверждаем цвет сплэша (уже задан через document.write, но страхуемся)
@@ -1658,7 +1554,7 @@ applyCfg();
   var bg = window._splashBg || '#f5f0e8';
   sp.style.background = bg;
   // Цвет точек — тёмных тем белые, светлых — чёрные
-  var isDark = bg.charAt(1) < '5';  // грубо: первый hex-символ < '5' → тёмный
+  var isDark = parseInt(bg.slice(1,3),16) < 80;  // грубо: R-канал < 80 → тёмный
   var dotC = isDark ? 'rgba(255,255,255,.45)' : 'rgba(0,0,0,.22)';
   sp.querySelectorAll('.sp-dot').forEach(function(d){ d.style.background = dotC; });
 })();
@@ -1725,7 +1621,7 @@ function renderCal() {
     if (dd) cls += ' has';
     if (holName) cls += ' holiday';
     const tipHtml = holName
-      ? `<div class="hol-tip" onclick="showHolPopup(event,'${vy}','${vm}','${d}')" ontouchend="showHolPopup(event,'${vy}','${vm}','${d}');event.stopPropagation()">${holName}</div>`
+      ? `<div class="hol-tip" onclick="showHolPopup(event,'${vy}','${vm}','${d}')" ontouchend="showHolPopup(event,'${vy}','${vm}','${d}');event.stopPropagation()">${_esc(holName)}</div>`
       : '';
     h += `<div class="${cls}" style="${sty}"
       ontouchstart="ts(event,'${dk}')"
@@ -1772,12 +1668,8 @@ function ctxDoCopy() {
   if (!_ctxDk) return;
   _copiedDay = JSON.parse(JSON.stringify(days[_ctxDk]));
   navigator.vibrate && navigator.vibrate([15, 20, 15]);
-  closeCtxMenu();
-  // flash copied dot
-  document.querySelectorAll('.dot').forEach(el => {
-    if (el.dataset && el._dk === _ctxDk) return; // not reliable, skip
-  });
-  renderCal(); // re-render to show copy indicator ring
+  closeCtxMenu(); // note: this clears _ctxDk, so we already captured the copy above
+  renderCal(); // re-render to show paste is now available
 }
 
 function ctxDoPaste() {
@@ -1857,14 +1749,14 @@ function _startDrag(touch, dk, srcEl) {
   _ghost.style.left = touch.clientX + 'px';
   _ghost.style.top  = touch.clientY + 'px';
   _ghost.classList.add('on');
-  srcEl.classList.add('drag-src');
+  if (srcEl) srcEl.classList.add('drag-src');
 }
 
 function _endDrag(dropped) {
   _ghost.classList.remove('on');
   if (_dragSrcEl)  _dragSrcEl.classList.remove('drag-src');
   if (_dragOverEl) _dragOverEl.classList.remove('drag-over');
-  if (dropped && _dragOverDk && _dragOverDk !== _dragSrcDk) {
+  if (dropped && _dragOverDk && _dragOverDk !== _dragSrcDk && days[_dragSrcDk]) {
     days[_dragOverDk] = JSON.parse(JSON.stringify(days[_dragSrcDk]));
     delete days[_dragSrcDk];
     saveD(); renderCal(); renderEnt();
@@ -2015,7 +1907,7 @@ function _taskBlockHTML(t, idx, total) {
   const xRows = (t.expenses||[]).map(x =>
     `<div class="xrow2">
       <input class="fi" type="number" placeholder="Сумма" value="${x.amount||''}" style="max-width:110px;" inputmode="decimal"/>
-      <input class="fi" placeholder="На такси, еду..." value="${x.comment||''}"/>
+      <input class="fi" placeholder="На такси, еду..." value="${_esc(x.comment||'')}"/>
       <button class="xdel" ontouchend="_delX(event,this)" onclick="_delX(event,this)">✕</button>
     </div>`
   ).join('');
@@ -2042,7 +1934,7 @@ function _taskBlockHTML(t, idx, total) {
       </div>
     </div>
     <div class="fg"><label class="fl">Описание</label>
-      <input class="fi task-lbl" placeholder="Название / комментарий" value="${t.label||''}"/>
+      <input class="fi task-lbl" placeholder="Название / комментарий" value="${_esc(t.label||'')}"/>
     </div>
     <div class="fg"><label class="fl">Начало</label>
       <input class="fi fi-time task-ts" type="time" value="${t.timeStart||''}"/>
@@ -2071,6 +1963,7 @@ let _tasks = [];
 function _pickColor(e, col, idx) {
   e.stopPropagation(); e.preventDefault();
   if (!_tasks[idx]) return;
+  _saveTaskFields(); // preserve current input values before re-render
   _tasks[idx].color = col;
   _renderTasks();
 }
@@ -2198,13 +2091,21 @@ function addX(amount='', comment='') {}
 function saveDay() {
   if (!eDk) return;
   _saveTaskFields();
-  const valid = _tasks.filter(t => t.label || t.timeStart || t.earned || (t.expenses && t.expenses.length) || t.color);
-  const toSave = valid.length ? valid : [_tasks[0]];
-  days[eDk] = toSave.length === 1 ? toSave[0] : toSave;
+  const valid = _tasks.filter(t => t.label || t.timeStart || t.earned > 0 || (t.expenses && t.expenses.length));
+  if (!valid.length) {
+    // Nothing meaningful entered — treat as clear
+    delete days[eDk];
+    saveD(); closeModal(); setTimeout(function(){ renderCal(); renderEnt(); }, 450);
+    return;
+  }
+  days[eDk] = valid.length === 1 ? valid[0] : valid;
   saveD(); closeModal(); setTimeout(function(){ renderCal(); renderEnt(); }, 450);
 }
 
 // ── ENTRIES ──
+function _esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
 function renderEnt() {
   const items = [];
   for (let d = 1; d <= 31; d++) {
@@ -2227,7 +2128,7 @@ function renderEnt() {
 
     // Accumulate totals across all tasks
     tasks.forEach(t => {
-      te += t.earned || 0;
+      te += parseFloat(t.earned) || 0;
       (t.expenses || []).forEach(x => ax.push({ ...x, day: it.d, lbl: t.label }));
     });
 
@@ -2237,14 +2138,14 @@ function renderEnt() {
       const ts = t.timeStart
         ? (t.timeEnd ? `${t.timeStart}–${t.timeEnd}` : t.timeStart)
         : '';
-      const es = t.earned ? `+${cur}${t.earned.toLocaleString()}` : '';
-      const xt = (t.expenses||[]).reduce((s,x) => s+(x.amount||0), 0);
-      const xs = xt ? `−${cur}${xt.toLocaleString()}` : '';
+      const es = t.earned ? `+${cur}${t.earned.toLocaleString('ru-RU')}` : '';
+      const xt = (t.expenses||[]).reduce((s,x) => s+( parseFloat(x.amount)||0 ), 0);
+      const xs = xt ? `−${cur}${xt.toLocaleString('ru-RU')}` : '';
       const dotColor = t.color || cfg.acc;
       taskRows += `<div style="display:flex;align-items:flex-start;gap:10px;padding:${ti>0?'8px 0 0':'4px 0 0'};">
         <div style="width:20px;height:20px;border-radius:50%;background:${dotColor};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px;">${ti+1}</div>
         <div style="flex:1;">
-          ${t.label ? `<div class="ename">${t.label}</div>` : ''}
+          ${t.label ? `<div class="ename">${_esc(t.label)}</div>` : ''}
           <div class="enums">
             ${ts ? `<span style="color:var(--text3);">🕐 ${ts}</span>` : ''}
             ${es ? `<span style="color:var(--accent);font-weight:600;">${es}</span>` : ''}
@@ -2267,7 +2168,7 @@ function renderEnt() {
   });
   ew.innerHTML = html;
 
-  const tx = ax.reduce((s, x) => s + (x.amount || 0), 0);
+  const tx = ax.reduce((s, x) => s + (parseFloat(x.amount) || 0), 0);
   const net = te - tx; window._lastNet = net;
   let th = '';
   // Группируем одинаковые траты по названию
@@ -2279,14 +2180,14 @@ function renderEnt() {
   });
   Object.entries(grouped).forEach(([name, total]) => {
     th += `<div class="xrow">
-      <span>${name}</span>
-      <span style="color:var(--accent);">−${cur}${total.toLocaleString()}</span>
+      <span>${_esc(name)}</span>
+      <span style="color:var(--accent);">−${cur}${total.toLocaleString('ru-RU')}</span>
     </div>`;
   });
   th += `<div class="trow" style="align-items:flex-start;">
     <div class="tlbl" style="padding-top:10px;">Итого</div>
     <div style="text-align:right;">
-      <div class="tamt" style="color:${net >= 0 ? 'var(--accent)' : '#c0392b'};">${net >= 0 ? '+' : ''}${cur}${Math.abs(net).toLocaleString()}</div>
+      <div class="tamt" style="color:${net >= 0 ? 'var(--accent)' : '#c0392b'};">${net >= 0 ? '+' : ''}${cur}${Math.abs(net).toLocaleString('ru-RU')}</div>
       <div class="xcur-wrap" id="xcurEdit"></div>
     </div>
   </div>`;
@@ -2296,15 +2197,15 @@ function renderEnt() {
 
 // ── EXTRA CURRENCIES ──
 const CUR_CODE = {'₽':'RUB','$':'USD','€':'EUR','₸':'KZT','₴':'UAH','£':'GBP','¥':'JPY','₿':'BTC','₩':'KRW','Fr':'CHF','kr':'SEK','zł':'PLN','₫':'VND','₹':'INR','R$':'BRL','₱':'PHP'};
-let _rateCache = {}, _rateTs = 0;
+let _rateCache = {}, _rateCacheTs = {};
 async function fetchRates(baseSym) {
   const base = CUR_CODE[baseSym] || baseSym.replace(/[^A-Za-z]/g,'').toUpperCase() || 'USD';
   const now = Date.now();
-  if (_rateCache[base] && now - _rateTs < 3600000) return _rateCache[base];
+  if (_rateCache[base] && now - (_rateCacheTs[base] || 0) < 3600000) return _rateCache[base];
   try {
     const r = await fetch(`https://api.exchangerate-api.com/v4/latest/${base}`);
     const d = await r.json();
-    _rateCache[base] = d.rates || {}; _rateTs = now;
+    _rateCache[base] = d.rates || {}; _rateCacheTs[base] = now;
     return _rateCache[base];
   } catch { return {}; }
 }
@@ -2327,9 +2228,9 @@ function renderXcurEdit() {
   const net = window._lastNet || 0;
   let h = '';
   cfg.xcurs.forEach((x, i) => {
-    const conv = (x.rate && x.sym) ? net * parseFloat(x.rate) : null;
+    const conv = (x.sym && x.rate !== '' && x.rate !== null && x.rate !== undefined) ? net * parseFloat(x.rate) : null;
     const amtStr = conv !== null
-      ? `<span style="font-size:22px;font-family:'DM Serif Display',serif;font-weight:400;color:${conv>=0?'var(--accent)':'#c0392b'};">${conv>=0?'+':''}${x.sym}${Math.abs(conv).toLocaleString(undefined,{maximumFractionDigits:0})}</span>`
+      ? `<span style="font-size:22px;font-family:'DM Serif Display',serif;font-weight:400;color:${conv>=0?'var(--accent)':'#c0392b'};">${conv>=0?'+':''}${x.sym}${Math.abs(conv).toLocaleString('ru-RU',{maximumFractionDigits:0})}</span>`
       : `<span style="font-size:13px;color:var(--text3);">загрузка…</span>`;
     const opacity = x.on === false ? '0.35' : '1';
     h += `<div style="display:flex;align-items:center;gap:8px;margin-top:10px;opacity:${opacity};">
@@ -2353,7 +2254,7 @@ function xcAdd() {
 }
 function xcDel(i) { cfg.xcurs.splice(i,1); saveC(); renderEnt(); }
 function xcToggle(i) { cfg.xcurs[i].on = cfg.xcurs[i].on===false?true:false; saveC(); renderEnt(); }
-function xcSym(i,val) { cfg.xcurs[i].sym=val; cfg.xcurs[i].rate=''; saveC(); renderEnt(); if(val.length>=1) xcRefreshRates(); }
+function xcSym(i,val) { cfg.xcurs[i].sym=val; cfg.xcurs[i].rate=''; saveC(); /* do not call renderEnt() here — it resets focus */ if(val.length>=1) xcRefreshRates(); }
 
 // ── TABS ──
 function goTab(tab, fromSwipe = false) {
@@ -2449,208 +2350,17 @@ function goTab(tab, fromSwipe = false) {
     }
     dragging = false;
   }, { passive: true });
-})();
 
-// ── LAYER 2 ──
-
-// Independent state for layer 2
-let l2vy = new Date().getFullYear(), l2vm = new Date().getMonth();
-// Layer 2 uses the SAME days storage (days[]) and cfg as layer 1.
-// They share data — clicking a day in layer 2 also opens the modal.
-
-function openLayer2() {
-  l2vy = vy; l2vm = vm; // start synced to current view
-  renderLayer2Big();
-  renderLayer2Cal();
-  renderLayer2Ent();
-  document.getElementById('layer2Over').classList.add('on');
-  document.getElementById('layer2Over').classList.remove('closing');
-}
-
-function closeLayer2() {
-  const over = document.getElementById('layer2Over');
-  const sheet = document.getElementById('layer2Sheet');
-  sheet.style.transform = '';
-  sheet.style.transition = '';
-  over.classList.add('closing');
-  over.classList.remove('on');
-  setTimeout(() => over.classList.remove('closing'), 420);
-}
-
-function l2chM(d) {
-  l2vm += d;
-  if (l2vm < 0) { l2vm = 11; l2vy--; }
-  if (l2vm > 11) { l2vm = 0; l2vy++; }
-  renderLayer2Cal();
-  renderLayer2Ent();
-}
-
-function renderLayer2Big() {
-  const t = new Date();
-  document.getElementById('l2bNum').textContent = t.getDate();
-  document.getElementById('l2bMon').textContent = MONU[t.getMonth()];
-  document.getElementById('l2bYr').textContent  = ' ' + t.getFullYear();
-  document.getElementById('l2bDow').textContent = DOW[t.getDay()];
-}
-
-function renderLayer2Cal() {
-  document.getElementById('l2mLbl').textContent = MON[l2vm] + ' ' + l2vy;
-  const t = new Date();
-  const tdk = dkey(t.getFullYear(), t.getMonth(), t.getDate());
-  const fd = (new Date(l2vy, l2vm, 1).getDay() + 6) % 7;
-  const dim = new Date(l2vy, l2vm+1, 0).getDate();
-  let h = '';
-  for (let i = 0; i < fd; i++) h += '<div class="dot empty"></div>';
-  for (let d = 1; d <= dim; d++) {
-    const dk = dkey(l2vy, l2vm, d);
-    const dd = days[dk];
-    const dayColor = _dayColor(dd);
-    const dt = new Date(l2vy, l2vm, d);
-    const isT = dk === tdk;
-    const isP = dt < new Date(t.getFullYear(), t.getMonth(), t.getDate());
-    let cls = 'dot';
-    let sty = '';
-    if (dd && dayColor) {
-      sty = _pizzaStyle(dd);
-      cls += ' work';
-      if (isT) cls += ' today-w';
-    } else if (isT) { cls += ' today'; }
-    else if (isP)   { cls += ' past'; }
-    else            { cls += ' future'; }
-    if (dd) cls += ' has';
-    // Tap opens the same modal as layer 1
-    h += `<div class="${cls}" style="${sty}"
-      ontouchstart="ts(event,'${dk}')"
-      ontouchmove="tm()"
-      ontouchend="te(event,'${dk}')"
-    >
-      <div class="pip"></div>
-      <div class="dnum">${d}</div>
-    </div>`;
-  }
-  document.getElementById('l2grid').innerHTML = h;
-}
-
-function renderLayer2Ent() {
-  // Reuse renderEnt logic but render into layer 2 containers
-  // Build same HTML as renderEnt but point to l2entWrap / l2totWrap
-  const ew = document.getElementById('l2entWrap');
-  const tw = document.getElementById('l2totWrap');
-  if (!ew || !tw) return;
-
-  // Gather entries for the month (same logic as renderEnt)
-  const dim = new Date(l2vy, l2vm+1, 0).getDate();
-  let entries = [];
-  for (let d = 1; d <= dim; d++) {
-    const dk = dkey(l2vy, l2vm, d);
-    const raw = days[dk];
-    if (!raw) continue;
-    const tasks = _normDay(raw);
-    tasks.forEach(t => {
-      if (!t || (!t.h && !t.n && !t.label)) return;
-      entries.push({d, dk, t});
-    });
-  }
-
-  if (!entries.length) { ew.innerHTML = ''; tw.innerHTML = ''; return; }
-
-  // Render entry cards
-  let eh = `<div class="slbl">Записи — ${MON[l2vm]}</div>`;
-  entries.forEach(({d, t}, idx) => {
-    const col = t.color || cfg.acc;
-    const h = parseFloat(t.h) || 0;
-    const r = parseFloat(t.r) || cfg.rate || 0;
-    const net = h * r;
-    const label = t.label || t.n || '';
-    eh += `<div class="ecard">
-      <div class="etop">
-        <div class="enum">${idx+1}</div>
-        <div class="einfo">
-          <div class="edate" style="color:${col}">${d} ${MONG[l2vm]}</div>
-          ${label ? `<div class="ename">${label}</div>` : ''}
-          <div class="enums">
-            ${h ? `<span>${h} ч</span>` : ''}
-            ${net ? `<span style="color:${col}">${cfg.cur}${Math.round(net).toLocaleString()}</span>` : ''}
-          </div>
-        </div>
-        <div class="edot" style="background:${col}"></div>
-      </div>
-    </div>`;
-  });
-  ew.innerHTML = eh;
-
-  // Totals
-  let totalH = 0, totalNet = 0;
-  entries.forEach(({t}) => {
-    totalH   += parseFloat(t.h)   || 0;
-    totalNet += (parseFloat(t.h)||0) * (parseFloat(t.r)||cfg.rate||0);
-  });
-  let th = `<div class="tcard">`;
-  th += `<div class="trow"><div class="tlbl">Всего часов</div><div class="tamt">${totalH}</div></div>`;
-  if (totalNet) th += `<div class="trow"><div class="tlbl">Итого</div><div class="tamt" style="color:var(--accent)">${cfg.cur}${Math.round(totalNet).toLocaleString()}</div></div>`;
-  th += `</div>`;
-  tw.innerHTML = th;
-}
-
-// Hide layer2 badge when on settings tab — patch via tabbar clicks directly
-(function(){
-  function syncBadge() {
-    const btn = document.getElementById('layer2Btn');
-    if (!btn) return;
-    btn.classList.toggle('hidden', curTab_ref.v === 'sett');
-  }
-  // Poll on tab changes via MutationObserver on tbM/tbS
-  const observer = new MutationObserver(syncBadge);
-  setTimeout(() => {
-    const tbM = document.getElementById('tbM');
-    const tbS = document.getElementById('tbS');
-    if (tbM) observer.observe(tbM, {attributes:true, attributeFilter:['class']});
-    if (tbS) observer.observe(tbS, {attributes:true, attributeFilter:['class']});
-  }, 100);
-})();
-
-// Swipe down to close layer 2
-(function(){
-  const sheet = () => document.getElementById('layer2Sheet');
-  let sy = 0, dragging = false;
-  document.addEventListener('touchstart', e => {
-    if (!document.getElementById('layer2Over').classList.contains('on')) return;
-    sy = e.touches[0].clientY; dragging = false;
-  }, {passive:true});
-  document.addEventListener('touchmove', e => {
-    if (!document.getElementById('layer2Over').classList.contains('on')) return;
-    const s = sheet();
-    const body = document.getElementById('layer2Body');
-    if (body && body.scrollTop > 0) return;
-    const dy = e.touches[0].clientY - sy;
-    if (dy > 10) { dragging = true; s.style.transform = `translateY(${Math.min(dy, 300)}px)`; s.style.transition = 'none'; }
-  }, {passive:true});
-  document.addEventListener('touchend', e => {
-    if (!document.getElementById('layer2Over').classList.contains('on')) return;
-    const s = sheet();
-    const dy = e.changedTouches[0].clientY - sy;
-    s.style.transition = '';
-    if (dragging && dy > 100) { s.style.transform = ''; closeLayer2(); }
-    else { s.style.transform = ''; }
-    dragging = false;
-  }, {passive:true});
-})();
-
-// After modal closes, refresh layer 2 if open
-// Patch closeModal to also refresh layer 2
-(function(){
-  const _orig = window.closeModal;
-  // closeModal is defined via function declaration — patch after boot
-  setTimeout(() => {
-    const origClose = closeModal;
-    window.closeModal = function() {
-      origClose.apply(this, arguments);
-      if (document.getElementById('layer2Over').classList.contains('on')) {
-        renderLayer2Cal();
-        renderLayer2Ent();
-      }
-    };
-  }, 200);
+  wrap.addEventListener('touchcancel', () => {
+    if (!dragging) return;
+    // Restore panel positions and transitions after cancelled swipe
+    const EASE = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
+    m.style.transition = EASE;
+    s.style.transition = EASE;
+    m.style.transform = curTab_ref.v === 'main' ? 'translateX(0)' : 'translateX(-100%)';
+    s.style.transform = curTab_ref.v === 'sett' ? 'translateX(0)' : 'translateX(100%)';
+    dragging = false; axis = null;
+  }, { passive: true });
 })();
 
 // ── SETTINGS ──
@@ -2679,6 +2389,12 @@ function setTheme(card) {
   const t = card.dataset.t;
   if (t === 'custom') { openTE('custom', 'Своя тема'); return; }
   cfg.theme = t; cfg.thcls = card.dataset.c; saveC();
+  // Update PWA theme-color meta tag
+  const _mc = document.querySelector('meta[name=theme-color]');
+  if (_mc) {
+    const _THEME_BG = {'default':'#f5f0e8','dark':'#151515','warm':'#EFE8CB','ocean':'#E2E4D2','retro':'#DCC9A9','night':'#080808'};
+    _mc.setAttribute('content', _THEME_BG[t] || '#f5f0e8');
+  }
   const keep = [];
   document.body.className.split(' ').forEach(cl => { if (!cl.startsWith('t-')) keep.push(cl); });
   document.body.className = (keep.join(' ') + ' ' + cfg.thcls).trim();
@@ -2728,8 +2444,8 @@ function setAcc(c, dot) {
 }
 
 function setOv(v) {
-  cfg.ov = v; saveC();
-  document.getElementById('ov').style.background = `rgba(0,0,0,${v/100})`;
+  cfg.ov = parseFloat(v); saveC();
+  document.getElementById('ov').style.background = `rgba(0,0,0,${cfg.ov/100})`;
 }
 
 function loadBg(e) {
@@ -2772,7 +2488,7 @@ function applyCfg() {
   const _stdC = ['₽','$','€','₸','₴'];
   const _isStd = _stdC.includes(cfg.cur);
   document.querySelectorAll('.curbtn').forEach(b => {
-    b.classList.toggle('on', _isStd && b.textContent.startsWith(cfg.cur));
+    b.classList.toggle('on', _isStd && b.textContent.trim().startsWith(cfg.cur));
   });
   if (!_isStd && cfg.cur) {
     const _ci = document.getElementById('cusCurIn');
