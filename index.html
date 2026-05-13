@@ -609,56 +609,89 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
 .ctx-item .ctx-icon { font-size: 17px; }
 .ctx-item.paste { color: var(--accent); }
 
-/* ── LAYER SWITCHER ── */
-#layerBtn {
+/* ── LAYER 2 BUTTON ── */
+#l2Btn {
   position: absolute;
-  top: calc(var(--st) + 14px);
+  top: calc(var(--st, 0px) + 16px);
   right: 18px;
-  display: flex; align-items: center; gap: 6px;
-  z-index: 10;
-  touch-action: manipulation;
-  cursor: pointer;
+  display: flex; align-items: center; gap: 5px;
   background: none; border: none; padding: 4px;
-  opacity: 1;
-  transition: opacity .25s;
+  touch-action: manipulation; cursor: pointer; z-index: 10;
+  transition: opacity .22s;
 }
-#layerBtn.hide { opacity: 0; pointer-events: none; }
-#layerCircle {
+#l2Btn.hidden { opacity: 0; pointer-events: none; }
+#l2Circle {
   width: 28px; height: 28px; border-radius: 50%;
   background: var(--accent);
   display: flex; align-items: center; justify-content: center;
   font-size: 14px; font-weight: 700; color: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,.22);
-  transition: transform .15s;
+  box-shadow: 0 2px 10px rgba(0,0,0,.20);
+  flex-shrink: 0;
 }
-#layerBtn:active #layerCircle { transform: scale(.88); }
-#layerNum {
-  font-size: 13px; font-weight: 600; color: var(--text2);
-}
+#l2Btn:active #l2Circle { transform: scale(.88); }
 
-/* Active layer indicator in header */
-#layerBadge {
-  display: inline-block;
-  background: var(--accent); color: #fff;
-  font-size: 10px; font-weight: 700;
-  border-radius: 8px; padding: 1px 6px;
-  margin-left: 8px; vertical-align: middle;
-  opacity: 0; transition: opacity .2s;
-}
-#layerBadge.on { opacity: 1; }
-
-/* ── LAYER-2 INDICATOR on day dots (NE corner) ── */
-.dot .l2-pip {
-  position: absolute;
-  top: -1px; right: -1px;
-  width: 7px; height: 7px;
-  border-radius: 50%;
+/* ── LAYER-2 NE PIP on day dots ── */
+.dot .l2pip {
+  position: absolute; top: -2px; right: -2px;
+  width: 8px; height: 8px; border-radius: 50%;
   border: 1.5px solid var(--bg, #f5f0e8);
-  display: none;
-  z-index: 3;
-  pointer-events: none;
+  display: none; z-index: 4; pointer-events: none;
 }
-.dot .l2-pip.on { display: block; }
+.dot .l2pip.on { display: block; }
+
+/* ── LAYER-2 BOTTOM SHEET ── */
+#layer2Over {
+  position: fixed; inset: 0; z-index: 350;
+  background: rgba(0,0,0,.45);
+  opacity: 0; pointer-events: none;
+  transition: opacity .38s cubic-bezier(.32,.72,0,1);
+}
+#layer2Over.on { opacity: 1; pointer-events: auto; }
+#layer2Sheet {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: 96svh;
+  background: var(--bg);
+  border-radius: 22px 22px 0 0;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  transform: translateY(100%);
+  transition: transform .42s cubic-bezier(.32,.72,0,1);
+  will-change: transform;
+}
+#layer2Over.on #layer2Sheet { transform: translateY(0); }
+#layer2Over.closing { opacity: 0 !important; pointer-events: none !important; transition: opacity .38s cubic-bezier(.32,.72,0,1) !important; }
+#layer2Over.closing #layer2Sheet { transform: translateY(100%) !important; transition: transform .42s cubic-bezier(.32,.72,0,1) !important; }
+
+/* header bar inside layer 2 */
+#l2Header {
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: calc(var(--st, 0px) + 14px) 18px 12px;
+  border-bottom: .5px solid var(--sep);
+}
+#l2Title {
+  font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--text);
+}
+#l2CloseBtn {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--bg3); border: none;
+  font-size: 18px; color: var(--text2);
+  display: flex; align-items: center; justify-content: center;
+  touch-action: manipulation; cursor: pointer; flex-shrink: 0;
+}
+#l2CloseBtn:active { opacity: .6; }
+/* drag handle */
+#l2Drag {
+  flex-shrink: 0;
+  width: 36px; height: 4px; border-radius: 2px;
+  background: var(--sep); margin: 10px auto 0;
+}
+/* scrollable content */
+#l2Body {
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 18px 22px calc(var(--sb, 0px) + 24px);
+}
 
 </style>
 </head>
@@ -696,9 +729,9 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
 
     <!-- MAIN -->
     <div class="scr" id="sMain">
-      <!-- Layer switcher button (top-right) -->
-      <button id="layerBtn" onclick="goLayer(2)">
-        <div id="layerCircle">2</div>
+      <!-- Layer 2 button (top-right, hides when settings open) -->
+      <button id="l2Btn" onclick="openLayer2()">
+        <div id="l2Circle">2</div>
       </button>
 
       <div class="big" id="bNum">3</div>
@@ -726,42 +759,6 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
 
       <div id="entWrap"></div>
       <div id="totWrap"></div>
-    </div>
-
-    <!-- MAIN LAYER 2 -->
-    <div class="scr" id="sMain2" style="transform:translateX(-100%);">
-      <!-- Back button -->
-      <button id="layerBackBtn" onclick="goLayer(1)" style="position:absolute;top:calc(var(--st) + 14px);left:18px;background:none;border:none;padding:4px;touch-action:manipulation;cursor:pointer;display:flex;align-items:center;gap:6px;z-index:10;">
-        <span style="font-size:22px;color:var(--text);opacity:.5;">‹</span>
-        <span style="font-size:13px;font-weight:600;color:var(--text2);">Слой 1</span>
-      </button>
-      <div style="padding-top:8px;">
-        <div class="big" id="bNum2">3</div>
-        <div class="bigrow">
-          <div><span class="bigmon" id="bMon2">МАЙ</span><span class="bigyr" id="bYr2"> 2026</span></div>
-          <div class="bigdow" id="bDow2">Воскресенье</div>
-        </div>
-      </div>
-
-      <button class="hol-btn" id="holBtn2" onclick="toggleHolidays2()">
-        <span class="hol-icon">🎉</span>
-        <span id="holBtnTxt2">Показать праздники</span>
-      </button>
-
-      <div class="mnav">
-        <button class="marr" onclick="chM2(-1)">‹</button>
-        <div class="mlbl" id="mLbl2">Май 2026</div>
-        <button class="marr" onclick="chM2(1)">›</button>
-      </div>
-
-      <div class="chdr">
-        <span>П</span><span>В</span><span>С</span><span>Ч</span><span>П</span>
-        <span class="we">С</span><span class="we">В</span>
-      </div>
-      <div class="cgrid" id="grid2"></div>
-
-      <div id="entWrap2"></div>
-      <div id="totWrap2"></div>
     </div>
 
     <!-- SETTINGS -->
@@ -858,6 +855,35 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
     <div class="mact">
       <button class="btnc" ontouchend="event.preventDefault();closeModal()" onclick="closeModal()">Отмена</button>
       <button class="btno" ontouchend="event.preventDefault();saveDay()" onclick="saveDay()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- LAYER 2 BOTTOM SHEET -->
+<div id="layer2Over" onclick="if(event.target===this)closeLayer2()">
+  <div id="layer2Sheet">
+    <div id="l2Drag"></div>
+    <div id="l2Header">
+      <div id="l2Title">Слой 2</div>
+      <button id="l2CloseBtn" ontouchend="event.preventDefault();closeLayer2()" onclick="closeLayer2()">✕</button>
+    </div>
+    <div id="l2Body">
+      <button class="hol-btn" id="l2HolBtn" onclick="l2ToggleHolidays()">
+        <span class="hol-icon">🎉</span>
+        <span id="l2HolBtnTxt">Показать праздники</span>
+      </button>
+      <div class="mnav">
+        <button class="marr" onclick="l2ChM(-1)">‹</button>
+        <div class="mlbl" id="l2Lbl">Май 2026</div>
+        <button class="marr" onclick="l2ChM(1)">›</button>
+      </div>
+      <div class="chdr">
+        <span>П</span><span>В</span><span>С</span><span>Ч</span><span>П</span>
+        <span class="we">С</span><span class="we">В</span>
+      </div>
+      <div class="cgrid" id="l2Grid"></div>
+      <div id="l2EntWrap"></div>
+      <div id="l2TotWrap"></div>
     </div>
   </div>
 </div>
@@ -1594,23 +1620,19 @@ function _pizzaStyle(raw) {
   return `background: conic-gradient(${stops});`;
 }
 const SK = 'ftc_d1', SS = 'ftc_s1';
-const SK2 = 'ftc_d2'; // Layer 2 data storage key
-let days = {}, days2 = {}, cfg = { cur:'₽', theme:'default', thcls:'', acc:'#D0391B', ov:45, bg:'', xcurs:[], country:'RU' };
+let days = {}, cfg = { cur:'₽', theme:'default', thcls:'', acc:'#D0391B', ov:45, bg:'', xcurs:[], country:'RU' };
 
 function load() {
   try { days = JSON.parse(localStorage.getItem(SK) || '{}'); } catch { days = {}; }
-  try { days2 = JSON.parse(localStorage.getItem(SK2) || '{}'); } catch { days2 = {}; }
   try { Object.assign(cfg, JSON.parse(localStorage.getItem(SS) || '{}')); } catch {}
 }
-function saveD()  { localStorage.setItem(SK,  JSON.stringify(days)); }
-function saveD2() { localStorage.setItem(SK2, JSON.stringify(days2)); }
-function saveC()  { localStorage.setItem(SS,  JSON.stringify(cfg)); }
+function saveD() { localStorage.setItem(SK, JSON.stringify(days)); }
+function saveC() { localStorage.setItem(SS, JSON.stringify(cfg)); }
 function dkey(y, m, d) { return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
 
 // ── STATE ──
 const now = new Date();
 let vy = now.getFullYear(), vm = now.getMonth();
-let vy2 = now.getFullYear(), vm2 = now.getMonth(); // Layer 2 month state
 let dc = '#324E44'; // legacy, kept for compat
 const curTab_ref = { v: 'main' };
 
@@ -1647,7 +1669,6 @@ applyCfg();
 })();
 
 renderBig();
-renderBig2();
 renderCal();
 renderEnt();
 
@@ -1711,10 +1732,10 @@ function renderCal() {
     const tipHtml = holName
       ? `<div class="hol-tip" onclick="showHolPopup(event,'${vy}','${vm}','${d}')" ontouchend="showHolPopup(event,'${vy}','${vm}','${d}');event.stopPropagation()">${holName}</div>`
       : '';
-    // Layer 2 indicator: small dot in NE corner if day2 has data
-    const dd2 = days2[dk];
-    const l2Color = dd2 ? (_dayColor(dd2) || cfg.acc) : null;
-    const l2pip = l2Color ? `<div class="l2-pip on" style="background:${l2Color};"></div>` : `<div class="l2-pip"></div>`;
+    // Layer-2 NE pip
+    const dd2 = days2 && days2[dk];
+    const l2c = dd2 ? (_dayColor(dd2) || cfg.acc) : null;
+    const l2pip = l2c ? `<div class="l2pip on" style="background:${l2c};"></div>` : '<div class="l2pip"></div>';
     h += `<div class="${cls}" style="${sty}"
       ontouchstart="ts(event,'${dk}')"
       ontouchmove="tm()"
@@ -1729,211 +1750,7 @@ function renderCal() {
   document.getElementById('grid').innerHTML = h;
 }
 
-// ── LAYER 2 CALENDAR ──
-let _showHolidays2 = false;
-let _curLayer2ModalDk = null; // active day key in layer2 modal
-
-function toggleHolidays2() {
-  _showHolidays2 = !_showHolidays2;
-  const btn = document.getElementById('holBtn2');
-  const txt = document.getElementById('holBtnTxt2');
-  if (btn) btn.classList.toggle('on', _showHolidays2);
-  if (txt) txt.textContent = _showHolidays2 ? 'Скрыть праздники' : 'Показать праздники';
-  renderCal2();
-}
-
-function chM2(d) {
-  vm2 += d;
-  if (vm2 < 0) { vm2 = 11; vy2--; }
-  if (vm2 > 11) { vm2 = 0; vy2++; }
-  renderCal2(); renderEnt2();
-}
-
-function renderBig2() {
-  const t = new Date();
-  const el = document.getElementById('bNum2');
-  const em = document.getElementById('bMon2');
-  const ey = document.getElementById('bYr2');
-  const ed = document.getElementById('bDow2');
-  if (el) el.textContent = t.getDate();
-  if (em) em.textContent = MONU[t.getMonth()];
-  if (ey) ey.textContent = ' ' + t.getFullYear();
-  if (ed) ed.textContent = DOW[t.getDay()];
-}
-
-function renderCal2() {
-  const grid = document.getElementById('grid2');
-  if (!grid) return;
-  const lbl = document.getElementById('mLbl2');
-  if (lbl) lbl.textContent = MON[vm2] + ' ' + vy2;
-  const t = new Date();
-  const tdk = dkey(t.getFullYear(), t.getMonth(), t.getDate());
-  const fd = (new Date(vy2, vm2, 1).getDay() + 6) % 7;
-  const dim = new Date(vy2, vm2+1, 0).getDate();
-  let h = '';
-  for (let i = 0; i < fd; i++) h += '<div class="dot empty"></div>';
-  for (let d = 1; d <= dim; d++) {
-    const dk = dkey(vy2, vm2, d);
-    const dd = days2[dk];
-    const dayColor = _dayColor(dd);
-    const dt = new Date(vy2, vm2, d);
-    const isT = dk === tdk;
-    const isP = dt < new Date(t.getFullYear(), t.getMonth(), t.getDate());
-    const holName = _showHolidays2 ? getHolidayName(vy2, vm2, d) : null;
-    let cls = 'dot';
-    let sty = '';
-    if (dd && dayColor) {
-      sty = _pizzaStyle(dd);
-      cls += ' work';
-      if (isT) cls += ' today-w';
-    } else if (isT) { cls += ' today'; }
-    else if (isP)   { cls += ' past'; }
-    else            { cls += ' future'; }
-    if (dd) cls += ' has';
-    if (holName) cls += ' holiday';
-    const tipHtml = holName
-      ? `<div class="hol-tip" onclick="showHolPopup(event,'${vy2}','${vm2}','${d}')" ontouchend="showHolPopup(event,'${vy2}','${vm2}','${d}');event.stopPropagation()">${holName}</div>`
-      : '';
-    h += `<div class="${cls}" style="${sty}"
-      ontouchstart="ts2(event,'${dk}')"
-      ontouchmove="tm2()"
-      ontouchend="te2(event,'${dk}')"
-    >
-      ${tipHtml}
-      <div class="pip"></div>
-      <div class="dnum">${d}</div>
-    </div>`;
-  }
-  grid.innerHTML = h;
-}
-
-// Layer 2 touch handlers (simplified — tap opens modal, double-tap clears)
-let _t02 = 0, _mv2 = false, _lpt2 = null;
-let _lastTap2 = 0, _lastDk2 = null, _dtTimer2 = null;
-let _tx02 = 0, _ty02 = 0;
-
-function ts2(e, dk) {
-  _mv2 = false; _t02 = Date.now();
-  if (e.touches && e.touches.length) {
-    _tx02 = e.touches[0].clientX;
-    _ty02 = e.touches[0].clientY;
-  }
-  e.currentTarget.classList.add('press');
-  _lpt2 = setTimeout(() => { e.currentTarget.classList.remove('press'); }, 500);
-}
-function tm2() { _mv2 = true; clearTimeout(_lpt2); document.querySelectorAll('#grid2 .dot.press').forEach(d => d.classList.remove('press')); }
-function te2(e, dk) {
-  clearTimeout(_lpt2);
-  if (e.currentTarget) e.currentTarget.classList.remove('press');
-  if (_mv2) return;
-  if (Date.now() - _t02 >= 500) return;
-  if (e.changedTouches && e.changedTouches.length) {
-    const ct = e.changedTouches[0];
-    if (Math.abs(ct.clientX - _tx02) > 12 || Math.abs(ct.clientY - _ty02) > 12) return;
-  }
-  const now2 = Date.now();
-  if (_lastDk2 === dk && now2 - _lastTap2 < 400) {
-    clearTimeout(_dtTimer2);
-    _lastTap2 = 0; _lastDk2 = null;
-    _iosBlockClick();
-    clrD2(dk);
-    return;
-  }
-  _lastTap2 = now2; _lastDk2 = dk;
-  clearTimeout(_dtTimer2);
-  _dtTimer2 = setTimeout(() => {
-    _lastTap2 = 0; _lastDk2 = null;
-    _iosBlockClick();
-    openModal2(dk);
-  }, 350);
-}
-
-function clrD2(dk) {
-  if (!days2[dk]) return;
-  navigator.vibrate && navigator.vibrate([20, 30, 20]);
-  delete days2[dk];
-  saveD2();
-  requestAnimationFrame(() => { renderCal2(); renderEnt2(); renderCal(); }); // also refresh layer1
-}
-
-// Layer 2 modal — reuse the same modal but save to days2
-let _eDk2 = null;
-let _tasks2 = [];
-let _inLayer2Modal = false;
-
-function openModal2(dk) {
-  _eDk2 = dk;
-  _inLayer2Modal = true;
-  const [y, m, d] = dk.split('-').map(Number);
-  document.getElementById('mTit').textContent = `${d} ${MONG[m-1]} · Слой 2`;
-  const raw = days2[dk];
-  if (!raw) {
-    _tasks = [{ color: cfg.acc || COLORS[0], label:'', timeStart:'', timeEnd:'', earned:0, expenses:[] }];
-  } else if (Array.isArray(raw)) {
-    _tasks = raw.map(t => ({ color:COLORS[0], label:'', timeStart:'', timeEnd:'', earned:0, expenses:[], ...t }));
-  } else {
-    _tasks = [{ color:COLORS[0], label:'', timeStart:'', timeEnd:'', earned:0, expenses:[], ...raw }];
-  }
-  _renderTasks();
-  const sheet = document.getElementById('mSheet');
-  if (sheet) sheet.scrollTop = 0;
-  document.getElementById('modal').classList.add('on');
-}
-
-function renderEnt2() {
-  const entWrap = document.getElementById('entWrap2');
-  const totWrap = document.getElementById('totWrap2');
-  if (!entWrap || !totWrap) return;
-  // Reuse same logic as renderEnt but for days2/vy2/vm2
-  const items = [];
-  for (let d = 1; d <= 31; d++) {
-    const dk = dkey(vy2, vm2, d);
-    const dt = new Date(vy2, vm2, d);
-    if (dt.getMonth() !== vm2) break;
-    if (days2[dk]) items.push({ dk, d, dd: days2[dk] });
-  }
-  if (!items.length) { entWrap.innerHTML = ''; totWrap.innerHTML = ''; return; }
-  // Build entries HTML identical to layer1
-  let totalEarned = 0, totalExpenses = 0, totalDays = items.length;
-  let h = `<div class="slbl">Записи за ${MON[vm2].toLowerCase()}</div>`;
-  items.forEach(({ dk, d, dd }, i) => {
-    const tasks = _normDay(dd);
-    let earned = 0, expenses = 0;
-    tasks.forEach(t => {
-      earned   += parseFloat(t.earned) || 0;
-      (t.expenses||[]).forEach(x => { expenses += parseFloat(x.amount) || 0; });
-    });
-    totalEarned   += earned;
-    totalExpenses += expenses;
-    const mainColor = _dayColor(dd) || cfg.acc;
-    const [yy,mm,dd2] = dk.split('-').map(Number);
-    const dayName = DOW[new Date(yy,mm-1,dd2).getDay()];
-    h += `<div class="ecard" ontouchend="event.preventDefault();openModal2('${dk}')" onclick="openModal2('${dk}')">
-      <div class="etop">
-        <div class="enum">${i+1}</div>
-        <div class="einfo">
-          <div class="edate">${d} ${MONG[mm-1]}</div>
-          <div class="ename">${dayName}${tasks[0]?.label ? ' · '+tasks[0].label : ''}</div>
-          <div class="enums">
-            ${earned   ? `<span>+${cfg.cur}${earned.toLocaleString()}</span>` : ''}
-            ${expenses ? `<span style="color:var(--text3);">−${cfg.cur}${expenses.toLocaleString()}</span>` : ''}
-          </div>
-        </div>
-        <div class="edot" style="background:${mainColor};"></div>
-      </div>
-    </div>`;
-  });
-  entWrap.innerHTML = h;
-  const net = totalEarned - totalExpenses;
-  totWrap.innerHTML = `<div class="tcard">
-    <div class="trow">
-      <div class="tlbl">Итого · Слой 2</div>
-      <div class="tamt" style="color:${net>=0?'var(--accent)':'#c0392b'}">${net>=0?'+':''}${cfg.cur}${Math.abs(net).toLocaleString()}</div>
-    </div>
-  </div>`;
-}
-
-
+// ── COPY / PASTE ──
 let _copiedDay = null; // holds copied day data
 let _ctxDk = null;    // dk for which context menu is open
 
@@ -2356,7 +2173,7 @@ function openModal(dk) {
 }
 
 function closeModal() {
-  _inLayer2Modal = false; // reset layer2 flag
+  _l2eDk = null; // reset layer-2 edit key
   const modal = document.getElementById('modal');
   // Защита от двойного вызова
   if (!modal.classList.contains('on') || modal.classList.contains('closing')) return;
@@ -2388,27 +2205,6 @@ function closeModal() {
 function pickC(c, el) {}
 function pickCHex(c) {}
 function addX(amount='', comment='') {}
-
-function saveDay() {
-  // Layer 2: save to days2 and refresh both layers
-  if (_inLayer2Modal && _eDk2) {
-    _saveTaskFields();
-    const valid = _tasks.filter(t => t.label || t.timeStart || t.earned || (t.expenses && t.expenses.length) || t.color);
-    const toSave = valid.length ? valid : [_tasks[0]];
-    days2[_eDk2] = toSave.length === 1 ? toSave[0] : toSave;
-    saveD2();
-    _inLayer2Modal = false; _eDk2 = null;
-    closeModal();
-    setTimeout(function(){ renderCal2(); renderEnt2(); renderCal(); }, 450);
-    return;
-  }
-  if (!eDk) return;
-  _saveTaskFields();
-  const valid = _tasks.filter(t => t.label || t.timeStart || t.earned || (t.expenses && t.expenses.length) || t.color);
-  const toSave = valid.length ? valid : [_tasks[0]];
-  days[eDk] = toSave.length === 1 ? toSave[0] : toSave;
-  saveD(); closeModal(); setTimeout(function(){ renderCal(); renderEnt(); }, 450);
-}
 
 // ── ENTRIES ──
 function renderEnt() {
@@ -2572,17 +2368,15 @@ function goTab(tab, fromSwipe = false) {
   curTab_ref.v = tab;
   document.getElementById('tbM').classList.toggle('on', tab === 'main');
   document.getElementById('tbS').classList.toggle('on', tab === 'sett');
-  // Hide layer button when going to settings, show on main/layer2
-  const lb = document.getElementById('layerBtn');
-  if (lb) lb.classList.toggle('hide', toR);
+  // Hide layer-2 button when going to settings
+  const l2Btn = document.getElementById('l2Btn');
+  if (l2Btn) l2Btn.classList.toggle('hidden', toR);
   if (fromSwipe) {
-    // After swipe: panels are already in motion — just set final position with animation
     m.style.transition = EASE;
     s.style.transition = EASE;
     m.style.transform = toR ? 'translateX(-100%)' : 'translateX(0)';
     s.style.transform = toR ? 'translateX(0)' : 'translateX(100%)';
   } else {
-    // Tab bar tap: snap instantly to start position then animate
     m.style.transition = 'none';
     s.style.transition = 'none';
     if (toR) {
@@ -2601,37 +2395,278 @@ function goTab(tab, fromSwipe = false) {
   }
 }
 
-// ── LAYER SWITCHING ──
-let _curLayer = 1; // 1 or 2
+// ── LAYER 2 ──
+const SK2 = 'ftc_d2';
+let days2 = {};
+try { days2 = JSON.parse(localStorage.getItem(SK2) || '{}'); } catch { days2 = {}; }
+function saveD2() { localStorage.setItem(SK2, JSON.stringify(days2)); }
 
-function goLayer(n) {
-  if (_curLayer === n) return;
-  _curLayer = n;
-  const m1 = document.getElementById('sMain');
-  const m2 = document.getElementById('sMain2');
-  const EASE = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
-  m1.style.transition = EASE;
-  m2.style.transition = EASE;
-  if (n === 2) {
-    // Slide layer1 right (off screen right), layer2 in from right
-    m1.style.transform = 'translateX(100%)';
-    m2.style.transform = 'translateX(0)';
-    // Sync month/year with layer1
-    vy2 = vy; vm2 = vm;
-    renderCal2(); renderEnt2(); renderBig2();
-  } else {
-    // Slide layer2 right, layer1 back in
-    m1.style.transform = 'translateX(0)';
-    m2.style.transform = 'translateX(-100%)';
-    // Refresh layer1 to show updated l2-pips
-    renderCal();
-  }
-  // Layer button hides on layer 2 (replaced by back btn)
-  const lb = document.getElementById('layerBtn');
-  if (lb) lb.classList.toggle('hide', n === 2);
+let l2vy = now.getFullYear(), l2vm = now.getMonth();
+let _l2ShowHolidays = false;
+let _l2IsOpen = false;
+
+function openLayer2() {
+  _l2IsOpen = true;
+  // Sync month to layer 1
+  l2vy = vy; l2vm = vm;
+  l2RenderCal();
+  l2RenderEnt();
+  const over = document.getElementById('layer2Over');
+  over.classList.add('on');
 }
 
+function closeLayer2() {
+  const over = document.getElementById('layer2Over');
+  if (!over.classList.contains('on') || over.classList.contains('closing')) return;
+  over.classList.add('closing');
+  setTimeout(() => {
+    over.classList.remove('on', 'closing');
+    _l2IsOpen = false;
+  }, 420);
+}
 
+function l2ChM(d) {
+  l2vm += d;
+  if (l2vm < 0)  { l2vm = 11; l2vy--; }
+  if (l2vm > 11) { l2vm = 0;  l2vy++; }
+  l2RenderCal();
+  l2RenderEnt();
+}
+
+function l2ToggleHolidays() {
+  _l2ShowHolidays = !_l2ShowHolidays;
+  const btn = document.getElementById('l2HolBtn');
+  const txt = document.getElementById('l2HolBtnTxt');
+  if (btn) btn.classList.toggle('on', _l2ShowHolidays);
+  if (txt) txt.textContent = _l2ShowHolidays ? 'Скрыть праздники' : 'Показать праздники';
+  l2RenderCal();
+}
+
+// Touch state for layer 2 dots
+let _l2t0 = 0, _l2mv = false, _l2lpt = null;
+let _l2lastTap = 0, _l2lastDk = null, _l2dtTimer = null;
+let _l2tx0 = 0, _l2ty0 = 0;
+
+function l2ts(e, dk) {
+  if (e.target.classList.contains('hol-tip')) return;
+  _l2mv = false; _l2t0 = Date.now();
+  if (e.touches && e.touches.length) { _l2tx0 = e.touches[0].clientX; _l2ty0 = e.touches[0].clientY; }
+  e.currentTarget.classList.add('press');
+  _l2lpt = setTimeout(() => e.currentTarget.classList.remove('press'), 500);
+}
+function l2tm() {
+  _l2mv = true;
+  clearTimeout(_l2lpt);
+  document.querySelectorAll('#l2Grid .dot.press').forEach(d => d.classList.remove('press'));
+}
+function l2te(e, dk) {
+  clearTimeout(_l2lpt);
+  if (e.currentTarget) e.currentTarget.classList.remove('press');
+  if (_l2mv) return;
+  if (Date.now() - _l2t0 >= 500) return;
+  if (e.changedTouches && e.changedTouches.length) {
+    const ct = e.changedTouches[0];
+    if (Math.abs(ct.clientX - _l2tx0) > 12 || Math.abs(ct.clientY - _l2ty0) > 12) return;
+  }
+  const n = Date.now();
+  if (_l2lastDk === dk && n - _l2lastTap < 400) {
+    clearTimeout(_l2dtTimer);
+    _l2lastTap = 0; _l2lastDk = null;
+    _iosBlockClick();
+    // double tap = clear
+    if (days2[dk]) { delete days2[dk]; saveD2(); l2RenderCal(); l2RenderEnt(); renderCal(); }
+    return;
+  }
+  _l2lastTap = n; _l2lastDk = dk;
+  clearTimeout(_l2dtTimer);
+  _l2dtTimer = setTimeout(() => {
+    _l2lastTap = 0; _l2lastDk = null;
+    _iosBlockClick();
+    l2OpenModal(dk);
+  }, 350);
+}
+
+// Layer 2 uses the same day modal, but saves to days2
+let _l2eDk = null;
+function l2OpenModal(dk) {
+  _l2eDk = dk;
+  const [y, m, d] = dk.split('-').map(Number);
+  document.getElementById('mTit').textContent = `${d} ${MONG[m-1]} · Слой 2`;
+  const raw = days2[dk];
+  if (!raw) {
+    _tasks = [{ color: cfg.acc || COLORS[0], label:'', timeStart:'', timeEnd:'', earned:0, expenses:[] }];
+  } else if (Array.isArray(raw)) {
+    _tasks = raw.map(t => ({ color:COLORS[0], label:'', timeStart:'', timeEnd:'', earned:0, expenses:[], ...t }));
+  } else {
+    _tasks = [{ color:COLORS[0], label:'', timeStart:'', timeEnd:'', earned:0, expenses:[], ...raw }];
+  }
+  _renderTasks();
+  const sheet = document.getElementById('mSheet');
+  if (sheet) sheet.scrollTop = 0;
+  document.getElementById('modal').classList.add('on');
+}
+
+// Override saveDay so it routes to days2 when editing a layer-2 day
+const _origSaveDay = window.saveDay;
+
+function saveDay() {
+  if (_l2eDk) {
+    // Save to layer 2
+    _saveTaskFields();
+    const valid = _tasks.filter(t => t.label || t.timeStart || t.earned || (t.expenses && t.expenses.length) || t.color);
+    const toSave = valid.length ? valid : [_tasks[0]];
+    days2[_l2eDk] = toSave.length === 1 ? toSave[0] : toSave;
+    saveD2();
+    const dk = _l2eDk;
+    _l2eDk = null;
+    closeModal();
+    setTimeout(() => { l2RenderCal(); l2RenderEnt(); renderCal(); }, 450);
+  } else {
+    if (!eDk) return;
+    _saveTaskFields();
+    const valid = _tasks.filter(t => t.label || t.timeStart || t.earned || (t.expenses && t.expenses.length) || t.color);
+    const toSave = valid.length ? valid : [_tasks[0]];
+    days[eDk] = toSave.length === 1 ? toSave[0] : toSave;
+    saveD(); closeModal(); setTimeout(function(){ renderCal(); renderEnt(); }, 450);
+  }
+}
+// Also reset _l2eDk on cancel
+const _origCloseModal = window.closeModal;
+
+function l2RenderCal() {
+  const grid = document.getElementById('l2Grid');
+  if (!grid) return;
+  const lbl = document.getElementById('l2Lbl');
+  if (lbl) lbl.textContent = MON[l2vm] + ' ' + l2vy;
+  const t = new Date();
+  const tdk = dkey(t.getFullYear(), t.getMonth(), t.getDate());
+  const fd = (new Date(l2vy, l2vm, 1).getDay() + 6) % 7;
+  const dim = new Date(l2vy, l2vm+1, 0).getDate();
+  let h = '';
+  for (let i = 0; i < fd; i++) h += '<div class="dot empty"></div>';
+  for (let d = 1; d <= dim; d++) {
+    const dk = dkey(l2vy, l2vm, d);
+    const dd = days2[dk];
+    const dayColor = _dayColor(dd);
+    const dt = new Date(l2vy, l2vm, d);
+    const isT = dk === tdk;
+    const isP = dt < new Date(t.getFullYear(), t.getMonth(), t.getDate());
+    const holName = _l2ShowHolidays ? getHolidayName(l2vy, l2vm, d) : null;
+    let cls = 'dot', sty = '';
+    if (dd && dayColor) {
+      sty = _pizzaStyle(dd); cls += ' work';
+      if (isT) cls += ' today-w';
+    } else if (isT) { cls += ' today'; }
+    else if (isP)   { cls += ' past'; }
+    else            { cls += ' future'; }
+    if (dd) cls += ' has';
+    if (holName) cls += ' holiday';
+    const tipHtml = holName
+      ? `<div class="hol-tip" onclick="showHolPopup(event,'${l2vy}','${l2vm}','${d}')" ontouchend="showHolPopup(event,'${l2vy}','${l2vm}','${d}');event.stopPropagation()">${holName}</div>`
+      : '';
+    h += `<div class="${cls}" style="${sty}"
+      ontouchstart="l2ts(event,'${dk}')"
+      ontouchmove="l2tm()"
+      ontouchend="l2te(event,'${dk}')"
+    >${tipHtml}<div class="pip"></div><div class="dnum">${d}</div></div>`;
+  }
+  grid.innerHTML = h;
+}
+
+function l2RenderEnt() {
+  const ew = document.getElementById('l2EntWrap');
+  const tw = document.getElementById('l2TotWrap');
+  if (!ew || !tw) return;
+  const items = [];
+  for (let d = 1; d <= 31; d++) {
+    const dk = dkey(l2vy, l2vm, d);
+    const dt = new Date(l2vy, l2vm, d);
+    if (dt.getMonth() !== l2vm) break;
+    if (days2[dk]) items.push({ dk, d, dd: days2[dk] });
+  }
+  if (!items.length) { ew.innerHTML = ''; tw.innerHTML = ''; return; }
+  const cur = cfg.cur;
+  let html = `<div class="slbl">${MON[l2vm]} ${l2vy} · Слой 2</div>`;
+  let te = 0; const ax = [];
+  items.forEach((it, i) => {
+    const tasks = _normDay(it.dd);
+    const firstColor = _dayColor(it.dd) || cfg.acc;
+    tasks.forEach(t => {
+      te += t.earned || 0;
+      (t.expenses||[]).forEach(x => ax.push({...x, day: it.d, lbl: t.label}));
+    });
+    let taskRows = '';
+    tasks.forEach((t, ti) => {
+      const ts = t.timeStart ? (t.timeEnd ? `${t.timeStart}–${t.timeEnd}` : t.timeStart) : '';
+      const es = t.earned ? `+${cur}${t.earned.toLocaleString()}` : '';
+      const xt = (t.expenses||[]).reduce((s,x) => s+(x.amount||0), 0);
+      const xs = xt ? `−${cur}${xt.toLocaleString()}` : '';
+      const dotColor = t.color || cfg.acc;
+      taskRows += `<div style="display:flex;align-items:flex-start;gap:10px;padding:${ti>0?'8px 0 0':'4px 0 0'};">
+        <div style="width:20px;height:20px;border-radius:50%;background:${dotColor};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px;">${ti+1}</div>
+        <div style="flex:1;">
+          ${t.label ? `<div class="ename">${t.label}</div>` : ''}
+          <div class="enums">
+            ${ts ? `<span style="color:var(--text3);">🕐 ${ts}</span>` : ''}
+            ${es ? `<span style="color:var(--accent);font-weight:600;">${es}</span>` : ''}
+            ${xs ? `<span style="color:var(--text2);">${xs}</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+    });
+    html += `<div class="ecard" ontouchend="event.preventDefault();l2OpenModal('${it.dk}')" onclick="l2OpenModal('${it.dk}')">
+      <div class="etop">
+        <div class="enum">${i+1}</div>
+        <div class="einfo"><div class="edate">${it.d} ${MONG[l2vm]}</div></div>
+        <div class="edot" style="background:${firstColor};"></div>
+      </div>${taskRows}
+    </div>`;
+  });
+  ew.innerHTML = html;
+  const tx = ax.reduce((s,x) => s+(x.amount||0), 0);
+  const net = te - tx;
+  const grouped = {};
+  ax.forEach(x => { const k = (x.comment||'Затрата').trim(); grouped[k] = (grouped[k]||0)+(x.amount||0); });
+  let th = Object.entries(grouped).map(([n,a]) =>
+    `<div class="xrow"><span>${n}</span><span style="color:var(--accent);">−${cur}${a.toLocaleString()}</span></div>`
+  ).join('');
+  th += `<div class="trow"><div class="tlbl" style="padding-top:10px;">Итого · Слой 2</div>
+    <div class="tamt" style="color:${net>=0?'var(--accent)':'#c0392b'};">${net>=0?'+':''}${cur}${Math.abs(net).toLocaleString()}</div></div>`;
+  tw.innerHTML = `<div class="tcard">${th}</div>`;
+}
+
+// Swipe-down to close layer 2
+(function(){
+  const sheet = () => document.getElementById('layer2Sheet');
+  let sy2 = 0, drag2 = false;
+  document.addEventListener('touchstart', e => {
+    const over = document.getElementById('layer2Over');
+    if (!over || !over.classList.contains('on')) return;
+    sy2 = e.touches[0].clientY; drag2 = false;
+  }, {passive:true});
+  document.addEventListener('touchmove', e => {
+    const over = document.getElementById('layer2Over');
+    if (!over || !over.classList.contains('on')) return;
+    const s = sheet(); if (!s) return;
+    if (s.querySelector('#l2Body') && s.querySelector('#l2Body').scrollTop > 0) return;
+    const dy = e.touches[0].clientY - sy2;
+    if (dy > 10) { drag2 = true; s.style.transform = `translateY(${Math.min(dy, 300)}px)`; s.style.transition = 'none'; }
+  }, {passive:true});
+  document.addEventListener('touchend', e => {
+    const over = document.getElementById('layer2Over');
+    if (!over || !over.classList.contains('on')) return;
+    const s = sheet(); if (!s) return;
+    const dy = e.changedTouches[0].clientY - sy2;
+    s.style.transition = '';
+    if (drag2 && dy > 100) { s.style.transform = ''; closeLayer2(); }
+    else { s.style.transform = ''; }
+    drag2 = false;
+  }, {passive:true});
+})();
+
+
+
+// ── SWIPE ──
 (function () {
   const wrap = document.getElementById('wrap');
   const m = document.getElementById('sMain');
