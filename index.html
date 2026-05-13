@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru" style="background:#f5f0e8">
+<html lang="ru">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
@@ -8,24 +8,30 @@
 <meta name="theme-color" content="#f5f0e8"/>
 <title>MZC Calendar</title>
 <link rel="manifest" href="manifest.json"/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<!-- Самый ранний скрипт: читаем тему из localStorage и сразу красим html+body.
+     Выполняется до парсинга <style>, до рендера любого пикселя. -->
 <script>
-// Красим фон в цвет темы ДО рендера — устраняет белую вспышку
 (function(){
   var THEME_BG = {
     'default':'#f5f0e8','dark':'#151515','warm':'#EFE8CB',
-    'ocean':'#E2E4D2','retro':'#DCC9A9'
+    'ocean':'#E2E4D2','retro':'#DCC9A9','night':'#080808'
   };
+  var bg = '#f5f0e8';
   try {
-    var saved = JSON.parse(localStorage.getItem('ftc_s1') || '{}');
-    var bg = THEME_BG[saved.theme] || '#f5f0e8';
-    if (saved.theme === 'custom' && saved.teCustom && saved.teCustom.custom && saved.teCustom.custom['--bg'])
-      bg = saved.teCustom.custom['--bg'];
-    document.documentElement.style.background = bg;
-    document.documentElement.style.setProperty('--splash-bg', bg);
+    var s = JSON.parse(localStorage.getItem('ftc_s1') || '{}');
+    bg = THEME_BG[s.theme] || '#f5f0e8';
+    if (s.theme === 'custom' && s.teCustom && s.teCustom.custom && s.teCustom.custom['--bg'])
+      bg = s.teCustom.custom['--bg'];
   } catch(e) {}
+  // Ставим на <html> немедленно — до любого CSS
+  document.documentElement.style.cssText = 'background:' + bg + '!important';
+  // Инжектим <style> чтобы body тоже был нужного цвета
+  document.write('<style>html,body,#splash{background:' + bg + '}</style>');
+  // Сохраняем для splash
+  window._splashBg = bg;
 })();
 </script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
 /* ── VARIABLES ── */
 :root {
@@ -46,6 +52,7 @@
 .t-warm  { --bg:#EFE8CB; --bg2:rgba(255,250,230,.85); --bg3:rgba(50,30,0,.06); --text:#2a1a08; --text2:#6b4a28; --text3:#b09060; --sep:rgba(0,0,0,.08); }
 .t-ocean { --bg:#E2E4D2; --bg2:rgba(220,224,210,.9); --bg3:rgba(26,42,40,.06); --text:#1a2826; --text2:#3d5654; --text3:#7BA7AF; --sep:rgba(0,0,0,.08); }
 .t-retro { --bg:#DCC9A9; --bg2:rgba(220,200,165,.9); --bg3:rgba(40,20,10,.06); --text:#2a1508; --text2:#7a4a20; --text3:#b08050; --sep:rgba(0,0,0,.08); }
+.t-night { --bg:#080808; --bg2:rgba(18,18,18,.95); --bg3:rgba(255,255,255,.05); --text:#ddd; --text2:#777; --text3:#404040; --sep:rgba(255,255,255,.06); --dot-bg:rgba(255,255,255,.09); --dot-past:rgba(255,255,255,.12); --dot-today-bg:rgba(255,255,255,.16); --dot-today:rgba(255,255,255,.5); --dot-future:rgba(255,255,255,.05); }
 
 /* ── RESET ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -94,7 +101,7 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
 /* ── SPLASH ── */
 #splash {
   position: fixed; inset: 0; z-index: 9999;
-  background: var(--splash-bg, #f5f0e8);
+  /* background задаётся инлайн через window._splashBg до рендера */
   display: flex; align-items: center; justify-content: center;
   flex-direction: column; gap: 0;
   transition: opacity .6s cubic-bezier(.4,0,.2,1), visibility .6s;
@@ -106,7 +113,7 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
 }
 #splash-ring {
   position: absolute; inset: -18px; border-radius: 50%;
-  border: 1.5px solid rgba(0,0,0,0.08);
+  border: 1.5px solid rgba(128,128,128,0.15);
   animation: splashRing 1.6s ease-out both;
 }
 @keyframes splashRing {
@@ -116,7 +123,7 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
 }
 #splash-glow {
   position: absolute; inset: -16px; border-radius: 44px;
-  background: radial-gradient(circle, rgba(208,57,27,0.15) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(208,57,27,0.18) 0%, transparent 70%);
   animation: splashGlow 1.8s ease-out both;
   filter: blur(12px);
 }
@@ -145,14 +152,16 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
 }
 .sp-dot {
   width: 6px; height: 6px; border-radius: 50%;
-  background: rgba(0,0,0,.15);
 }
 .sp-dot:nth-child(1) { animation: spPulse 1.1s .6s  ease-in-out infinite; }
 .sp-dot:nth-child(2) { animation: spPulse 1.1s .75s ease-in-out infinite; }
 .sp-dot:nth-child(3) { animation: spPulse 1.1s .9s  ease-in-out infinite; }
 @keyframes spPulse {
-  0%,100% { background: rgba(0,0,0,.12); transform: scale(1); }
-  50%     { background: rgba(0,0,0,.45); transform: scale(1.4); }
+  0%,100% { opacity: .2; transform: scale(1); }
+  50%     { opacity: .8; transform: scale(1.4); }
+}
+  from { transform: scale(.7); opacity: 0; }
+  to   { transform: scale(1);  opacity: 1; }
 }
 
 /* ── EXTRA CURRENCIES ── */
@@ -699,10 +708,10 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
         <div class="sseclbl">Тема</div>
         <div class="tgrid" id="tGrid">
           <div class="tcrd on" style="background:#f5f0e8;" data-t="default" data-c="" onclick="setTheme(this)"><div class="tcn">Пергамент</div></div>
+          <div class="tcrd" style="background:#1a1a1a;" data-t="dark" data-c="t-dark" onclick="setTheme(this)"><div class="tcn" style="color:#ddd;">Ночь</div></div>
           <div class="tcrd" style="background:#EFE8CB;" data-t="warm" data-c="t-warm" onclick="setTheme(this)"><div class="tcn">Тепло</div></div>
           <div class="tcrd" style="background:#E2E4D2;" data-t="ocean" data-c="t-ocean" onclick="setTheme(this)"><div class="tcn">Океан</div></div>
           <div class="tcrd" style="background:#DCC9A9;" data-t="retro" data-c="t-retro" onclick="setTheme(this)"><div class="tcn">Ретро</div></div>
-          <div class="tcrd" style="background:#1a1a1a;" data-t="dark" data-c="t-dark" onclick="setTheme(this)"><div class="tcn" style="color:#ddd;">Тёмная</div></div>
           <div class="tcrd custom-theme-card" id="customThemeCard" style="background:#080808;" data-t="custom" data-c="" onclick="setTheme(this)"><div style="font-size:26px;font-weight:300;margin-bottom:2px;color:#aaa;line-height:1;">+</div><div class="tcn" style="color:#aaa;">Своя тема</div></div>
         </div>
       </div>
@@ -1533,6 +1542,18 @@ const DOW  = ['Воскресенье','Понедельник','Вторник'
 // ── BOOT ──
 load();
 applyCfg();
+
+// Применяем цвет фона к сплэшу (уже установлен через document.write, но подтверждаем)
+(function(){
+  var sp = document.getElementById('splash');
+  if (!sp || !window._splashBg) return;
+  sp.style.background = window._splashBg;
+  // Цвет точек: тёмные темы — белые, светлые — чёрные
+  var isDark = ['#080808','#151515'].indexOf(window._splashBg) !== -1;
+  var dotColor = isDark ? 'rgba(255,255,255,.5)' : 'rgba(0,0,0,.35)';
+  sp.querySelectorAll('.sp-dot').forEach(function(d){ d.style.background = dotColor; });
+})();
+
 renderBig();
 renderCal();
 renderEnt();
