@@ -1,11 +1,11 @@
 {
-  "name": "Freelancer Calendar",
-  "short_name": "FreelCal",
+  "name": "MZC Calendar",
+  "short_name": "MZC Calendar",
   "description": "Учёт рабочих дней и доходов фрилансера",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f5f0e8",
-  "theme_color": "#f5f0e8",
+  "background_color": "#080808",
+  "theme_color": "#080808",
   "orientation": "portrait",
   "lang": "ru",
   "icons": [

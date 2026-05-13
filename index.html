@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="theme-color" content="#f5f0e8"/>
-<title>Freelancer Cal</title>
+<title>MZC Calendar</title>
 <link rel="manifest" href="manifest.json"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
@@ -33,11 +33,21 @@
 
 /* ── RESET ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; overflow: hidden; }
-body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); }
-input, textarea, select { font-family: inherit; user-select: text; -webkit-user-select: text; }
-button { font-family: inherit; cursor: pointer; }
+html {
+  height: 100%; width: 100%;
+  overflow: hidden;
+  -webkit-text-size-adjust: none; text-size-adjust: none;
+  touch-action: pan-x pan-y;
+}
+body {
+  height: 100%; width: 100%;
+  overflow: hidden;
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg); color: var(--text);
+  -webkit-text-size-adjust: none; text-size-adjust: none;
+}
 * { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+input, textarea, select { font-family: inherit; user-select: text !important; -webkit-user-select: text !important; -webkit-touch-callout: default !important; }
 
 /* ── BACKGROUND ── */
 #bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
@@ -45,7 +55,7 @@ button { font-family: inherit; cursor: pointer; }
 #ov { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
 
 /* ── APP SHELL ── */
-#app { position: fixed; inset: 0; z-index: 2; display: flex; flex-direction: column; }
+#app { position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: var(--app-h, 100svh); z-index: 2; display: flex; flex-direction: column; overflow: hidden; }
 
 /* ── SCREENS ── */
 #wrap {
@@ -61,8 +71,28 @@ button { font-family: inherit; cursor: pointer; }
   transition: transform .42s cubic-bezier(.25,0.46,0.45,0.94);
   -webkit-backface-visibility: hidden;
 }
+.scr.no-transition { transition: none !important; }
 #sMain { transform: translateX(0); }
 #sSett { transform: translateX(100%); }
+
+/* ── SPLASH ── */
+#splash {
+  position: fixed; inset: 0; z-index: 9999;
+  background: #f5f0e8;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column;
+  transition: opacity .45s ease, visibility .45s ease;
+}
+#splash.hide { opacity: 0; visibility: hidden; pointer-events: none; }
+#splash img {
+  width: 120px; height: 120px; border-radius: 28px;
+  box-shadow: 0 12px 48px rgba(0,0,0,.18);
+  animation: splashPop .55s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes splashPop {
+  from { transform: scale(.7); opacity: 0; }
+  to   { transform: scale(1);  opacity: 1; }
+}
 
 /* ── EXTRA CURRENCIES ── */
 .xcur-wrap { margin-top: 10px; }
@@ -107,58 +137,7 @@ button { font-family: inherit; cursor: pointer; }
 .chdr { display: grid; grid-template-columns: repeat(7,1fr); margin-bottom: 8px; }
 .chdr span { text-align: center; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text3); }
 .chdr .we { color: var(--accent); }
-.cgrid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; }
-@media (hover: hover) and (pointer: fine) {
-  /* Wider shell */
-  #app { max-width: 1100px; margin: 0 auto; }
-
-  /* Cursor hint */
-  #wrap { cursor: grab; }
-  #wrap:active { cursor: grabbing; }
-
-  /* Screens side-by-side panel layout */
-  .scr { padding: calc(var(--st) + 32px) 48px 96px; }
-
-  /* ── MAIN SCREEN: two-column layout ── */
-  #sMain {
-    display: grid;
-    grid-template-columns: minmax(0,1fr) minmax(0,1fr);
-    column-gap: 40px;
-    align-items: start;
-  }
-  /* All left-column items */
-  #sMain .big,
-  #sMain .bigrow,
-  #sMain .mnav,
-  #sMain .chdr,
-  #sMain .cgrid   { grid-column: 1; }
-  /* Right column items stacked naturally */
-  #sMain #entWrap { grid-column: 2; grid-row: 1 / 8; }
-  #sMain #totWrap { grid-column: 2; grid-row: 8; }
-
-  /* Calendar dots larger on desktop */
-  .cgrid { gap: 8px; }
-  .dot { max-width: 70px; max-height: 70px; justify-self: center; width: 100%; }
-
-  /* Cards */
-  .ecard { padding: 16px 20px; }
-  .enum  { font-size: 28px; }
-  .tamt  { font-size: 44px; }
-
-  /* Settings screen: two-column grid for setting sections */
-  #sSett {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    column-gap: 40px;
-    align-items: start;
-  }
-  #sSett .stitle { grid-column: 1 / -1; }
-  #sSett .ssec   { /* natural flow fills two columns */ }
-
-  /* Tab bar bigger on desktop */
-  #bar { height: 64px; gap: 80px; }
-  .tbtn { font-size: 30px; }
-}
+.cgrid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; overflow: visible; }
 
 .dot {
   aspect-ratio: 1; border-radius: 50%;
@@ -166,6 +145,7 @@ button { font-family: inherit; cursor: pointer; }
   transition: transform .12s ease;
   cursor: pointer;
   background: var(--dot-bg, rgba(0,0,0,.08));
+  overflow: visible;
 }
 .dot.past   { background: var(--dot-past, rgba(0,0,0,.1)); }
 .dot.today  { background: var(--dot-today-bg, rgba(0,0,0,0.12)); box-shadow: 0 0 0 2px var(--dot-today, var(--accent)); }
@@ -173,8 +153,23 @@ button { font-family: inherit; cursor: pointer; }
 .dot.work   { /* color set via inline style */ }
 .dot.empty  { background: transparent; pointer-events: none; }
 .dot.press  { transform: scale(.82); }
-.dot .pip { position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); width: 3px; height: 3px; border-radius: 50%; background: rgba(255,255,255,.8); display: none; }
+.dot .pip { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 3px; height: 3px; border-radius: 50%; background: rgba(255,255,255,.8); display: none; }
 .dot.has .pip { display: block; }
+.dot .dnum {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding-bottom: 6px;
+  font-size: clamp(8px, 2.6vw, 13px);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text);
+  opacity: .55;
+  pointer-events: none;
+  letter-spacing: 0;
+}
+.dot.work .dnum  { color: #fff; opacity: .82; }
+.dot.today .dnum { color: var(--text); opacity: .75; }
+.dot.past .dnum  { opacity: .38; }
 
 /* ── ENTRIES ── */
 .slbl { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); margin: 26px 0 10px; }
@@ -184,9 +179,9 @@ button { font-family: inherit; cursor: pointer; }
   border: .5px solid var(--sep); touch-action: manipulation; cursor: pointer;
 }
 .etop { display: flex; align-items: flex-start; gap: 10px; }
-.enum { font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--accent); min-width: 32px; line-height: 1; }
+.enum { font-size: 12px; color: var(--text3); min-width: 24px; line-height: 1; font-weight: 600; padding-top: 4px; }
 .einfo { flex: 1; }
-.edate { font-size: 12px; color: var(--text3); }
+.edate { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--accent); line-height: 1; }
 .ename { font-size: 15px; font-weight: 500; margin-top: 2px; }
 .edot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
 .enums { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; font-size: 13px; }
@@ -300,7 +295,7 @@ button { font-family: inherit; cursor: pointer; }
   background: rgba(0,0,0,.55);
   display: flex; align-items: flex-end; justify-content: center;
   opacity: 0; pointer-events: none;
-  transition: opacity .25s;
+  transition: opacity .42s cubic-bezier(0.32,0.72,0,1);
 }
 .mover.on { opacity: 1; pointer-events: auto; }
 .msheet {
@@ -308,22 +303,52 @@ button { font-family: inherit; cursor: pointer; }
   background: var(--bg); border-radius: 24px 24px 0 0;
   padding: 14px 20px calc(var(--sb) + 20px);
   max-height: 90vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
-  transform: translateY(100%); transition: transform .3s cubic-bezier(.4,0,.2,1);
+  transform: translateY(100%);
+  transition: transform .42s cubic-bezier(0.32,0.72,0,1);
+  will-change: transform;
 }
 .mover.on .msheet { transform: translateY(0); }
-@media (hover: hover) and (pointer: fine) {
-  .mover { align-items: center; }
-  .msheet {
-    border-radius: 24px; max-height: 80vh;
-    transform: translateY(20px) scale(.97);
-  }
-  .mover.on .msheet { transform: translateY(0) scale(1); }
-}
+.mover.closing { opacity: 0 !important; pointer-events: none !important; transition: opacity .42s cubic-bezier(0.32,0.72,0,1) !important; }
+.mover.closing .msheet { transform: translateY(100%) !important; transition: transform .42s cubic-bezier(0.32,0.72,0,1) !important; }
 .mdrg { width: 36px; height: 4px; border-radius: 2px; background: var(--sep); margin: 0 auto 16px; }
-.mtit { font-family: 'DM Serif Display', serif; font-size: 26px; margin-bottom: 18px; color: var(--text); }
+.mtit { font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--text); }
+.mtit-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.task-block {
+  border: 1px solid var(--sep); border-radius: 16px;
+  padding: 14px; margin-bottom: 14px;
+  background: var(--bg3);
+}
+.task-block-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.task-block-num {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--text3);
+}
+.task-block-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  display: inline-block; flex-shrink: 0;
+}
+.task-block-del {
+  background: none; border: none; font-size: 18px;
+  color: var(--text3); touch-action: manipulation;
+  padding: 4px 6px; cursor: pointer;
+}
+.task-block-add {
+  background: none; border: none;
+  font-size: 22px; line-height: 1;
+  color: var(--accent); touch-action: manipulation;
+  padding: 4px 6px; cursor: pointer; flex-shrink: 0;
+}
+.task-block-btns {
+  display: flex; align-items: center; gap: 0;
+}
 .fg { margin-bottom: 14px; }
 .fl { display: block; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
 .fi { width: 100%; background: var(--bg3); border: none; border-radius: 12px; padding: 12px 14px; font-size: 16px; color: var(--text); outline: none; }
+.fi-time { box-sizing: border-box; max-width: 100%; -webkit-appearance: none; appearance: none; }
 .frow { display: flex; gap: 8px; }
 .frow .fg { flex: 1; }
 
@@ -352,12 +377,192 @@ button { font-family: inherit; cursor: pointer; }
 .mact { display: flex; gap: 10px; margin-top: 16px; }
 .btnc { flex: 1; padding: 14px; border-radius: 14px; background: var(--bg3); border: none; font-size: 15px; font-weight: 600; color: var(--text2); touch-action: manipulation; }
 .btno { flex: 2; padding: 14px; border-radius: 14px; background: var(--accent); border: none; font-size: 15px; font-weight: 600; color: #fff; touch-action: manipulation; }
+
+/* ── HOLIDAY BUTTON ── */
+.hol-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--bg3); border: none; border-radius: 20px;
+  padding: 7px 14px; font-size: 12px; font-weight: 600;
+  color: var(--text2); letter-spacing: .5px;
+  touch-action: manipulation; cursor: pointer;
+  transition: background .18s, color .18s;
+  margin-bottom: 14px;
+}
+.hol-btn.on { background: #c0392b; color: #fff; }
+.hol-btn .hol-icon { font-size: 14px; }
+
+/* ── HOLIDAY DOT ── */
+.dot.holiday { box-shadow: 0 0 0 2.5px #c0392b !important; }
+.dot.holiday .dnum { color: #c0392b !important; opacity: 1 !important; }
+.dot.holiday.work .dnum { color: #fff !important; }
+
+/* ── HOLIDAY TOOLTIP ── */
+.hol-tip {
+  position: absolute; bottom: calc(100% + 8px); left: 50%;
+  transform: translateX(-50%);
+  background: #c0392b; color: #fff;
+  font-size: 9px; font-weight: 700; letter-spacing: .3px;
+  padding: 3px 7px; border-radius: 8px;
+  white-space: nowrap; pointer-events: auto;
+  z-index: 50;
+  max-width: 80px; overflow: hidden; text-overflow: ellipsis;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(192,57,43,.35);
+  cursor: pointer;
+}
+.hol-tip::after {
+  content: ''; position: absolute; top: 100%; left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: #c0392b;
+}
+
+/* ── HOLIDAY POPUP ── */
+#holPopup {
+  position: fixed; inset: 0; z-index: 600;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,.5);
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s;
+}
+#holPopup.on { opacity: 1; pointer-events: auto; }
+#holPopupBox {
+  background: var(--bg); border-radius: 20px;
+  padding: 28px 24px 22px;
+  max-width: 300px; width: 88%;
+  text-align: center;
+  transform: scale(.88); transition: transform .22s cubic-bezier(.34,1.56,.64,1);
+  box-shadow: 0 12px 48px rgba(0,0,0,.28);
+}
+#holPopup.on #holPopupBox { transform: scale(1); }
+#holPopupEmoji { font-size: 44px; margin-bottom: 10px; }
+#holPopupDate { font-size: 12px; color: var(--text3); margin-bottom: 6px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+#holPopupName { font-family: 'DM Serif Display', serif; font-size: 24px; color: var(--text); line-height: 1.2; margin-bottom: 20px; }
+#holPopupClose {
+  padding: 12px 32px; border-radius: 14px; background: #c0392b;
+  border: none; color: #fff; font-size: 15px; font-weight: 600;
+  touch-action: manipulation; cursor: pointer;
+}
+
+/* ── COUNTRY PICKER BUTTON ── */
+.country-pick-btn {
+  width: 100%; padding: 14px 16px; border-radius: 14px;
+  background: var(--bg3); border: .5px solid var(--sep);
+  display: flex; align-items: center; gap: 10px;
+  font-size: 15px; font-weight: 500; color: var(--text);
+  touch-action: manipulation; cursor: pointer;
+  text-align: left;
+}
+.country-pick-btn span:first-child { font-size: 22px; }
+.country-pick-btn span:nth-child(2) { flex: 1; }
+.country-pick-arr { color: var(--text3); font-size: 20px; }
+
+/* ── COUNTRY PICKER SHEET ── */
+#countryPickerOver {
+  position: fixed; inset: 0; z-index: 700;
+  background: rgba(0,0,0,.55);
+  display: flex; align-items: flex-end; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity .25s;
+}
+#countryPickerOver.on { opacity: 1; pointer-events: auto; }
+#countryPickerSheet {
+  width: 100%; max-width: 520px;
+  background: var(--bg); border-radius: 24px 24px 0 0;
+  padding: 14px 0 0;
+  height: 72vh;
+  display: flex; flex-direction: column;
+  transform: translateY(100%); transition: transform .3s cubic-bezier(.4,0,.2,1);
+}
+#countryPickerOver.on #countryPickerSheet { transform: translateY(0); }
+.cp-drag { width: 36px; height: 4px; border-radius: 2px; background: var(--sep); margin: 0 auto 14px; flex-shrink: 0; }
+.cp-search-wrap { padding: 0 16px 12px; flex-shrink: 0; }
+.cp-search {
+  width: 100%; background: var(--bg3); border: none; border-radius: 12px;
+  padding: 11px 14px; font-size: 15px; color: var(--text); outline: none;
+}
+#countryPickerList {
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 0 12px calc(var(--sb) + 16px);
+}
+.cp-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 10px; border-radius: 12px;
+  font-size: 15px; font-weight: 500; color: var(--text);
+  background: none; border: none; width: 100%; text-align: left;
+  cursor: pointer; touch-action: manipulation;
+  transition: background .1s;
+}
+.cp-item:active { background: var(--bg3); }
+.cp-item.on { color: var(--accent); }
+.cp-item.on::after { content: '✓'; margin-left: auto; font-weight: 700; color: var(--accent); }
+.cp-flag { font-size: 22px; flex-shrink: 0; }
+
+/* ── COUNTRY SELECT (old grid, keep for JS compat) ── */
+.country-grid { display: none; }
+.country-btn { display: none; }
+
+/* ── DRAG GHOST ── */
+#dragGhost {
+  position: fixed; z-index: 999; pointer-events: none;
+  border-radius: 50%; width: 46px; height: 46px;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(1.25);
+  transition: opacity .15s;
+  box-shadow: 0 8px 28px rgba(0,0,0,.32);
+  will-change: left, top;
+}
+#dragGhost.on { opacity: .90; }
+.dot.drag-src  { opacity: .28; transform: scale(.84); transition: opacity .15s, transform .15s; }
+.dot.drag-over { box-shadow: 0 0 0 3px var(--accent) !important; transform: scale(1.14); transition: box-shadow .1s, transform .1s; }
+
+/* ── CONTEXT MENU ── */
+#ctxMenu {
+  position: fixed; z-index: 500;
+  background: var(--bg2);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: .5px solid var(--sep);
+  border-radius: 16px;
+  padding: 6px;
+  min-width: 160px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.22);
+  opacity: 0; pointer-events: none;
+  transform: scale(.88);
+  transition: opacity .18s, transform .18s cubic-bezier(.34,1.56,.64,1);
+}
+#ctxMenu.on {
+  opacity: 1; pointer-events: auto; transform: scale(1);
+}
+.ctx-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 14px; border-radius: 11px;
+  font-size: 15px; font-weight: 500; color: var(--text);
+  background: none; border: none; width: 100%; text-align: left;
+  cursor: pointer; touch-action: manipulation;
+  transition: background .12s;
+}
+.ctx-item:active { background: var(--bg3); }
+.ctx-item .ctx-icon { font-size: 17px; }
+.ctx-item.paste { color: var(--accent); }
 </style>
 </head>
-<body>
+<body tabindex="-1">
+
+<div id="splash"><img src="icons/icon-192.png" alt="MZC"/></div>
 
 <div id="bg"><img id="bgImg" alt=""/></div>
 <div id="ov"></div>
+<div id="dragGhost"></div>
+
+<!-- CONTEXT MENU -->
+<div id="ctxMenu">
+  <button class="ctx-item" id="ctxCopy" onclick="ctxDoCopy()">
+    Копировать
+  </button>
+  <button class="ctx-item paste" id="ctxPaste" onclick="ctxDoPaste()">
+    Вставить
+  </button>
+</div>
 
 <div id="app">
   <div id="wrap">
@@ -369,6 +574,11 @@ button { font-family: inherit; cursor: pointer; }
         <div><span class="bigmon" id="bMon">МАЙ</span><span class="bigyr" id="bYr"> 2026</span></div>
         <div class="bigdow" id="bDow">Воскресенье</div>
       </div>
+
+      <button class="hol-btn" id="holBtn" onclick="toggleHolidays()">
+        <span class="hol-icon">🎉</span>
+        <span id="holBtnTxt">Показать праздники</span>
+      </button>
 
       <div class="mnav">
         <button class="marr" onclick="chM(-1)">‹</button>
@@ -391,24 +601,12 @@ button { font-family: inherit; cursor: pointer; }
       <div class="stitle">Настройки</div>
 
       <div class="ssec">
-        <div class="sseclbl">Аккаунт</div>
-        <div id="fbAuthBlock">
-          <button class="bgbtn" id="fbSignInBtn" onclick="fbSignIn()" style="display:flex;align-items:center;justify-content:center;gap:8px;">
-            <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-            Войти через Google
-          </button>
-          <div id="fbUserInfo" style="display:none;">
-            <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg3);border-radius:14px;">
-              <img id="fbAvatar" width="32" height="32" style="border-radius:50%;"/>
-              <div style="flex:1;">
-                <div id="fbName" style="font-size:14px;font-weight:600;color:var(--text);"></div>
-                <div id="fbEmail" style="font-size:11px;color:var(--text3);"></div>
-              </div>
-              <button onclick="fbSignOut()" style="background:none;border:none;font-size:12px;color:var(--text3);touch-action:manipulation;">Выйти</button>
-            </div>
-            <div id="fbSyncStatus" style="font-size:11px;color:var(--text3);text-align:center;margin-top:6px;"></div>
-          </div>
-        </div>
+        <div class="sseclbl">Страна (для праздников)</div>
+        <button class="country-pick-btn" id="countryPickBtn" onclick="openCountryPicker()">
+          <span id="countryPickFlag">🇷🇺</span>
+          <span id="countryPickName">Россия</span>
+          <span class="country-pick-arr">›</span>
+        </button>
       </div>
 
       <div class="ssec">
@@ -483,52 +681,37 @@ button { font-family: inherit; cursor: pointer; }
 
 <!-- DAY MODAL -->
 <div class="mover" id="modal" onclick="if(event.target===this)closeModal()">
-  <div class="msheet">
+  <div class="msheet" id="mSheet">
     <div class="mdrg"></div>
-    <div class="mtit" id="mTit">3 мая</div>
-
-    <div class="fg">
-      <label class="fl">Цвет дня</label>
-      <div class="dcs" id="dcs">
-        <div class="dc on" style="background:#324E44;" data-c="#324E44" onclick="pickC('#324E44',this)"></div>
-        <div class="dc" style="background:#D0391B;" data-c="#D0391B" onclick="pickC('#D0391B',this)"></div>
-        <div class="dc" style="background:#FBC359;" data-c="#FBC359" onclick="pickC('#FBC359',this)"></div>
-        <div class="dc" style="background:#7BA7AF;" data-c="#7BA7AF" onclick="pickC('#7BA7AF',this)"></div>
-        <div class="dc" style="background:#9F4125;" data-c="#9F4125" onclick="pickC('#9F4125',this)"></div>
-        <div class="dc" style="background:#73A642;" data-c="#73A642" onclick="pickC('#73A642',this)"></div>
-        <div class="dc" style="background:#4E6851;" data-c="#4E6851" onclick="pickC('#4E6851',this)"></div>
-        <div class="dc-cw" title="Свой цвет">
-          <span style="font-size:18px;font-weight:300;color:#fff;line-height:1;">+</span>
-          <input type="color" value="#324E44" oninput="pickCHex(this.value)"/>
-        </div>
-      </div>
+    <div class="mtit-row">
+      <div class="mtit" id="mTit">3 мая</div>
     </div>
-
-    <div class="fg">
-      <label class="fl">Описание</label>
-      <input class="fi" id="fLbl" placeholder="Название / комментарий"/>
-    </div>
-
-    <div class="frow">
-      <div class="fg"><label class="fl">Начало</label><input class="fi" id="fS" type="time"/></div>
-      <div class="fg"><label class="fl">Конец</label><input class="fi" id="fE" type="time"/></div>
-    </div>
-
-    <div class="fg">
-      <label class="fl">Заработано</label>
-      <input class="fi" id="fEarn" type="number" placeholder="Заработано" inputmode="decimal"/>
-    </div>
-
-    <div class="fg">
-      <label class="fl">Затраты</label>
-      <div class="xlist" id="xList"></div>
-      <button class="addx" onclick="addX()">+ Добавить затрату</button>
-    </div>
-
+    <div id="tasksContainer"></div>
     <div class="mact">
-      <button class="btnc" onclick="closeModal()">Отмена</button>
-      <button class="btno" onclick="saveDay()">Сохранить</button>
+      <button class="btnc" ontouchend="event.preventDefault();closeModal()" onclick="closeModal()">Отмена</button>
+      <button class="btno" ontouchend="event.preventDefault();saveDay()" onclick="saveDay()">Сохранить</button>
     </div>
+  </div>
+</div>
+
+<!-- COUNTRY PICKER -->
+<div id="countryPickerOver" onclick="if(event.target===this)closeCountryPicker()">
+  <div id="countryPickerSheet">
+    <div class="cp-drag"></div>
+    <div class="cp-search-wrap">
+      <input class="cp-search" id="cpSearch" placeholder="🔍 Поиск страны..." oninput="filterCpList(this.value)" autocomplete="off"/>
+    </div>
+    <div id="countryPickerList"></div>
+  </div>
+</div>
+
+<!-- HOLIDAY POPUP -->
+<div id="holPopup" onclick="if(event.target===this)closeHolPopup()">
+  <div id="holPopupBox">
+    <div id="holPopupEmoji">🎉</div>
+    <div id="holPopupDate"></div>
+    <div id="holPopupName"></div>
+    <button id="holPopupClose" onclick="closeHolPopup()">Закрыть</button>
   </div>
 </div>
 
@@ -605,7 +788,82 @@ button { font-family: inherit; cursor: pointer; }
 </div>
 
 <script>
-// ── THEME EDITOR ──
+// ── iOS PWA ORIENTATION FIX ──
+(function(){
+  // Принудительный reflow — именно это сбрасывает zoom в iOS PWA.
+  // Кнопка "праздники" работала потому что вызывала reflow DOM.
+  // Воспроизводим это программно: меняем display туда-обратно.
+  function forceReflow(){
+    var app = document.getElementById('app');
+    if(!app) return;
+    app.style.display = 'none';
+    // читаем offsetHeight — это синхронный reflow
+    void app.offsetHeight;
+    app.style.display = '';
+  }
+
+  function resetViewport(){
+    var mv = document.querySelector('meta[name=viewport]');
+    if(mv) mv.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+  }
+
+  function isKeyboardOpen(){
+    // Клавиатура открыта если фокус внутри поля ввода в модальном окне или шторке
+    var ae = document.activeElement;
+    if(!ae) return false;
+    var tag = ae.tagName;
+    if(tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') return false;
+    // Проверяем что элемент внутри модалки, шторки тем или пикера стран
+    var modal = document.getElementById('modal');
+    var teOver = document.getElementById('teOver');
+    var cpOver = document.getElementById('countryPickerOver');
+    if(modal && modal.contains(ae)) return true;
+    if(teOver && teOver.contains(ae)) return true;
+    if(cpOver && cpOver.contains(ae)) return true;
+    return false;
+  }
+
+  function fixSize(){
+    // Не перестраиваем размер пока открыта клавиатура — иначе модалка дёргается
+    if(isKeyboardOpen()) return;
+    var vp = window.visualViewport;
+    var h = vp ? vp.height : window.innerHeight;
+    var w = vp ? vp.width  : window.innerWidth;
+    document.documentElement.style.setProperty('--app-h', h + 'px');
+    var app = document.getElementById('app');
+    if(app){ app.style.height = h + 'px'; app.style.width = w + 'px'; }
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }
+
+  function fullFix(){
+    resetViewport();
+    fixSize();
+    forceReflow();
+    setTimeout(function(){ fixSize(); forceReflow(); }, 100);
+    setTimeout(function(){ fixSize(); forceReflow(); }, 350);
+    setTimeout(function(){ fixSize(); forceReflow(); }, 700);
+  }
+
+  window.addEventListener('orientationchange', function(){
+    setTimeout(fullFix, 50);
+  });
+
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', function(){
+      fixSize(); forceReflow();
+    });
+  } else {
+    window.addEventListener('resize', function(){
+      fixSize(); forceReflow();
+    });
+  }
+
+  fullFix();
+})();
+
+
 const TE_VARS = ['--bg','--bg2','--bg3','--text','--text2','--text3','--accent','--dot-today','--dot-past','--dot-future'];
 const TE_IDS  = {'--bg':'sw-bg','--bg2':'sw-bg2','--bg3':'sw-bg3','--text':'sw-text','--text2':'sw-text2','--text3':'sw-text3','--accent':'sw-accent','--dot-today-bg':'sw-dot-today-bg','--dot-today':'sw-dot-today','--dot-past':'sw-dot-past','--dot-future':'sw-dot-future'};
 
@@ -645,6 +903,40 @@ let _teCustom = {}; // saved custom overrides per theme key
     const dy = e.changedTouches[0].clientY - sy;
     s.style.transition = '';
     if (dragging && dy > 90) { closeTE(false); }
+    else { s.style.transform = ''; }
+    dragging = false;
+  }, {passive:true});
+})();
+
+// Свайп вниз для закрытия окна редактирования дня
+(function(){
+  const sheet = () => document.querySelector('.msheet');
+  let sy = 0, dragging = false;
+  document.addEventListener('touchstart', e => {
+    if (!document.getElementById('modal').classList.contains('on')) return;
+    sy = e.touches[0].clientY;
+    dragging = false;
+  }, {passive:true});
+  document.addEventListener('touchmove', e => {
+    if (!document.getElementById('modal').classList.contains('on')) return;
+    const s = sheet();
+    if (!s) return;
+    // Снимаем фокус с поля ввода при скролле — иначе iOS выделяет текст
+    const ae = document.activeElement;
+    if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA') && s.contains(ae)) {
+      ae.blur();
+    }
+    if (s.scrollTop > 0) return;
+    const dy = e.touches[0].clientY - sy;
+    if (dy > 10) { dragging = true; s.style.transform = `translateY(${Math.min(dy, 260)}px)`; s.style.transition = 'none'; }
+  }, {passive:true});
+  document.addEventListener('touchend', e => {
+    if (!document.getElementById('modal').classList.contains('on')) return;
+    const s = sheet();
+    if (!s) return;
+    const dy = e.changedTouches[0].clientY - sy;
+    s.style.transition = '';
+    if (dragging && dy > 100) { s.style.transform = ''; closeModal(); }
     else { s.style.transform = ''; }
     dragging = false;
   }, {passive:true});
@@ -839,24 +1131,315 @@ function toHex(val) {
   return '#888888';
 }
 
+// ── HOLIDAYS ──
+const ALL_COUNTRIES = [
+  {cc:'RU',flag:'🇷🇺',name:'Россия'},
+  {cc:'KZ',flag:'🇰🇿',name:'Казахстан'},
+  {cc:'UA',flag:'🇺🇦',name:'Украина'},
+  {cc:'BY',flag:'🇧🇾',name:'Беларусь'},
+  {cc:'UZ',flag:'🇺🇿',name:'Узбекистан'},
+  {cc:'AM',flag:'🇦🇲',name:'Армения'},
+  {cc:'AZ',flag:'🇦🇿',name:'Азербайджан'},
+  {cc:'GE',flag:'🇬🇪',name:'Грузия'},
+  {cc:'MD',flag:'🇲🇩',name:'Молдова'},
+  {cc:'TM',flag:'🇹🇲',name:'Туркменистан'},
+  {cc:'KG',flag:'🇰🇬',name:'Кыргызстан'},
+  {cc:'TJ',flag:'🇹🇯',name:'Таджикистан'},
+  {cc:'US',flag:'🇺🇸',name:'США'},
+  {cc:'GB',flag:'🇬🇧',name:'Великобритания'},
+  {cc:'DE',flag:'🇩🇪',name:'Германия'},
+  {cc:'FR',flag:'🇫🇷',name:'Франция'},
+  {cc:'IT',flag:'🇮🇹',name:'Италия'},
+  {cc:'ES',flag:'🇪🇸',name:'Испания'},
+  {cc:'PL',flag:'🇵🇱',name:'Польша'},
+  {cc:'NL',flag:'🇳🇱',name:'Нидерланды'},
+  {cc:'BE',flag:'🇧🇪',name:'Бельгия'},
+  {cc:'CH',flag:'🇨🇭',name:'Швейцария'},
+  {cc:'AT',flag:'🇦🇹',name:'Австрия'},
+  {cc:'SE',flag:'🇸🇪',name:'Швеция'},
+  {cc:'NO',flag:'🇳🇴',name:'Норвегия'},
+  {cc:'DK',flag:'🇩🇰',name:'Дания'},
+  {cc:'FI',flag:'🇫🇮',name:'Финляндия'},
+  {cc:'PT',flag:'🇵🇹',name:'Португалия'},
+  {cc:'CZ',flag:'🇨🇿',name:'Чехия'},
+  {cc:'SK',flag:'🇸🇰',name:'Словакия'},
+  {cc:'HU',flag:'🇭🇺',name:'Венгрия'},
+  {cc:'RO',flag:'🇷🇴',name:'Румыния'},
+  {cc:'BG',flag:'🇧🇬',name:'Болгария'},
+  {cc:'HR',flag:'🇭🇷',name:'Хорватия'},
+  {cc:'RS',flag:'🇷🇸',name:'Сербия'},
+  {cc:'GR',flag:'🇬🇷',name:'Греция'},
+  {cc:'TR',flag:'🇹🇷',name:'Турция'},
+  {cc:'CN',flag:'🇨🇳',name:'Китай'},
+  {cc:'JP',flag:'🇯🇵',name:'Япония'},
+  {cc:'KR',flag:'🇰🇷',name:'Южная Корея'},
+  {cc:'IN',flag:'🇮🇳',name:'Индия'},
+  {cc:'TH',flag:'🇹🇭',name:'Таиланд'},
+  {cc:'VN',flag:'🇻🇳',name:'Вьетнам'},
+  {cc:'ID',flag:'🇮🇩',name:'Индонезия'},
+  {cc:'MY',flag:'🇲🇾',name:'Малайзия'},
+  {cc:'SG',flag:'🇸🇬',name:'Сингапур'},
+  {cc:'PH',flag:'🇵🇭',name:'Филиппины'},
+  {cc:'AE',flag:'🇦🇪',name:'ОАЭ'},
+  {cc:'SA',flag:'🇸🇦',name:'Саудовская Аравия'},
+  {cc:'IL',flag:'🇮🇱',name:'Израиль'},
+  {cc:'EG',flag:'🇪🇬',name:'Египет'},
+  {cc:'NG',flag:'🇳🇬',name:'Нигерия'},
+  {cc:'ZA',flag:'🇿🇦',name:'ЮАР'},
+  {cc:'KE',flag:'🇰🇪',name:'Кения'},
+  {cc:'ET',flag:'🇪🇹',name:'Эфиопия'},
+  {cc:'MA',flag:'🇲🇦',name:'Марокко'},
+  {cc:'BR',flag:'🇧🇷',name:'Бразилия'},
+  {cc:'AR',flag:'🇦🇷',name:'Аргентина'},
+  {cc:'MX',flag:'🇲🇽',name:'Мексика'},
+  {cc:'CO',flag:'🇨🇴',name:'Колумбия'},
+  {cc:'CL',flag:'🇨🇱',name:'Чили'},
+  {cc:'PE',flag:'🇵🇪',name:'Перу'},
+  {cc:'CA',flag:'🇨🇦',name:'Канада'},
+  {cc:'AU',flag:'🇦🇺',name:'Австралия'},
+  {cc:'NZ',flag:'🇳🇿',name:'Новая Зеландия'},
+];
+
+const HOLIDAYS = {
+  RU: {'01-01':'Новый год','01-02':'Новогодние каникулы','01-03':'Новогодние каникулы','01-04':'Новогодние каникулы','01-05':'Новогодние каникулы','01-06':'Новогодние каникулы','01-07':'Рождество','01-08':'Новогодние каникулы','02-23':'День защитника Отечества','03-08':'Международный женский день','05-01':'Праздник Весны и Труда','05-09':'День Победы','06-12':'День России','11-04':'День народного единства'},
+  KZ: {'01-01':'Новый год','01-02':'Новый год','03-08':'Международный женский день','03-21':'Наурыз мейрамы','03-22':'Наурыз мейрамы','03-23':'Наурыз мейрамы','05-01':'День единства народа','05-07':'День защитника Отечества','05-09':'День Победы','07-06':'День столицы','08-30':'День Конституции','10-25':'День Республики','12-01':'День Первого Президента','12-16':'День Независимости','12-17':'День Независимости'},
+  UA: {'01-01':'Новий рік','01-07':'Різдво Христове','03-08':'Міжнародний жіночий день','05-01':'День праці','05-09':'День Перемоги','06-28':'День Конституції','08-24':'День незалежності','10-14':'День захисника','12-25':'Різдво'},
+  BY: {'01-01':'Новый год','01-07':'Рождество (православное)','03-08':'День женщин','04-21':'Пасха','05-01':'День труда','05-09':'День Победы','07-03':'День Независимости','11-07':'День Октябрьской революции','12-25':'Рождество (католическое)'},
+  UZ: {'01-01':'Янги йил','03-08':'Xalqaro xotin-qizlar kuni','03-21':'Навруз','05-09':'Xotira va qadrlash kuni','09-01':'Mustaqillik kuni','10-01':'O\'qituvchi va murabbiylar kuni','12-08':'Konstitutsiya kuni'},
+  AM: {'01-01':'Новый год','01-06':'Рождество','01-07':'Рождество','03-08':'Женский день','04-24':'День памяти геноцида','05-01':'День труда','05-09':'День Победы','05-28':'День Республики','07-05':'День Конституции','09-21':'День Независимости'},
+  AZ: {'01-01':'Новый год','01-02':'Новый год','03-08':'Женский день','05-09':'День Победы','05-28':'День Республики','06-15':'День национального спасения','10-18':'День независимости','11-12':'День Конституции','11-17':'День национального возрождения','12-31':'День солидарности'},
+  GE: {'01-01':'Новый год','01-02':'Новый год','01-07':'Рождество','01-19':'Крещение','03-03':'День матери','04-09':'День национального единства','05-09':'День Победы','05-26':'День независимости','08-28':'День Успения','10-14':'Светицховлоба','11-23':'День Гиоргоба'},
+  MD: {'01-01':'Новый год','01-07':'Рождество','03-08':'Женский день','04-21':'Пасха','05-01':'День труда','05-09':'День Победы','06-01':'День защиты детей','08-27':'День Независимости','08-31':'Limba noastră','10-14':'День вина'},
+  TM: {'01-01':'Новый год','03-08':'Женский день','03-21':'Новруз','05-09':'День Победы','05-18':'День конституции','10-27':'День независимости','12-12':'День нейтралитета'},
+  KG: {'01-01':'Новый год','01-07':'Рождество','02-23':'День защитника','03-08':'Женский день','03-21':'Нооруз','05-01':'День труда','05-05':'День Конституции','05-09':'День Победы','06-01':'День детей','08-31':'День Независимости','11-07':'День истории и памяти'},
+  TJ: {'01-01':'Новый год','03-08':'Женский день','03-21':'Навруз','03-22':'Навруз','03-23':'Навруз','05-01':'День труда','05-09':'День Победы','06-27':'День мира и национального единства','09-09':'День Независимости','11-06':'День Конституции'},
+  US: {'01-01':"New Year's Day",'01-20':'MLK Day','02-17':"Presidents' Day",'05-26':'Memorial Day','06-19':'Juneteenth','07-04':'Independence Day','09-01':'Labor Day','10-13':'Columbus Day','11-11':'Veterans Day','11-27':'Thanksgiving','12-25':'Christmas'},
+  GB: {'01-01':"New Year's Day",'04-18':'Good Friday','04-21':'Easter Monday','05-05':'Early May Bank Holiday','05-26':'Spring Bank Holiday','08-25':'Summer Bank Holiday','12-25':'Christmas Day','12-26':'Boxing Day'},
+  DE: {'01-01':'Neujahr','04-18':'Karfreitag','04-21':'Ostermontag','05-01':'Tag der Arbeit','05-29':'Christi Himmelfahrt','06-09':'Pfingstmontag','10-03':'Tag der Deutschen Einheit','12-25':'1. Weihnachtstag','12-26':'2. Weihnachtstag'},
+  FR: {'01-01':"Jour de l'An",'04-21':'Lundi de Pâques','05-01':'Fête du Travail','05-08':'Victoire 1945','05-29':'Ascension','06-09':'Lundi de Pentecôte','07-14':'Fête Nationale','08-15':'Assomption','11-01':'Toussaint','11-11':'Armistice','12-25':'Noël'},
+  IT: {'01-01':'Capodanno','01-06':'Epifania','04-21':'Lunedì di Pasqua','04-25':'Festa della Liberazione','05-01':'Festa del Lavoro','06-02':'Festa della Repubblica','08-15':'Ferragosto','11-01':'Tutti i Santi','12-08':'Immacolata','12-25':'Natale','12-26':'Santo Stefano'},
+  ES: {'01-01':'Año Nuevo','01-06':'Reyes Magos','04-18':'Viernes Santo','05-01':'Día del Trabajo','08-15':'Asunción','10-12':'Fiesta Nacional','11-01':'Todos los Santos','12-06':'Día de la Constitución','12-08':'Inmaculada Concepción','12-25':'Navidad'},
+  PL: {'01-01':'Nowy Rok','01-06':'Trzech Króli','04-21':'Poniedziałek Wielkanocny','05-01':'Święto Pracy','05-03':'Święto Konstytucji','06-09':'Zielone Świątki','06-19':'Boże Ciało','08-15':'Wniebowzięcie','11-01':'Wszystkich Świętych','11-11':'Święto Niepodległości','12-25':'Boże Narodzenie','12-26':'Drugi dzień Bożego Narodzenia'},
+  NL: {'01-01':'Nieuwjaar','04-18':'Goede Vrijdag','04-21':'Tweede Paasdag','04-27':'Koningsdag','05-05':'Bevrijdingsdag','05-29':'Hemelvaartsdag','06-09':'Tweede Pinksterdag','12-25':'Eerste Kerstdag','12-26':'Tweede Kerstdag'},
+  BE: {'01-01':'Nouvel An','04-21':'Lundi de Pâques','05-01':'Fête du Travail','05-29':'Ascension','06-09':'Lundi de Pentecôte','07-21':'Fête nationale','08-15':'Assomption','11-01':'Toussaint','11-11':'Armistice','12-25':'Noël'},
+  CH: {'01-01':'Neujahr','04-18':'Karfreitag','04-21':'Ostermontag','05-01':'Tag der Arbeit','05-29':'Auffahrt','06-09':'Pfingstmontag','08-01':'Nationalfeiertag','12-25':'Weihnachten','12-26':'Stephanstag'},
+  AT: {'01-01':'Neujahr','01-06':'Heilige Drei Könige','04-21':'Ostermontag','05-01':'Staatsfeiertag','05-29':'Christi Himmelfahrt','06-09':'Pfingstmontag','06-19':'Fronleichnam','08-15':'Mariä Himmelfahrt','10-26':'Nationalfeiertag','11-01':'Allerheiligen','12-08':'Mariä Empfängnis','12-25':'Christtag','12-26':'Stefanitag'},
+  SE: {'01-01':'Nyårsdagen','01-06':'Trettondag jul','04-18':'Långfredagen','04-20':'Påskdagen','04-21':'Annandag påsk','05-01':'Första maj','05-29':'Kristi himmelsfärds dag','06-06':'Sveriges nationaldag','06-21':'Midsommarafton','12-24':'Julafton','12-25':'Juldagen','12-26':'Annandag jul'},
+  NO: {'01-01':'Nyttårsdag','04-17':'Skjærtorsdag','04-18':'Langfredag','04-20':'Påskedag','04-21':'Andre påskedag','05-01':'Arbeidernes dag','05-17':'Grunnlovsdag','05-29':'Kristi himmelfartsdag','06-08':'Pinsedag','06-09':'Andre pinsedag','12-25':'Første juledag','12-26':'Andre juledag'},
+  DK: {'01-01':'Nytårsdag','04-17':'Skærtorsdag','04-18':'Langfredag','04-20':'Påskedag','04-21':'Anden påskedag','05-01':'Store bededag','05-29':'Kristi himmelfartsdag','06-08':'Pinsedag','06-09':'Anden pinsedag','12-25':'Juledag','12-26':'Anden juledag'},
+  FI: {'01-01':'Uudenvuodenpäivä','01-06':'Loppiainen','04-18':'Pitkäperjantai','04-21':'Toinen pääsiäispäivä','05-01':'Vappu','05-29':'Helatorstai','06-21':'Juhannus','11-01':'Pyhäinpäivä','12-06':'Itsenäisyyspäivä','12-25':'Joulupäivä','12-26':'Tapaninpäivä'},
+  PT: {'01-01':'Ano Novo','04-18':'Sexta-feira Santa','04-21':'Páscoa','04-25':'Dia da Liberdade','05-01':'Dia do Trabalhador','06-10':'Dia de Portugal','06-19':'Corpo de Deus','08-15':'Assunção de Nossa Senhora','10-05':'Implantação da República','11-01':'Todos-os-Santos','12-01':'Restauração da Independência','12-08':'Imaculada Conceição','12-25':'Natal'},
+  CZ: {'01-01':'Nový rok','04-18':'Velký pátek','04-21':'Velikonoční pondělí','05-01':'Svátek práce','05-08':'Den vítězství','07-05':'Den slovanských věrozvěstů','07-06':'Den upálení mistra Jana Husa','09-28':'Den české státnosti','10-28':'Den vzniku Československa','11-17':'Den boje za svobodu','12-24':'Štědrý den','12-25':'1. svátek vánoční','12-26':'2. svátek vánoční'},
+  SK: {'01-01':'Deň vzniku SR','01-06':'Zjavenie Pána','04-18':'Veľký piatok','04-21':'Veľkonočný pondelok','05-01':'Sviatok práce','05-08':'Deň víťazstva','07-05':'Sviatok sv. Cyrila a Metoda','08-29':'Výročie SNP','09-01':'Deň Ústavy SR','09-15':'Sedembolestná Panna Mária','11-01':'Sviatok všetkých svätých','11-17':'Deň boja za slobodu','12-24':'Štedrý deň','12-25':'1. sviatok vianočný','12-26':'2. sviatok vianočný'},
+  HU: {'01-01':'Újév','03-15':'Nemzeti ünnep','04-18':'Nagypéntek','04-21':'Húsvét hétfő','05-01':'A munka ünnepe','06-09':'Pünkösdminden','08-20':'Az államalapítás ünnepe','10-23':'Az 1956-os forradalom','11-01':'Mindenszentek','12-25':'Karácsony','12-26':'Karácsony 2. napja'},
+  RO: {'01-01':'Anul Nou','01-02':'Anul Nou','04-21':'Paștele','04-22':'Paștele','05-01':'Ziua Muncii','06-01':'Ziua Copilului','06-09':'Rusalii','06-10':'Rusalii','08-15':'Adormirea Maicii Domnului','11-30':'Sfântul Andrei','12-01':'Ziua Națională','12-25':'Crăciunul','12-26':'Crăciunul'},
+  BG: {'01-01':'Нова година','03-03':'Ден на Освобождението','04-21':'Великден','04-22':'Великден','05-01':'Ден на труда','05-06':'Гергьовден','05-24':'Ден на буквите','09-06':'Ден на Съединението','09-22':'Ден на Независимостта','11-01':'Ден на народните будители','12-24':'Бъдни вечер','12-25':'Рождество Христово','12-26':'Рождество Христово'},
+  HR: {'01-01':'Nova godina','01-06':'Sveta tri kralja','04-21':'Uskrsni ponedjeljak','05-01':'Praznik rada','05-30':'Dan državnosti','06-19':'Tijelovo','06-22':'Dan antifašizma','08-05':'Dan pobjede','08-15':'Velika Gospa','10-08':'Dan neovisnosti','11-01':'Svi sveti','12-25':'Božić','12-26':'Sveti Stjepan'},
+  RS: {'01-01':'Nova godina','01-02':'Nova godina','01-07':'Božić','02-15':'Dan državnosti','04-18':'Veliki petak','04-21':'Vaskrs','04-22':'Vaskrs','05-01':'Praznik rada','05-02':'Praznik rada','11-11':'Dan primirja'},
+  GR: {'01-01':'Πρωτοχρονιά','01-06':'Θεοφάνια','03-25':'Εθνική Εορτή','04-18':'Μεγάλη Παρασκευή','04-21':'Δευτέρα του Πάσχα','05-01':'Πρωτομαγιά','06-09':'Αγίου Πνεύματος','08-15':'Κοίμηση Θεοτόκου','10-28':'Εθνική Εορτή','12-25':'Χριστούγεννα','12-26':'Σύναξη Θεοτόκου'},
+  TR: {'01-01':'Yılbaşı','04-23':'Ulusal Egemenlik ve Çocuk Bayramı','05-01':'Emek ve Dayanışma Günü','05-19':'Atatürk\'ü Anma','07-15':'Demokrasi ve Millî Birlik Günü','08-30':'Zafer Bayramı','10-29':'Cumhuriyet Bayramı'},
+  CN: {'01-01':'元旦','01-28':'春节','01-29':'春节','01-30':'春节','01-31':'春节','02-01':'春节','02-02':'春节','04-05':'清明节','05-01':'劳动节','06-02':'端午节','10-01':'国庆节','10-02':'国庆节','10-03':'国庆节','10-06':'中秋节'},
+  JP: {'01-01':'元日','01-13':'成人の日','02-11':'建国記念の日','02-23':'天皇誕生日','03-20':'春分の日','04-29':'昭和の日','05-03':'憲法記念日','05-04':'みどりの日','05-05':'こどもの日','07-21':'海の日','08-11':'山の日','09-15':'敬老の日','09-23':'秋分の日','10-13':'スポーツの日','11-03':'文化の日','11-23':'勤労感謝の日'},
+  KR: {'01-01':'새해','01-28':'설날','01-29':'설날','01-30':'설날','03-01':'삼일절','05-05':'어린이날','05-15':'부처님오신날','06-06':'현충일','08-15':'광복절','10-03':'개천절','10-06':'추석','10-07':'추석','10-08':'추석','10-09':'한글날','12-25':'크리스마스'},
+  IN: {'01-26':'Republic Day','03-17':'Holi','04-14':'Ambedkar Jayanti','04-18':'Good Friday','05-01':'Labour Day','08-15':'Independence Day','10-02':'Gandhi Jayanti','10-20':'Dussehra','11-05':'Diwali','11-15':'Guru Nanak Jayanti','12-25':'Christmas'},
+  TH: {'01-01':'วันขึ้นปีใหม่','02-12':'วันมาฆบูชา','04-06':'วันจักรี','04-13':'วันสงกรานต์','04-14':'วันสงกรานต์','04-15':'วันสงกรานต์','05-01':'วันแรงงาน','05-05':'วันฉัตรมงคล','05-13':'วันวิสาขบูชา','07-11':'วันอาสาฬหบูชา','07-12':'วันเข้าพรรษา','07-28':'วันเฉลิมพระชนมพรรษา','08-12':'วันแม่','10-13':'วันนวมินทรมหาราช','10-23':'วันปิยมหาราช','12-05':'วันพ่อ','12-10':'วันรัฐธรรมนูญ','12-31':'วันสิ้นปี'},
+  VN: {'01-01':'Tết Dương lịch','01-28':'Tết Nguyên Đán','01-29':'Tết Nguyên Đán','01-30':'Tết Nguyên Đán','01-31':'Tết Nguyên Đán','02-01':'Tết Nguyên Đán','04-07':'Giỗ Tổ Hùng Vương','04-30':'Ngày Giải phóng','05-01':'Ngày Quốc tế Lao động','09-02':'Quốc khánh'},
+  ID: {'01-01':'Tahun Baru','01-29':'Tahun Baru Imlek','03-29':'Isra Miraj','04-18':'Wafat Isa Almasih','04-20':'Paskah','05-01':'Hari Buruh','05-29':'Kenaikan Isa Almasih','06-01':'Hari Lahir Pancasila','06-06':'Idul Adha','06-27':'Tahun Baru Islam','08-17':'Hari Kemerdekaan','09-05':'Maulid Nabi','12-25':'Hari Natal'},
+  MY: {'01-01':'New Year','01-29':'Chinese New Year','01-30':'Chinese New Year','02-01':'Federal Territory Day','04-14':'Hari Raya Puasa','04-15':'Hari Raya Puasa','05-01':'Labour Day','06-02':'Agong Birthday','06-06':'Hari Raya Haji','08-31':'Merdeka Day','09-16':'Malaysia Day','12-25':'Christmas'},
+  SG: {'01-01':'New Year','01-29':'Chinese New Year','01-30':'Chinese New Year','04-18':'Good Friday','05-01':'Labour Day','05-12':'Vesak Day','06-07':'Hari Raya Haji','08-09':'National Day','10-20':'Deepavali','12-25':'Christmas'},
+  PH: {'01-01':'New Year','04-09':'Day of Valor','04-17':'Maundy Thursday','04-18':'Good Friday','04-19':'Black Saturday','05-01':'Labour Day','06-12':'Independence Day','08-25':'National Heroes Day','11-01':'All Saints Day','11-02':'All Souls Day','11-30':'Bonifacio Day','12-08':'Feast of Immaculate Conception','12-25':'Christmas','12-30':'Rizal Day','12-31':'New Year\'s Eve'},
+  AE: {'01-01':'New Year','04-01':'Eid Al Fitr','04-02':'Eid Al Fitr','04-03':'Eid Al Fitr','06-07':'Arafat (Eid Al Adha) Day','06-08':'Eid Al Adha','06-09':'Eid Al Adha','06-10':'Eid Al Adha','06-27':'Islamic New Year','09-05':'Prophet Muhammad\'s Birthday','12-02':'National Day','12-03':'National Day'},
+  SA: {'02-22':'Founding Day','04-01':'Eid Al Fitr','04-02':'Eid Al Fitr','04-03':'Eid Al Fitr','06-07':'Arafat Day','06-08':'Eid Al Adha','06-09':'Eid Al Adha','06-10':'Eid Al Adha','09-23':'National Day'},
+  IL: {'01-01':'New Year','04-13':'Passover','04-14':'Passover','04-23':'Yom HaAtzmaut','06-02':'Shavuot','09-23':'Rosh Hashana','09-24':'Rosh Hashana','10-02':'Yom Kippur','10-07':'Sukkot','10-14':'Simchat Torah','12-25':'Christmas'},
+  EG: {'01-07':'Coptic Christmas','01-25':'Revolution Day','04-25':'Sinai Liberation Day','05-01':'Labour Day','07-23':'Revolution Day','10-06':'Armed Forces Day'},
+  NG: {'01-01':'New Year','04-18':'Good Friday','04-21':'Easter Monday','05-01':'Workers Day','06-12':'Democracy Day','10-01':'National Day','12-25':'Christmas','12-26':'Boxing Day'},
+  ZA: {'01-01':'New Year','03-21':'Human Rights Day','04-18':'Good Friday','04-21':'Family Day','04-27':'Freedom Day','05-01':'Workers Day','06-16':'Youth Day','08-09':'National Women\'s Day','09-24':'Heritage Day','12-16':'Day of Reconciliation','12-25':'Christmas','12-26':'Day of Goodwill'},
+  KE: {'01-01':'New Year','04-18':'Good Friday','04-21':'Easter Monday','05-01':'Labour Day','06-01':'Madaraka Day','07-04':'Sabasaba Day','10-10':'Huduma Day','10-20':'Mashujaa Day','12-12':'Jamhuri Day','12-25':'Christmas','12-26':'Boxing Day'},
+  ET: {'01-07':'Ethiopian Christmas','01-19':'Ethiopian Epiphany','03-02':'Victory of Adwa','04-06':'Good Friday','04-11':'Ethiopian Easter','05-01':'Labour Day','05-05':'Patriots Day','09-11':'Ethiopian New Year','09-27':'Finding of the True Cross'},
+  MA: {'01-01':'Fête du Trône','01-11':'Manifeste de l\'Indépendance','05-01':'Fête du Travail','07-30':'Fête du Trône','08-14':'Allégeance de l\'Oued Ed-Dahab','08-20':'Révolution du Roi et du Peuple','08-21':'Fête de la Jeunesse','11-06':'Marche Verte','11-18':'Fête de l\'Indépendance'},
+  BR: {'01-01':'Ano Novo','02-28':'Carnaval','03-01':'Carnaval','04-18':'Sexta-Feira Santa','04-21':'Tiradentes','05-01':'Dia do Trabalho','06-19':'Corpus Christi','09-07':'Independência','10-12':'Nossa Senhora Aparecida','11-02':'Finados','11-15':'Proclamação da República','11-20':'Consciência Negra','12-25':'Natal'},
+  AR: {'01-01':'Año Nuevo','02-24':'Carnaval','03-23':'Día de la Memoria','04-02':'Día del Veterano','04-18':'Viernes Santo','05-01':'Día del Trabajador','05-25':'Día de la Patria','06-17':'Paso a la Inmortalidad','07-09':'Día de la Independencia','10-12':'Día del Respeto','11-20':'Día de la Soberanía','12-08':'Inmaculada Concepción','12-25':'Navidad'},
+  MX: {'01-01':'Año Nuevo','02-03':'Día de la Constitución','03-17':'Natalicio de Benito Juárez','04-17':'Jueves Santo','04-18':'Viernes Santo','05-01':'Día del Trabajo','09-16':'Día de la Independencia','11-17':'Revolución Mexicana','12-12':'Virgen de Guadalupe','12-25':'Navidad'},
+  CO: {'01-01':'Año Nuevo','01-06':'Epifanía','03-24':'San José','04-13':'Jueves Santo','04-14':'Viernes Santo','05-01':'Día del Trabajo','06-02':'Ascensión','06-23':'Corpus Christi','06-30':'Sagrado Corazón','07-04':'San Pedro y San Pablo','07-20':'Día de la Independencia','08-07':'Batalla de Boyacá','08-18':'Asunción','10-13':'Día de la Raza','11-03':'Todos los Santos','11-17':'Independencia de Cartagena','12-08':'Inmaculada Concepción','12-25':'Navidad'},
+  CL: {'01-01':'Año Nuevo','04-18':'Viernes Santo','04-19':'Sábado Santo','05-01':'Día del Trabajo','05-21':'Día de las Glorias Navales','06-20':'Día de los Pueblos Indígenas','06-29':'San Pedro y San Pablo','07-16':'Virgen del Carmen','08-15':'Asunción','09-18':'Primera Junta Nacional de Gobierno','09-19':'Glorias del Ejército','09-20':'Fiestas Patrias','10-12':'Día del Encuentro de Dos Mundos','10-27':'Día de las Iglesias Evangélicas','11-01':'Día de Todos los Santos','12-08':'Inmaculada Concepción','12-25':'Navidad'},
+  PE: {'01-01':'Año Nuevo','04-17':'Jueves Santo','04-18':'Viernes Santo','05-01':'Día del Trabajo','06-07':'Batalla de Arica','06-24':'Inti Raymi','06-29':'San Pedro y San Pablo','07-28':'Día de la Independencia','07-29':'Gran Parada Militar','08-06':'Batalla de Junín','08-30':'Santa Rosa de Lima','10-08':'Combate de Angamos','11-01':'Día de Todos los Santos','12-08':'Inmaculada Concepción','12-25':'Navidad'},
+  CA: {'01-01':'New Year','02-17':'Family Day','04-18':'Good Friday','05-19':'Victoria Day','07-01':'Canada Day','09-01':'Labour Day','10-13':'Thanksgiving','11-11':'Remembrance Day','12-25':'Christmas','12-26':'Boxing Day'},
+  AU: {'01-01':'New Year','01-27':'Australia Day','04-18':'Good Friday','04-19':'Easter Saturday','04-21':'Easter Monday','04-25':'Anzac Day','06-09':'King\'s Birthday','12-25':'Christmas','12-26':'Boxing Day'},
+  NZ: {'01-01':'New Year','01-02':'Day after New Year','02-06':'Waitangi Day','04-18':'Good Friday','04-21':'Easter Monday','04-25':'Anzac Day','06-02':'King\'s Birthday','10-27':'Labour Day','12-25':'Christmas','12-26':'Boxing Day'},
+};
+
+let _showHolidays = false;
+
+function toggleHolidays() {
+  _showHolidays = !_showHolidays;
+  const btn = document.getElementById('holBtn');
+  const txt = document.getElementById('holBtnTxt');
+  btn.classList.toggle('on', _showHolidays);
+  txt.textContent = _showHolidays ? 'Скрыть праздники' : 'Показать праздники';
+  renderCal();
+}
+
+function getHolidayName(y, m, d) {
+  const cc = cfg.country || 'RU';
+  const map = HOLIDAYS[cc] || {};
+  const key = `${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  return map[key] || null;
+}
+
+function showHolPopup(e, y, m, d) {
+  e.stopPropagation();
+  e.preventDefault();
+  // Cancel any pending day-open timer
+  clearTimeout(_dtTimer);
+  _lastTap = 0; _lastDk = null;
+  const holName = getHolidayName(parseInt(y), parseInt(m), parseInt(d));
+  if (!holName) return;
+  const MONG2 = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+  document.getElementById('holPopupDate').textContent = `${d} ${MONG2[parseInt(m)]} ${y}`;
+  document.getElementById('holPopupName').textContent = holName;
+  // emoji by keyword
+  const nm = holName.toLowerCase();
+  let em = '🎉';
+  if (nm.includes('рождест') || nm.includes('christmas') || nm.includes('natal') || nm.includes('weihnacht') || nm.includes('noël') || nm.includes('jul')) em = '🎄';
+  else if (nm.includes('новый год') || nm.includes('new year') || nm.includes('año nuevo') || nm.includes('neujahr') || nm.includes('nový rok') || nm.includes('noel') || nm.includes('год')) em = '🥂';
+  else if (nm.includes('победа') || nm.includes('victory') || nm.includes('independence') || nm.includes('независим') || nm.includes('liberac') || nm.includes('özgürlük')) em = '🏆';
+  else if (nm.includes('труд') || nm.includes('labor') || nm.includes('travail') || nm.includes('arbeit') || nm.includes('work')) em = '🔨';
+  else if (nm.includes('женщин') || nm.includes('women') || nm.includes('мать') || nm.includes('anneler')) em = '💐';
+  else if (nm.includes('детей') || nm.includes('child') || nm.includes('kinder')) em = '👶';
+  else if (nm.includes('пасх') || nm.includes('easter') || nm.includes('pasqu') || nm.includes('ostern') || nm.includes('páscoa')) em = '🐣';
+  else if (nm.includes('навруз') || nm.includes('наурыз') || nm.includes('noorouz') || nm.includes('весна')) em = '🌸';
+  else if (nm.includes('день защит') || nm.includes('veteran') || nm.includes('armed')) em = '🎖️';
+  document.getElementById('holPopupEmoji').textContent = em;
+  document.getElementById('holPopup').classList.add('on');
+}
+
+function closeHolPopup() {
+  document.getElementById('holPopup').classList.remove('on');
+}
+
+function setCountry(cc, btn) {
+  cfg.country = cc; saveC();
+  updateCountryBtn();
+  if (_showHolidays) renderCal();
+}
+
+function openCountryPicker() {
+  renderCpList('');
+  document.getElementById('cpSearch').value = '';
+  document.getElementById('countryPickerOver').classList.add('on');
+  setTimeout(() => document.getElementById('cpSearch').focus(), 300);
+}
+
+function closeCountryPicker() {
+  document.getElementById('countryPickerOver').classList.remove('on');
+}
+
+function renderCpList(filter) {
+  const q = (filter || '').toLowerCase().trim();
+  const list = q
+    ? ALL_COUNTRIES.filter(c => c.name.toLowerCase().includes(q) || c.cc.toLowerCase().includes(q))
+    : ALL_COUNTRIES;
+  const cur = cfg.country || 'RU';
+  document.getElementById('countryPickerList').innerHTML = list.map(c =>
+    `<button class="cp-item${c.cc===cur?' on':''}" onclick="pickCountry('${c.cc}')">
+      <span class="cp-flag">${c.flag}</span>${c.name}
+    </button>`
+  ).join('');
+}
+
+function filterCpList(val) { renderCpList(val); }
+
+function pickCountry(cc) {
+  cfg.country = cc; saveC();
+  // Update button label
+  const found = ALL_COUNTRIES.find(c => c.cc === cc);
+  if (found) {
+    document.getElementById('countryPickFlag').textContent = found.flag;
+    document.getElementById('countryPickName').textContent = found.name;
+  }
+  closeCountryPicker();
+  if (_showHolidays) renderCal();
+}
+
+function updateCountryBtn() {
+  const cc = cfg.country || 'RU';
+  const found = ALL_COUNTRIES.find(c => c.cc === cc) || {flag:'🌍', name:'Страна'};
+  const fb = document.getElementById('countryPickFlag');
+  const nb = document.getElementById('countryPickName');
+  if (fb) fb.textContent = found.flag;
+  if (nb) nb.textContent = found.name;
+}
+
+// Swipe down to close country picker
+(function(){
+  let sy = 0, dragging = false;
+  document.addEventListener('touchstart', e => {
+    if (!document.getElementById('countryPickerOver').classList.contains('on')) return;
+    sy = e.touches[0].clientY; dragging = false;
+  }, {passive:true});
+  document.addEventListener('touchmove', e => {
+    if (!document.getElementById('countryPickerOver').classList.contains('on')) return;
+    const s = document.getElementById('countryPickerSheet');
+    const list = document.getElementById('countryPickerList');
+    if (list && list.scrollTop > 0) return;
+    const dy = e.touches[0].clientY - sy;
+    if (dy > 10) { dragging = true; s.style.transform = `translateY(${Math.min(dy, 280)}px)`; s.style.transition = 'none'; }
+  }, {passive:true});
+  document.addEventListener('touchend', e => {
+    if (!document.getElementById('countryPickerOver').classList.contains('on')) return;
+    const s = document.getElementById('countryPickerSheet');
+    const dy = e.changedTouches[0].clientY - sy;
+    s.style.transition = '';
+    if (dragging && dy > 110) { s.style.transform = ''; closeCountryPicker(); }
+    else { s.style.transform = ''; }
+    dragging = false;
+  }, {passive:true});
+})();
+
 // ── STORAGE ──
+// Normalize any day value to array of tasks
+function _normDay(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  return [raw];
+}
+// Get first task's color for calendar dot
+function _dayColor(raw) {
+  const t = _normDay(raw);
+  return t.length ? (t[0].color || cfg.acc) : null;
+}
+// Build pizza conic-gradient for multiple task colors
+function _pizzaStyle(raw) {
+  const tasks = _normDay(raw);
+  if (!tasks.length) return '';
+  const colors = tasks.map(t => t.color || cfg.acc);
+  if (colors.length === 1) return `background:${colors[0]};`;
+  // Build conic-gradient segments
+  const seg = 360 / colors.length;
+  let stops = '';
+  colors.forEach((c, i) => {
+    const from = i * seg;
+    const to = (i + 1) * seg;
+    stops += `${c} ${from}deg ${to}deg, `;
+  });
+  stops = stops.slice(0, -2); // remove trailing comma
+  return `background: conic-gradient(${stops});`;
+}
 const SK = 'ftc_d1', SS = 'ftc_s1';
-let days = {}, cfg = { cur:'₽', theme:'default', thcls:'', acc:'#D0391B', ov:45, bg:'', xcurs:[] };
-window.days = days; window.cfg = cfg;
+let days = {}, cfg = { cur:'₽', theme:'default', thcls:'', acc:'#D0391B', ov:45, bg:'', xcurs:[], country:'RU' };
 
 function load() {
   try { days = JSON.parse(localStorage.getItem(SK) || '{}'); } catch { days = {}; }
   try { Object.assign(cfg, JSON.parse(localStorage.getItem(SS) || '{}')); } catch {}
 }
-function saveD() { localStorage.setItem(SK, JSON.stringify(days)); window.days = days; }
-function saveC() { localStorage.setItem(SS, JSON.stringify(cfg)); window.cfg = cfg; }
-window.saveD = saveD; window.saveC = saveC;
+function saveD() { localStorage.setItem(SK, JSON.stringify(days)); }
+function saveC() { localStorage.setItem(SS, JSON.stringify(cfg)); }
 function dkey(y, m, d) { return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
 
 // ── STATE ──
 const now = new Date();
 let vy = now.getFullYear(), vm = now.getMonth();
-let eDk = null, dc = '#324E44';
+let dc = '#324E44'; // legacy, kept for compat
 const curTab_ref = { v: 'main' };
 
 const MON  = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
@@ -864,12 +1447,40 @@ const MONG = ['января','февраля','марта','апреля','ма�
 const MONU = ['ЯНВАРЬ','ФЕВРАЛЬ','МАРТ','АПРЕЛЬ','МАЙ','ИЮНЬ','ИЮЛЬ','АВГУСТ','СЕНТЯБРЬ','ОКТЯБРЬ','НОЯБРЬ','ДЕКАБРЬ'];
 const DOW  = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
 
+// Suppress initial transitions so header doesn't drop in on open
+(function(){
+  var scrs = document.querySelectorAll('.scr');
+  scrs.forEach(function(s){ s.classList.add('no-transition'); });
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      scrs.forEach(function(s){ s.classList.remove('no-transition'); });
+    });
+  });
+})();
+
 // ── BOOT ──
 load();
 applyCfg();
+
+// Update splash background to match loaded theme
+(function(){
+  const sp = document.getElementById('splash');
+  if (sp) {
+    const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#f5f0e8';
+    sp.style.background = bg;
+  }
+})();
+
 renderBig();
 renderCal();
 renderEnt();
+
+// Dismiss splash after a short delay so content is fully painted
+setTimeout(function(){
+  var sp = document.getElementById('splash');
+  if (sp) sp.classList.add('hide');
+  setTimeout(function(){ if (sp && sp.parentNode) sp.parentNode.removeChild(sp); }, 500);
+}, 420);
 
 // ── BIG DATE ──
 function renderBig() {
@@ -883,6 +1494,10 @@ setInterval(renderBig, 30000);
 
 // ── CALENDAR ──
 function chM(d) {
+  clearTimeout(_dtTimer); clearTimeout(_lpt);
+  _lastTap = 0; _lastDk = null; _mv = false;
+  _longPressed = false; _longPressDk = null;
+  document.querySelectorAll('.dot.press').forEach(el => el.classList.remove('press'));
   vm += d;
   if (vm < 0) { vm = 11; vy--; }
   if (vm > 11) { vm = 0; vy++; }
@@ -901,176 +1516,500 @@ function renderCal() {
   for (let d = 1; d <= dim; d++) {
     const dk = dkey(vy, vm, d);
     const dd = days[dk];
+    const dayColor = _dayColor(dd);
     const dt = new Date(vy, vm, d);
     const isT = dk === tdk;
     const isP = dt < new Date(t.getFullYear(), t.getMonth(), t.getDate());
+    const holName = _showHolidays ? getHolidayName(vy, vm, d) : null;
     let cls = 'dot';
     let sty = '';
-    if (dd && dd.color) {
-      sty = `background:${dd.color};`;
+    if (dd && dayColor) {
+      sty = _pizzaStyle(dd);
       cls += ' work';
-      if (isT) cls += ' today-w'; // today but has work color
-    } else if (isT) { cls += ' today'; }  // ring only, no fill
+      if (isT) cls += ' today-w';
+    } else if (isT) { cls += ' today'; }
     else if (isP)   { cls += ' past'; }
     else            { cls += ' future'; }
     if (dd) cls += ' has';
+    if (holName) cls += ' holiday';
+    const tipHtml = holName
+      ? `<div class="hol-tip" onclick="showHolPopup(event,'${vy}','${vm}','${d}')" ontouchend="showHolPopup(event,'${vy}','${vm}','${d}');event.stopPropagation()">${holName}</div>`
+      : '';
     h += `<div class="${cls}" style="${sty}"
       ontouchstart="ts(event,'${dk}')"
       ontouchmove="tm()"
       ontouchend="te(event,'${dk}')"
-      onmousedown="ms(event,'${dk}')"
-      onmouseup="mu(event,'${dk}')"
 >
+      ${tipHtml}
       <div class="pip"></div>
+      <div class="dnum">${d}</div>
     </div>`;
   }
   document.getElementById('grid').innerHTML = h;
 }
 
-// ── TOUCH ──
+// ── COPY / PASTE ──
+let _copiedDay = null; // holds copied day data
+let _ctxDk = null;    // dk for which context menu is open
+
+function showCtxMenu(e, dk, showCopy, showPaste) {
+  _ctxDk = dk;
+  const menu = document.getElementById('ctxMenu');
+  document.getElementById('ctxCopy').style.display  = showCopy  ? '' : 'none';
+  document.getElementById('ctxPaste').style.display = showPaste ? '' : 'none';
+
+  // Position above the touched dot, keep inside viewport
+  const touch = e.changedTouches ? e.changedTouches[0] : e.touches[0];
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const menuH = 96; // approx height of menu
+  let x = touch.clientX - 80, y = touch.clientY - menuH - 14;
+  if (x < 10) x = 10;
+  if (x + 170 > vw) x = vw - 178;
+  if (y < 8) y = touch.clientY + 14; // fallback below if too close to top
+  menu.style.left = x + 'px';
+  menu.style.top  = y + 'px';
+  menu.classList.add('on');
+}
+
+function closeCtxMenu() {
+  document.getElementById('ctxMenu').classList.remove('on');
+  _ctxDk = null;
+}
+
+function ctxDoCopy() {
+  if (!_ctxDk) return;
+  _copiedDay = JSON.parse(JSON.stringify(days[_ctxDk]));
+  navigator.vibrate && navigator.vibrate([15, 20, 15]);
+  closeCtxMenu();
+  // flash copied dot
+  document.querySelectorAll('.dot').forEach(el => {
+    if (el.dataset && el._dk === _ctxDk) return; // not reliable, skip
+  });
+  renderCal(); // re-render to show copy indicator ring
+}
+
+function ctxDoPaste() {
+  if (!_ctxDk || !_copiedDay) return;
+  days[_ctxDk] = JSON.parse(JSON.stringify(_copiedDay));
+  navigator.vibrate && navigator.vibrate(28);
+  closeCtxMenu();
+  saveD(); renderCal(); renderEnt();
+}
+
+// Close context menu on tap outside
+document.addEventListener('touchstart', e => {
+  const menu = document.getElementById('ctxMenu');
+  if (!menu.classList.contains('on')) return;
+  if (!menu.contains(e.target)) closeCtxMenu();
+}, { passive: true });
+
+// ── TOUCH + DRAG ──
 let _t0 = 0, _mv = false, _lpt = null;
 let _lastTap = 0, _lastDk = null, _dtTimer = null;
+let _holTipTapped = false;
+
+// ── iOS GHOST-CLICK BLOCKER ──
+// iOS standalone generates a synthetic click ~300ms after touchend.
+// After any tap action (delete, open modal) we block clicks for 400ms.
+let _blockClick = false;
+let _blockClickTimer = null;
+function _iosBlockClick() {
+  _blockClick = true;
+  clearTimeout(_blockClickTimer);
+  _blockClickTimer = setTimeout(() => { _blockClick = false; }, 400);
+}
+document.addEventListener('click', e => {
+  if (_blockClick) { e.stopPropagation(); e.preventDefault(); }
+}, true); // capture phase — fires before any handler
+
+// After long-press fires: did user lift finger (→ ctx menu) or drag (→ move)?
+let _longPressed = false;  // long-press threshold reached
+let _longPressE  = null;   // saved event for ctx menu positioning
+let _longPressDk = null;
+
+// Drag state
+let _dragActive = false;
+let _dragSrcDk  = null;
+let _dragSrcEl  = null;
+let _dragOverEl = null;
+let _dragOverDk = null;
+const _ghost    = document.getElementById('dragGhost');
+
+function _dotElFromPoint(x, y) {
+  _ghost.style.display = 'none';
+  const el = document.elementFromPoint(x, y);
+  _ghost.style.display = '';
+  if (!el) return null;
+  const dot = el.closest('.dot');
+  return (dot && !dot.classList.contains('empty')) ? dot : null;
+}
+
+function _dkOfDot(el) {
+  const attr = el.getAttribute('ontouchstart') || '';
+  const m = attr.match(/'([^']+)'\)/);
+  return m ? m[1] : null;
+}
+
+function _startDrag(touch, dk, srcEl) {
+  _dragActive = true;
+  _dragSrcDk  = dk;
+  _dragSrcEl  = srcEl;
+  const dd = days[dk];
+  const pizzaSty = _pizzaStyle(dd);
+  if (pizzaSty) {
+    const match = pizzaSty.match(/background:\s*(.+);/);
+    if (match) _ghost.style.background = match[1];
+  } else {
+    _ghost.style.background = cfg.acc || '#324E44';
+  }
+  _ghost.style.left = touch.clientX + 'px';
+  _ghost.style.top  = touch.clientY + 'px';
+  _ghost.classList.add('on');
+  srcEl.classList.add('drag-src');
+}
+
+function _endDrag(dropped) {
+  _ghost.classList.remove('on');
+  if (_dragSrcEl)  _dragSrcEl.classList.remove('drag-src');
+  if (_dragOverEl) _dragOverEl.classList.remove('drag-over');
+  if (dropped && _dragOverDk && _dragOverDk !== _dragSrcDk) {
+    days[_dragOverDk] = JSON.parse(JSON.stringify(days[_dragSrcDk]));
+    delete days[_dragSrcDk];
+    saveD(); renderCal(); renderEnt();
+    navigator.vibrate && navigator.vibrate([18, 24, 18]);
+  }
+  _dragActive = false;
+  _dragSrcDk = _dragSrcEl = _dragOverEl = _dragOverDk = null;
+}
+
+// Global handlers — non-passive so we can preventDefault during drag
+document.addEventListener('touchmove', e => {
+  if (_longPressed && !_dragActive && _longPressDk && days[_longPressDk]) {
+    // First move after long-press on a filled dot → start drag
+    const t = e.touches[0];
+    _startDrag(t, _longPressDk, document.querySelector('.dot.press') || _dragSrcEl || e.target.closest('.dot'));
+    _longPressed = false;
+  }
+  if (!_dragActive) return;
+  e.preventDefault(); // blocks scroll + swipe during drag
+  const t = e.touches[0];
+  _ghost.style.left = t.clientX + 'px';
+  _ghost.style.top  = t.clientY + 'px';
+  const target = _dotElFromPoint(t.clientX, t.clientY);
+  if (target !== _dragOverEl) {
+    if (_dragOverEl) _dragOverEl.classList.remove('drag-over');
+    _dragOverEl = target;
+    _dragOverDk = target ? _dkOfDot(target) : null;
+    if (_dragOverEl && _dragOverDk !== _dragSrcDk)
+      _dragOverEl.classList.add('drag-over');
+  }
+}, { passive: false });
+
+document.addEventListener('touchend', e => {
+  if (_dragActive) { _endDrag(true); return; }
+  if (_longPressed) {
+    // Long-press, finger lifted without dragging → show context menu
+    _longPressed = false;
+    const dk = _longPressDk;
+    _longPressDk = null;
+    const hasDayData = !!days[dk];
+    const hasCopied  = !!_copiedDay;
+    if (hasDayData || hasCopied) {
+      showCtxMenu(_longPressE || e, dk, hasDayData, hasCopied);
+    } else {
+      openModal(dk);
+    }
+  }
+}, { passive: true });
+
+document.addEventListener('touchcancel', e => {
+  if (_dragActive) { _endDrag(false); }
+  _longPressed = false; _longPressDk = null;
+}, { passive: true });
+
+let _tx0 = 0, _ty0 = 0; // touchstart coords for drift check
 
 function ts(e, dk) {
+  if (e.target.classList.contains('hol-tip')) { _holTipTapped = true; return; }
+  _holTipTapped = false;
   _mv = false; _t0 = Date.now();
+  // Store start position for iOS drift check
+  if (e.touches && e.touches.length) {
+    _tx0 = e.touches[0].clientX;
+    _ty0 = e.touches[0].clientY;
+  }
+  _longPressed = false; _longPressDk = null;
   const el = e.currentTarget;
   el.classList.add('press');
   _lpt = setTimeout(() => {
     el.classList.remove('press');
-    navigator.vibrate && navigator.vibrate(28);
-    openModal(dk);
+    navigator.vibrate && navigator.vibrate(32);
+    _longPressed  = true;
+    _longPressDk  = dk;
+    _longPressE   = e;
+    _dragSrcEl    = el;
   }, 500);
 }
+
 function tm() {
-  _mv = true;
-  clearTimeout(_lpt);
-  document.querySelectorAll('.dot.press').forEach(e => e.classList.remove('press'));
+  if (_dragActive) return;
+  // If still before long-press threshold, cancel it
+  if (!_longPressed) {
+    _mv = true;
+    clearTimeout(_lpt);
+    document.querySelectorAll('.dot.press').forEach(d => d.classList.remove('press'));
+  }
+  // If long-press already fired, movement is handled by global touchmove → drag starts there
 }
+
 function te(e, dk) {
+  if (_holTipTapped) { _holTipTapped = false; return; }
   clearTimeout(_lpt);
-  e.currentTarget.classList.remove('press');
+  if (e.currentTarget) e.currentTarget.classList.remove('press');
+  if (_dragActive) return;
+  if (_longPressed) return;
   if (_mv) return;
   if (Date.now() - _t0 >= 500) return;
+  if (document.getElementById('ctxMenu').classList.contains('on')) return;
+
+  // Verify finger didn't move far from touchstart (extra iOS safety)
+  if (e.changedTouches && e.changedTouches.length) {
+    const ct = e.changedTouches[0];
+    // We stash start coords in ts()
+    if (typeof _tx0 === 'number') {
+      const dx = Math.abs(ct.clientX - _tx0);
+      const dy = Math.abs(ct.clientY - _ty0);
+      if (dx > 12 || dy > 12) return; // finger drifted — not a tap
+    }
+  }
+
   const now = Date.now();
-  if (_lastDk === dk && now - _lastTap < 350) {
+  if (_lastDk === dk && now - _lastTap < 400) {
     clearTimeout(_dtTimer);
     _lastTap = 0; _lastDk = null;
+    _iosBlockClick(); // block the ghost click iOS will fire after this
     clrD(dk);
     return;
   }
-  _lastTap = now;
-  _lastDk = dk;
+  _lastTap = now; _lastDk = dk;
   clearTimeout(_dtTimer);
   _dtTimer = setTimeout(() => {
     _lastTap = 0; _lastDk = null;
+    _iosBlockClick();
     openModal(dk);
   }, 350);
 }
+
 function clrD(dk) {
   if (!days[dk]) return;
   navigator.vibrate && navigator.vibrate([20, 30, 20]);
   delete days[dk];
-  saveD(); renderCal(); renderEnt();
-}
-
-// ── MOUSE (desktop only — blocked if touch was used) ──
-let _ms0 = 0, _msLpt = null;
-let _mLastTap = 0, _mLastDk = null, _mDtTimer = null;
-let _recentTouch = false; // set true after any touch, blocks mouse handlers
-
-document.addEventListener('touchstart', () => {
-  _recentTouch = true;
-  clearTimeout(window._rtTimer);
-  window._rtTimer = setTimeout(() => { _recentTouch = false; }, 1000);
-}, { passive: true });
-
-function ms(e, dk) {
-  if (_recentTouch) return;
-  if (e.button !== 0) return;
-  _ms0 = Date.now();
-  const el = e.currentTarget;
-  el.classList.add('press');
-  _msLpt = setTimeout(() => {
-    el.classList.remove('press');
-    openModal(dk);
-  }, 500);
-}
-function mu(e, dk) {
-  if (_recentTouch) return;
-  clearTimeout(_msLpt);
-  e.currentTarget.classList.remove('press');
-  if (Date.now() - _ms0 >= 500) return;
-  const now = Date.now();
-  if (_mLastDk === dk && now - _mLastTap < 350) {
-    clearTimeout(_mDtTimer);
-    _mLastTap = 0; _mLastDk = null;
-    clrD(dk);
-    return;
-  }
-  _mLastTap = now; _mLastDk = dk;
-  clearTimeout(_mDtTimer);
-  _mDtTimer = setTimeout(() => {
-    _mLastTap = 0; _mLastDk = null;
-    openModal(dk);
-  }, 350);
+  saveD();
+  // Small delay before re-render so iOS ghost-click blocker is already active
+  requestAnimationFrame(() => { renderCal(); renderEnt(); });
 }
 
 // ── MODAL ──
+let eDk = null;
+const COLORS = ['#324E44','#D0391B','#FBC359','#7BA7AF','#9F4125','#73A642','#4E6851'];
+
+function _taskBlockHTML(t, idx, total) {
+  const col = t.color || cfg.acc || COLORS[0];
+  const colBtns = COLORS.map(c =>
+    `<div class="dc${col===c?' on':''}" style="background:${c};" data-c="${c}"
+      ontouchend="_pickColor(event,'${c}',${idx})"
+      onclick="_pickColor(event,'${c}',${idx})"></div>`
+  ).join('');
+  const xRows = (t.expenses||[]).map(x =>
+    `<div class="xrow2">
+      <input class="fi" type="number" placeholder="Сумма" value="${x.amount||''}" style="max-width:110px;" inputmode="decimal"/>
+      <input class="fi" placeholder="На такси, еду..." value="${x.comment||''}"/>
+      <button class="xdel" ontouchend="_delX(event,this)" onclick="_delX(event,this)">✕</button>
+    </div>`
+  ).join('');
+  const delBtn = total > 1
+    ? `<button class="task-block-del" ontouchend="event.preventDefault();_delTask(event,${idx})" onclick="_delTask(event,${idx})">✕</button>`
+    : '';
+  const addBtn = `<button class="task-block-add" ontouchend="event.preventDefault();addTaskBlock(event)" onclick="addTaskBlock(event)">＋</button>`;
+  return `<div class="task-block" data-idx="${idx}">
+    <div class="task-block-header">
+      <div class="task-block-num">
+        <span class="task-block-dot" style="background:${col};"></span>
+        Задача ${idx+1}
+      </div>
+      <div class="task-block-btns">${delBtn}${addBtn}</div>
+    </div>
+    <div class="fg">
+      <label class="fl">Цвет задачи</label>
+      <div class="dcs">
+        ${colBtns}
+        <div class="dc-cw" title="Свой цвет">
+          <span style="font-size:18px;font-weight:300;color:#fff;line-height:1;">+</span>
+          <input type="color" value="${col}" oninput="_pickColorHex(this.value,${idx})"/>
+        </div>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">Описание</label>
+      <input class="fi task-lbl" placeholder="Название / комментарий" value="${t.label||''}"/>
+    </div>
+    <div class="fg"><label class="fl">Начало</label>
+      <input class="fi fi-time task-ts" type="time" value="${t.timeStart||''}"/>
+    </div>
+    <div class="fg"><label class="fl">Конец</label>
+      <input class="fi fi-time task-te" type="time" value="${t.timeEnd||''}"/>
+    </div>
+    <div class="fg"><label class="fl">Заработано</label>
+      <input class="fi task-earn" type="number" placeholder="Заработано" inputmode="decimal" value="${t.earned||''}"/>
+    </div>
+    <div class="fg"><label class="fl">Затраты</label>
+      <div class="xlist task-xlist">${xRows}</div>
+      <button class="addx" ontouchend="_addX(event,${idx})" onclick="_addX(event,${idx})">+ Добавить затрату</button>
+    </div>
+  </div>`;
+}
+
+function _renderTasks() {
+  const c = document.getElementById('tasksContainer');
+  if (!c) return;
+  c.innerHTML = _tasks.map((t,i) => _taskBlockHTML(t, i, _tasks.length)).join('');
+}
+
+let _tasks = [];
+
+function _pickColor(e, col, idx) {
+  e.stopPropagation(); e.preventDefault();
+  if (!_tasks[idx]) return;
+  _tasks[idx].color = col;
+  _renderTasks();
+}
+function _pickColorHex(col, idx) {
+  if (!_tasks[idx]) return;
+  _tasks[idx].color = col;
+  // update dot only, don't re-render (would reset input focus)
+  const block = document.querySelector(`.task-block[data-idx="${idx}"]`);
+  if (block) {
+    const dot = block.querySelector('.task-block-dot');
+    if (dot) dot.style.background = col;
+  }
+}
+function _delX(e, btn) {
+  e.stopPropagation(); e.preventDefault();
+  btn.parentElement.remove();
+}
+function _addX(e, idx) {
+  e.stopPropagation(); e.preventDefault();
+  const block = document.querySelector(`.task-block[data-idx="${idx}"]`);
+  if (!block) return;
+  const xlist = block.querySelector('.task-xlist');
+  const div = document.createElement('div');
+  div.className = 'xrow2';
+  div.innerHTML = `<input class="fi" type="number" placeholder="Сумма" style="max-width:110px;" inputmode="decimal"/>
+    <input class="fi" placeholder="На такси, еду..."/>
+    <button class="xdel" ontouchend="_delX(event,this)" onclick="_delX(event,this)">✕</button>`;
+  xlist.appendChild(div);
+}
+function _delTask(e, idx) {
+  e.stopPropagation(); e.preventDefault();
+  if (_tasks.length <= 1) return;
+  _saveTaskFields();
+  _tasks.splice(idx, 1);
+  _renderTasks();
+}
+function addTaskBlock(e) {
+  e.stopPropagation(); e.preventDefault();
+  _saveTaskFields();
+  _tasks.push({ color: COLORS[_tasks.length % COLORS.length], label:'', timeStart:'', timeEnd:'', earned:0, expenses:[] });
+  _renderTasks();
+  requestAnimationFrame(() => {
+    const blocks = document.querySelectorAll('.task-block');
+    const last = blocks[blocks.length - 1];
+    if (last) last.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+}
+function _saveTaskFields() {
+  // Read current DOM state into _tasks
+  document.querySelectorAll('.task-block').forEach(block => {
+    const idx = parseInt(block.dataset.idx);
+    if (!_tasks[idx]) return;
+    const t = _tasks[idx];
+    const lbl  = block.querySelector('.task-lbl');
+    const ts   = block.querySelector('.task-ts');
+    const te   = block.querySelector('.task-te');
+    const earn = block.querySelector('.task-earn');
+    if (lbl)  t.label     = lbl.value.trim();
+    if (ts)   t.timeStart = ts.value;
+    if (te)   t.timeEnd   = te.value;
+    if (earn) t.earned    = parseFloat(earn.value) || 0;
+    const xs = [];
+    block.querySelectorAll('.xrow2').forEach(r => {
+      const ins = r.querySelectorAll('input');
+      const a = parseFloat(ins[0]?.value) || 0;
+      const c = ins[1]?.value.trim() || '';
+      if (a > 0 || c) xs.push({ amount: a, comment: c });
+    });
+    t.expenses = xs;
+  });
+}
+
 function openModal(dk) {
   eDk = dk;
   const [y, m, d] = dk.split('-').map(Number);
   document.getElementById('mTit').textContent = `${d} ${MONG[m-1]}`;
-  const dd = days[dk] || {};
-  dc = dd.color || cfg.acc || '#324E44';
-  document.querySelectorAll('#dcs .dc').forEach(el => el.classList.toggle('on', el.dataset.c === dc));
-  document.getElementById('fLbl').value   = dd.label || '';
-  document.getElementById('fS').value     = dd.timeStart || '';
-  document.getElementById('fE').value     = dd.timeEnd || '';
-  document.getElementById('fEarn').value  = dd.earned || '';
-  document.getElementById('xList').innerHTML = '';
-  (dd.expenses || []).forEach(x => addX(x.amount, x.comment));
+  // Load tasks — support old single-object format and new array format
+  const raw = days[dk];
+  if (!raw) {
+    _tasks = [{ color: cfg.acc || COLORS[0], label:'', timeStart:'', timeEnd:'', earned:0, expenses:[] }];
+  } else if (Array.isArray(raw)) {
+    _tasks = raw.map(t => ({ color:COLORS[0], label:'', timeStart:'', timeEnd:'', earned:0, expenses:[], ...t }));
+  } else {
+    _tasks = [{ color:COLORS[0], label:'', timeStart:'', timeEnd:'', earned:0, expenses:[], ...raw }];
+  }
+  _renderTasks();
+  const sheet = document.getElementById('mSheet');
+  if (sheet) sheet.scrollTop = 0;
   document.getElementById('modal').classList.add('on');
 }
+
 function closeModal() {
-  document.getElementById('modal').classList.remove('on');
-  eDk = null;
+  const modal = document.getElementById('modal');
+  // Защита от двойного вызова
+  if (!modal.classList.contains('on') || modal.classList.contains('closing')) return;
+  // Снимаем фокус со всех полей внутри модалки — иначе iOS переносит курсор на основной экран
+  const focused = modal.querySelector('input:focus, textarea:focus, select:focus');
+  if (focused) focused.blur();
+  // Дополнительно — убираем фокус через document.activeElement
+  if (document.activeElement && modal.contains(document.activeElement)) {
+    document.activeElement.blur();
+  }
+  // Переводим фокус на body чтобы iOS не искал следующий фокусируемый элемент
+  if (document.body) document.body.focus();
+  // Добавляем .closing — CSS анимирует sheet вниз и фон гаснет
+  modal.classList.add('closing');
+  // После анимации убираем оба класса
+  setTimeout(function() {
+    modal.classList.remove('on', 'closing');
+  }, 450);
+  eDk = null; _tasks = [];
+  // Reset all touch state to prevent scroll lock
+  clearTimeout(_lpt); clearTimeout(_dtTimer);
+  _mv = false; _longPressed = false; _longPressDk = null;
+  _lastTap = 0; _lastDk = null;
+  if (_dragActive) _endDrag(false);
+  document.querySelectorAll('.dot.press').forEach(el => el.classList.remove('press'));
 }
-function pickC(c, el) {
-  dc = c;
-  document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
-  if (el) el.classList.add('on');
-}
-function pickCHex(c) {
-  dc = c;
-  document.querySelectorAll('#dcs .dc').forEach(d => d.classList.remove('on'));
-}
-function addX(amount = '', comment = '') {
-  const div = document.createElement('div');
-  div.className = 'xrow2';
-  div.innerHTML = `
-    <input class="fi" type="number" placeholder="Сумма" value="${amount}" style="max-width:110px;" inputmode="decimal"/>
-    <input class="fi" placeholder="На такси, еду..." value="${comment}"/>
-    <button class="xdel" onclick="this.parentElement.remove()">✕</button>`;
-  document.getElementById('xList').appendChild(div);
-}
+
+// Keep these for backward compat (called from old code paths)
+function pickC(c, el) {}
+function pickCHex(c) {}
+function addX(amount='', comment='') {}
+
 function saveDay() {
   if (!eDk) return;
-  const xs = [];
-  document.querySelectorAll('#xList .xrow2').forEach(r => {
-    const ins = r.querySelectorAll('input');
-    const a = parseFloat(ins[0].value) || 0;
-    const c = ins[1].value.trim();
-    if (a > 0 || c) xs.push({ amount: a, comment: c });
-  });
-  days[eDk] = {
-    color:     dc,
-    label:     document.getElementById('fLbl').value.trim(),
-    timeStart: document.getElementById('fS').value,
-    timeEnd:   document.getElementById('fE').value,
-    earned:    parseFloat(document.getElementById('fEarn').value) || 0,
-    expenses:  xs
-  };
-  saveD(); closeModal(); renderCal(); renderEnt();
+  _saveTaskFields();
+  const valid = _tasks.filter(t => t.label || t.timeStart || t.earned || (t.expenses && t.expenses.length) || t.color);
+  const toSave = valid.length ? valid : [_tasks[0]];
+  days[eDk] = toSave.length === 1 ? toSave[0] : toSave;
+  saveD(); closeModal(); setTimeout(function(){ renderCal(); renderEnt(); }, 450);
 }
 
 // ── ENTRIES ──
@@ -1091,27 +2030,47 @@ function renderEnt() {
   let te = 0; const ax = [];
 
   items.forEach((it, i) => {
-    const dd = it.dd;
-    te += dd.earned || 0;
-    (dd.expenses || []).forEach(x => ax.push({ ...x, day: it.d, lbl: dd.label }));
-    const ts  = dd.timeStart && dd.timeEnd ? `${dd.timeStart}–${dd.timeEnd}` : '';
-    const es  = dd.earned ? `+${cur}${dd.earned.toLocaleString()}` : '';
-    const xt  = (dd.expenses || []).reduce((s, x) => s + (x.amount || 0), 0);
-    const xs  = xt ? `−${cur}${xt.toLocaleString()}` : '';
+    const tasks = _normDay(it.dd);
+    const firstColor = _dayColor(it.dd) || cfg.acc;
+
+    // Accumulate totals across all tasks
+    tasks.forEach(t => {
+      te += t.earned || 0;
+      (t.expenses || []).forEach(x => ax.push({ ...x, day: it.d, lbl: t.label }));
+    });
+
+    // Build task rows
+    let taskRows = '';
+    tasks.forEach((t, ti) => {
+      const ts = t.timeStart
+        ? (t.timeEnd ? `${t.timeStart}–${t.timeEnd}` : t.timeStart)
+        : '';
+      const es = t.earned ? `+${cur}${t.earned.toLocaleString()}` : '';
+      const xt = (t.expenses||[]).reduce((s,x) => s+(x.amount||0), 0);
+      const xs = xt ? `−${cur}${xt.toLocaleString()}` : '';
+      const dotColor = t.color || cfg.acc;
+      taskRows += `<div style="display:flex;align-items:flex-start;gap:10px;padding:${ti>0?'8px 0 0':'4px 0 0'};">
+        <div style="width:20px;height:20px;border-radius:50%;background:${dotColor};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px;">${ti+1}</div>
+        <div style="flex:1;">
+          ${t.label ? `<div class="ename">${t.label}</div>` : ''}
+          <div class="enums">
+            ${ts ? `<span style="color:var(--text3);">🕐 ${ts}</span>` : ''}
+            ${es ? `<span style="color:var(--accent);font-weight:600;">${es}</span>` : ''}
+            ${xs ? `<span style="color:var(--text2);">${xs}</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+    });
+
     html += `<div class="ecard" onclick="openModal('${it.dk}')">
       <div class="etop">
         <div class="enum">${i+1}</div>
         <div class="einfo">
           <div class="edate">${it.d} ${MONG[vm]}</div>
-          ${dd.label ? `<div class="ename">${dd.label}</div>` : ''}
         </div>
-        <div class="edot" style="background:${dd.color || cfg.acc};"></div>
+        <div class="edot" style="background:${firstColor};"></div>
       </div>
-      <div class="enums">
-        ${ts ? `<span style="color:var(--text3);">🕐 ${ts}</span>` : ''}
-        ${es ? `<span style="color:var(--accent);font-weight:600;">${es}</span>` : ''}
-        ${xs ? `<span style="color:var(--text2);">${xs}</span>` : ''}
-      </div>
+      ${taskRows}
     </div>`;
   });
   ew.innerHTML = html;
@@ -1246,131 +2205,58 @@ function goTab(tab, fromSwipe = false) {
   const wrap = document.getElementById('wrap');
   const m = document.getElementById('sMain');
   const s = document.getElementById('sSett');
-  const EASE = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
-  const EASE_FAST = 'transform .28s cubic-bezier(.25,0.46,0.45,0.94)';
-
-  // ── Shared drag state ──
   let sx = 0, sy = 0, axis = null, dragging = false;
-  let lastX = 0, lastT = 0, velocity = 0; // px/ms
 
-  function panelPos(dx) {
-    const W = window.innerWidth;
-    if (curTab_ref.v === 'main') {
-      const x = Math.max(-W, Math.min(0, dx));
-      m.style.transform = `translateX(${x}px)`;
-      s.style.transform = `translateX(${W + x}px)`;
-    } else {
-      const x = Math.min(W, Math.max(0, dx));
-      s.style.transform = `translateX(${x}px)`;
-      m.style.transform = `translateX(${x - W}px)`;
-    }
-  }
-
-  function settle(dx) {
-    const W = window.innerWidth;
-    // Use velocity to decide: flick fast enough = switch regardless of distance
-    const flick = Math.abs(velocity) > 0.4;
-    const half  = Math.abs(dx) > W * 0.3;
-    const shouldSwitch = flick || half;
-    const ease = flick ? EASE_FAST : EASE;
-    m.style.transition = ease;
-    s.style.transition = ease;
-    if      (curTab_ref.v === 'main' && dx < 0 && shouldSwitch) goTab('sett', true);
-    else if (curTab_ref.v === 'sett' && dx > 0 && shouldSwitch) goTab('main', true);
-    else {
-      m.style.transform = curTab_ref.v === 'main' ? 'translateX(0)' : 'translateX(-100%)';
-      s.style.transform = curTab_ref.v === 'sett' ? 'translateX(0)' : 'translateX(100%)';
-    }
-  }
-
-  // ── TOUCH (phone/tablet) ──
   wrap.addEventListener('touchstart', e => {
     if (document.getElementById('modal').classList.contains('on')) return;
+    if (_dragActive || _longPressed) return; // drag in progress
     if (e.target.type === 'range') return;
-    const t = e.touches[0];
-    sx = t.clientX; sy = t.clientY;
-    lastX = sx; lastT = Date.now(); velocity = 0;
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
     axis = null; dragging = false;
-    m.style.transition = 'none'; s.style.transition = 'none';
+    m.style.transition = 'none';
+    s.style.transition = 'none';
   }, { passive: true });
 
   wrap.addEventListener('touchmove', e => {
     if (document.getElementById('modal').classList.contains('on')) return;
-    const t = e.touches[0];
-    const dx = t.clientX - sx, dy = t.clientY - sy;
-    if (!axis && (Math.abs(dx) > 8 || Math.abs(dy) > 8))
+    if (_dragActive || _longPressed) return; // drag in progress — block swipe
+    const dx = e.touches[0].clientX - sx;
+    const dy = e.touches[0].clientY - sy;
+    if (!axis && (Math.abs(dx) > 10 || Math.abs(dy) > 10))
       axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
     if (axis !== 'x') return;
     dragging = true;
-    const now = Date.now(), dt = now - lastT;
-    if (dt > 0) velocity = (t.clientX - lastX) / dt;
-    lastX = t.clientX; lastT = now;
-    panelPos(dx);
+    const W = window.innerWidth;
+    if (curTab_ref.v === 'main') {
+      const x = Math.min(0, dx);
+      m.style.transform = `translateX(${x}px)`;
+      s.style.transform = `translateX(${W + x}px)`;
+    } else {
+      const x = Math.max(0, dx);
+      s.style.transform = `translateX(${x}px)`;
+      m.style.transform = `translateX(${x - W}px)`;
+    }
   }, { passive: true });
 
   wrap.addEventListener('touchend', e => {
+    if (_dragActive) return; // drag handled globally
     if (!dragging) return;
+    const dx = e.changedTouches[0].clientX - sx;
+    m.style.transition = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
+    s.style.transition = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
+    if      (curTab_ref.v === 'main' && dx < -60) goTab('sett', true);
+    else if (curTab_ref.v === 'sett' && dx >  60) goTab('main', true);
+    else {
+      m.style.transition = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
+      s.style.transition = 'transform .42s cubic-bezier(.25,0.46,0.45,0.94)';
+      requestAnimationFrame(() => {
+        m.style.transform = curTab_ref.v === 'main' ? 'translateX(0)' : 'translateX(-100%)';
+        s.style.transform = curTab_ref.v === 'sett' ? 'translateX(0)' : 'translateX(100%)';
+      });
+    }
     dragging = false;
-    settle(e.changedTouches[0].clientX - sx);
   }, { passive: true });
-
-  // ── MOUSE CLICK-DRAG (desktop) — treated as a directional flick, triggers goTab like buttons ──
-  let _md = false, _mdX = 0, _mdY = 0, _mdAxis = null, _mdMoved = false;
-  wrap.addEventListener('mousedown', e => {
-    if (_recentTouch) return;
-    if (document.getElementById('modal').classList.contains('on')) return;
-    if (e.button !== 0 || e.target.type === 'range') return;
-    _md = true; _mdX = e.clientX; _mdY = e.clientY; _mdAxis = null; _mdMoved = false;
-  });
-  window.addEventListener('mousemove', e => {
-    if (!_md) return;
-    const dx = e.clientX - _mdX, dy = e.clientY - _mdY;
-    if (!_mdAxis && (Math.abs(dx) > 10 || Math.abs(dy) > 10))
-      _mdAxis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-    if (_mdAxis === 'x' && Math.abs(dx) > 10) _mdMoved = true;
-  });
-  window.addEventListener('mouseup', e => {
-    if (!_md) return;
-    _md = false;
-    if (!_mdMoved || _mdAxis !== 'x') return;
-    const dx = e.clientX - _mdX;
-    if      (curTab_ref.v === 'main' && dx < -40) goTab('sett');
-    else if (curTab_ref.v === 'sett' && dx >  40) goTab('main');
-  });
-
-  // ── WHEEL (Mac trackpad two-finger horizontal swipe) ──
-  // No setTimeout — fires the moment cumulative deltaX crosses threshold.
-  // Uses a rAF loop to consume queued wheel events instantly.
-  let _wAcc = 0, _wLocked = false, _wRafId = null, _wLastDX = 0;
-  const W_THRESHOLD = 40; // px to trigger switch
-
-  function _wFlush() {
-    _wRafId = null;
-    if (_wLocked) { _wAcc = 0; return; }
-    if      (curTab_ref.v === 'main' && _wAcc >  W_THRESHOLD) { _wLocked = true; goTab('sett'); _wAcc = 0; }
-    else if (curTab_ref.v === 'sett' && _wAcc < -W_THRESHOLD) { _wLocked = true; goTab('main'); _wAcc = 0; }
-    // Decay accumulator slowly so a resting finger doesn't carry momentum
-    if (Math.abs(_wAcc) > 2) {
-      _wAcc *= 0.6;
-      _wRafId = requestAnimationFrame(_wFlush);
-    } else {
-      _wAcc = 0;
-    }
-  }
-
-  wrap.addEventListener('wheel', e => {
-    if (document.getElementById('modal').classList.contains('on')) return;
-    // Ignore mostly-vertical scrolls (allow some diagonal tolerance for lazy fingers)
-    if (Math.abs(e.deltaY) > Math.abs(e.deltaX) * 2.5) return;
-    e.preventDefault();
-    if (_wLocked) {
-      // Release lock once fingers stop (deltaX near zero)
-      if (Math.abs(e.deltaX) < 3) { _wLocked = false; _wAcc = 0; }
-      return;
-    }
-    _wAcc += e.deltaX;
-    if (!_wRafId) _wRafId = requestAnimationFrame(_wFlush);
-  }, { passive: false });
 })();
 
 // ── SETTINGS ──
@@ -1486,6 +2372,8 @@ function applyCfg() {
   document.getElementById('ovSl').value = cfg.ov;
   // BG
   applyBg();
+  // Country — update picker button label
+  updateCountryBtn();
   // Currency buttons
   const _stdC = ['₽','$','€','₸','₴'];
   const _isStd = _stdC.includes(cfg.cur);
@@ -1502,223 +2390,7 @@ function applyCfg() {
   });
   // Auto-refresh exchange rates
   if (cfg.xcurs && cfg.xcurs.length) setTimeout(xcRefreshRates, 500);
-  // Expose for Firebase
-  window.applyCfg = applyCfg;
-  window.renderCal = renderCal;
-  window.renderEnt = renderEnt;
-  window.fbInit = function(){};
 }
-</script>
-
-<!-- FIREBASE -->
-<script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, doc, setDoc, onSnapshot }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-
-const firebaseConfig = {
-  apiKey: "AIzaSyAhu9apuPi0o7Zwi_YbPikO3f5vKetNvi8",
-  authDomain: "freelancers-time-calendar.firebaseapp.com",
-  projectId: "freelancers-time-calendar",
-  storageBucket: "freelancers-time-calendar.firebasestorage.app",
-  messagingSenderId: "270890748637",
-  appId: "1:270890748637:web:e58fa74466758043c2e934"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-let _fbUid = null, _fbUnsub = null, _fbSaving = false;
-
-function fbStatus(msg) {
-  const el = document.getElementById('fbSyncStatus');
-  if (el) el.textContent = msg;
-}
-
-async function fbSave() {
-  if (!_fbUid || _fbSaving) return;
-  _fbSaving = true;
-  try {
-    await setDoc(doc(db, 'users', _fbUid, 'data', 'main'), {
-      days: JSON.stringify(window.days),
-      cfg: JSON.stringify(window.cfg),
-      ts: Date.now()
-    });
-    fbStatus('✓ Сохранено в облако');
-  } catch(e) { fbStatus('⚠ Ошибка сохранения'); }
-  _fbSaving = false;
-}
-
-function fbListen() {
-  if (_fbUnsub) _fbUnsub();
-  _fbUnsub = onSnapshot(doc(db, 'users', _fbUid, 'data', 'main'), snap => {
-    if (!snap.exists()) { fbSave(); return; }
-    const d = snap.data();
-    try {
-      const remoteDays = JSON.parse(d.days || '{}');
-      const remoteCfg  = JSON.parse(d.cfg  || '{}');
-      window.days = remoteDays;
-      Object.assign(window.cfg, remoteCfg);
-      window.saveD(); window.saveC();
-      window.applyCfg();
-      window.renderCal();
-      window.renderEnt();
-      fbStatus('✓ Синхронизировано');
-    } catch(e) {}
-  });
-}
-
-function fbUpdateUI(user) {
-  const signInBtn = document.getElementById('fbSignInBtn');
-  const userInfo  = document.getElementById('fbUserInfo');
-  if (!signInBtn || !userInfo) return;
-  if (user) {
-    signInBtn.style.display = 'none';
-    userInfo.style.display = 'block';
-    document.getElementById('fbAvatar').src = user.photoURL || '';
-    document.getElementById('fbName').textContent = user.displayName || '';
-    document.getElementById('fbEmail').textContent = user.email || '';
-  } else {
-    signInBtn.style.display = '';
-    userInfo.style.display = 'none';
-  }
-}
-
-onAuthStateChanged(auth, user => {
-  if (user) {
-    _fbUid = user.uid;
-    fbUpdateUI(user);
-    fbListen();
-    // Перехватываем saveD и saveC для автосинхронизации
-    const _origSaveD = window.saveD;
-    const _origSaveC = window.saveC;
-    window.saveD = function() { _origSaveD.call(this); fbSave(); };
-    window.saveC = function() { _origSaveC.call(this); fbSave(); };
-  } else {
-    _fbUid = null;
-    if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
-    fbUpdateUI(null);
-  }
-});
-
-window.fbSignIn = async function() {
-  try {
-    await signInWithPopup(auth, new GoogleAuthProvider());
-  } catch(e) { console.error(e); }
-};
-window.fbSignOut = async function() {
-  if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
-  await signOut(auth);
-};
 </script>
 </body>
 </html>
-<script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, doc, setDoc, getDoc, onSnapshot }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-
-const firebaseConfig = {
-  apiKey: "AIzaSyAhu9apuPi0o7Zwi_YbPikO3f5vKetNvi8",
-  authDomain: "freelancers-time-calendar.firebaseapp.com",
-  projectId: "freelancers-time-calendar",
-  storageBucket: "freelancers-time-calendar.firebasestorage.app",
-  messagingSenderId: "270890748637",
-  appId: "1:270890748637:web:e58fa74466758043c2e934"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-let _fbUid = null, _fbUnsub = null, _fbSaving = false;
-
-function fbStatus(msg) {
-  const el = document.getElementById('fbSyncStatus');
-  if (el) el.textContent = msg;
-}
-
-async function fbSave() {
-  if (!_fbUid || _fbSaving) return;
-  _fbSaving = true;
-  try {
-    await setDoc(doc(db, 'users', _fbUid, 'data', 'main'), {
-      days: JSON.stringify(days),
-      cfg: JSON.stringify(cfg),
-      ts: Date.now()
-    });
-    fbStatus('✓ Сохранено в облако');
-  } catch(e) { fbStatus('⚠ Ошибка сохранения'); }
-  _fbSaving = false;
-}
-
-function fbListen() {
-  if (_fbUnsub) _fbUnsub();
-  _fbUnsub = onSnapshot(doc(db, 'users', _fbUid, 'data', 'main'), snap => {
-    if (!snap.exists()) return;
-    const d = snap.data();
-    const remoteDays = JSON.parse(d.days || '{}');
-    const remoteCfg  = JSON.parse(d.cfg  || '{}');
-    // Мёржим — берём более свежие данные
-    days = remoteDays;
-    Object.assign(cfg, remoteCfg);
-    saveD(); saveC();
-    applyCfg();
-    renderCal();
-    renderEnt();
-    fbStatus('✓ Данные синхронизированы');
-  });
-}
-
-function fbUpdateUI(user) {
-  const signInBtn  = document.getElementById('fbSignInBtn');
-  const userInfo   = document.getElementById('fbUserInfo');
-  if (!signInBtn || !userInfo) return;
-  if (user) {
-    signInBtn.style.display = 'none';
-    userInfo.style.display = 'block';
-    document.getElementById('fbAvatar').src = user.photoURL || '';
-    document.getElementById('fbName').textContent = user.displayName || '';
-    document.getElementById('fbEmail').textContent = user.email || '';
-  } else {
-    signInBtn.style.display = '';
-    userInfo.style.display = 'none';
-  }
-}
-
-onAuthStateChanged(auth, user => {
-  if (user) {
-    _fbUid = user.uid;
-    fbUpdateUI(user);
-    fbListen();
-    // Патчим saveD и saveC чтобы автосохранять в облако
-    const _origSaveD = window.saveD;
-    const _origSaveC = window.saveC;
-    window.saveD = function() { _origSaveD(); fbSave(); };
-    window.saveC = function() { _origSaveC(); fbSave(); };
-  } else {
-    _fbUid = null;
-    if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
-    fbUpdateUI(null);
-  }
-});
-
-window.fbInit = function() {}; // уже инициализировано через onAuthStateChanged
-
-window.fbSignIn = async function() {
-  try {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
-  } catch(e) { console.error('Sign in error', e); }
-};
-
-window.fbSignOut = async function() {
-  if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
-  await signOut(auth);
-};
-</script>
