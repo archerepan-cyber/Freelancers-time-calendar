@@ -181,21 +181,8 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-top: .5px solid var(--sep);
 }
-.tbtn { background: none; border: none; font-size: 34px; padding: 6px 14px; opacity: .35; transition: opacity .2s; touch-action: manipulation; position: relative; }
+.tbtn { background: none; border: none; font-size: 34px; padding: 6px 14px; opacity: .35; transition: opacity .2s; touch-action: manipulation; }
 .tbtn.on { opacity: 1; }
-.tbtn-badge {
-  position: absolute; top: 2px; right: 6px;
-  min-width: 18px; height: 18px; border-radius: 9px;
-  background: var(--accent); color: #fff;
-  font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-  padding: 0 4px; line-height: 1;
-  box-shadow: 0 1px 4px rgba(0,0,0,.25);
-  pointer-events: none;
-  transition: opacity .2s, transform .2s;
-  transform: scale(1);
-}
-.tbtn-badge.hidden { opacity: 0; transform: scale(0.5); }
 
 /* ── BIG DATE ── */
 .big { font-family: 'DM Serif Display', serif; font-size: clamp(96px, 26vw, 144px); line-height: .88; letter-spacing: -3px; color: var(--text); }
@@ -762,7 +749,7 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
   </div><!-- /wrap -->
 
   <div id="bar">
-    <button class="tbtn on" id="tbM" onclick="goTab('main')">📅<span class="tbtn-badge" id="calBadge">2</span></button>
+    <button class="tbtn on" id="tbM" onclick="goTab('main')">📅</button>
     <button class="tbtn" id="tbS" onclick="goTab('sett')">⚙️</button>
   </div>
 </div>
@@ -2265,9 +2252,6 @@ function goTab(tab, fromSwipe = false) {
   curTab_ref.v = tab;
   document.getElementById('tbM').classList.toggle('on', tab === 'main');
   document.getElementById('tbS').classList.toggle('on', tab === 'sett');
-  // Скрываем значок при переходе в настройки
-  const badge = document.getElementById('calBadge');
-  if (badge) badge.classList.toggle('hidden', tab === 'sett');
   if (fromSwipe) {
     // After swipe: panels are already in motion — just set final position with animation
     m.style.transition = EASE;
