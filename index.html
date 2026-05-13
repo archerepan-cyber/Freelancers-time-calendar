@@ -78,7 +78,7 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
 /* ── SPLASH ── */
 #splash {
   position: fixed; inset: 0; z-index: 9999;
-  background: #f5f0e8;
+  background: #080808;
   display: flex; align-items: center; justify-content: center;
   flex-direction: column;
   transition: opacity .45s ease, visibility .45s ease;
@@ -1426,7 +1426,7 @@ function _pizzaStyle(raw) {
   return `background: conic-gradient(${stops});`;
 }
 const SK = 'ftc_d1', SS = 'ftc_s1';
-let days = {}, cfg = { cur:'₽', theme:'default', thcls:'', acc:'#D0391B', ov:45, bg:'', xcurs:[], country:'RU' };
+let days = {}, cfg = { cur:'₽', theme:'night', thcls:'t-night', acc:'#D0391B', ov:45, bg:'', xcurs:[], country:'RU' };
 
 function load() {
   try { days = JSON.parse(localStorage.getItem(SK) || '{}'); } catch { days = {}; }
