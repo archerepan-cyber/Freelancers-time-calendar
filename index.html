@@ -1278,6 +1278,155 @@ const DOW  = ['Воскресенье','Понедельник','Вторник'
   });
 })();
 
+// ── THEMES ──
+const THEMES = {
+  linen:  { c:'t-linen',  bg:'#EEE7DA' },
+  forest: { c:'t-forest', bg:'#2A4035' },
+  slate:  { c:'t-slate',  bg:'#394A60' },
+  sand:   { c:'t-sand',   bg:'#CDAD97' },
+  wine:   { c:'t-wine',   bg:'#773D44' },
+  custom: { c:'t-mist',   bg:'#7E7E93' },
+};
+
+function setTheme(card) {
+  const t = card.dataset.t;
+  if (t === 'custom') { openPte(); return; }
+  _applyTheme(t, card.dataset.c, THEMES[t]?.bg || '#EEE7DA');
+  document.querySelectorAll('.tcrd').forEach(c => c.classList.remove('on'));
+  card.classList.add('on');
+  cfg.theme = t; cfg.thcls = card.dataset.c; saveC();
+}
+
+function _applyTheme(themeKey, cls, bg) {
+  const keep = [];
+  document.body.className.split(' ').forEach(cl => { if (!cl.startsWith('t-')) keep.push(cl); });
+  document.body.className = (keep.join(' ') + ' ' + cls).trim();
+  const stored = (cfg.customVars && themeKey === 'custom') ? cfg.customVars : null;
+  if (stored) {
+    Object.entries(stored).forEach(([k,v]) => document.documentElement.style.setProperty(k, v));
+    bg = stored['--bg'] || bg;
+  } else {
+    ['--bg','--bg2','--bg3','--text','--text2','--text3','--sep',
+     '--dot-bg','--dot-past','--dot-today-bg','--dot-today','--dot-future']
+      .forEach(v => document.documentElement.style.removeProperty(v));
+  }
+  document.documentElement.style.setProperty('--accent', cfg.acc || '#D0391B');
+  document.documentElement.style.background = bg;
+  const mc = document.querySelector('meta[name=theme-color]');
+  if (mc) mc.content = bg;
+}
+
+// ── PHOTO THEME ──
+let _pteVars = null;
+
+function openPte() {
+  _pteVars = null;
+  document.getElementById('pteApply').classList.remove('ready');
+  document.getElementById('pteStatus').textContent = '';
+  if (cfg.customVars) _pteFillPreview(cfg.customVars);
+  document.getElementById('pteOver').classList.add('on');
+}
+
+function closePte(apply) {
+  document.getElementById('pteOver').classList.remove('on');
+  if (!apply || !_pteVars) return;
+  cfg.customVars = _pteVars;
+  cfg.theme = 'custom'; cfg.thcls = 't-mist'; saveC();
+  const card = document.getElementById('customThemeCard');
+  if (card) card.style.background = _pteVars['--bg'] || '#7E7E93';
+  _applyTheme('custom', 't-mist', _pteVars['--bg'] || '#7E7E93');
+  document.querySelectorAll('.tcrd').forEach(c => c.classList.remove('on'));
+  if (card) card.classList.add('on');
+}
+
+(function(){
+  let sy = 0, drag = false;
+  document.addEventListener('touchstart', e => {
+    if (!document.getElementById('pteOver').classList.contains('on')) return;
+    sy = e.touches[0].clientY; drag = false;
+  }, {passive:true});
+  document.addEventListener('touchmove', e => {
+    if (!document.getElementById('pteOver').classList.contains('on')) return;
+    const s = document.getElementById('pteSheet');
+    if (s.scrollTop > 0) return;
+    const dy = e.touches[0].clientY - sy;
+    if (dy > 10) { drag = true; s.style.transform = `translateY(${Math.min(dy,240)}px)`; s.style.transition = 'none'; }
+  }, {passive:true});
+  document.addEventListener('touchend', e => {
+    if (!document.getElementById('pteOver').classList.contains('on')) return;
+    const s = document.getElementById('pteSheet');
+    const dy = e.changedTouches[0].clientY - sy;
+    s.style.transition = '';
+    if (drag && dy > 90) closePte(false);
+    else s.style.transform = '';
+    drag = false;
+  }, {passive:true});
+})();
+
+function pteFromPhoto(e) {
+  const f = e.target.files[0]; if (!f) return;
+  e.target.value = '';
+  const st = document.getElementById('pteStatus');
+  st.textContent = '⏳ Анализирую фото...';
+  const img = new Image();
+  const url = URL.createObjectURL(f);
+  img.onload = () => {
+    const cv = document.createElement('canvas');
+    const S = 80; cv.width = S; cv.height = S;
+    cv.getContext('2d').drawImage(img, 0, 0, S, S);
+    URL.revokeObjectURL(url);
+    const data = cv.getContext('2d').getImageData(0,0,S,S).data;
+    const pixels = [];
+    for (let i = 0; i < data.length; i += 4) pixels.push([data[i],data[i+1],data[i+2]]);
+    const palette = _pteKmeans(pixels, 6);
+    palette.sort((a,b) => _pteLum(a) - _pteLum(b));
+    const avgLum = pixels.reduce((s,p) => s + _pteLum(p), 0) / pixels.length;
+    const isDark = avgLum < 110;
+    const vivid = _pteVivid(palette);
+    const [dark, mid1, mid2, mid3, light1, light2] = palette;
+    const vars = isDark ? {
+      '--bg':_pteHex(dark),'--bg2':_pteHex(_pteBlend(dark,mid1,.42)),'--bg3':_pteHex(_pteBlend(dark,mid1,.25)),
+      '--text':_pteHex(light2),'--text2':_pteHex(_pteBlend(light1,mid3,.4)),'--text3':_pteHex(_pteBlend(mid2,mid3,.5)),
+      '--sep':_pteHex(_pteBlend(dark,mid1,.3)),'--accent':_pteHex(vivid),
+      '--dot-bg':_pteHex(_pteBlend(dark,mid1,.35)),'--dot-past':_pteHex(_pteBlend(dark,mid2,.45)),
+      '--dot-today-bg':_pteHex(_pteBlend(dark,vivid,.28)),'--dot-today':_pteHex(vivid),'--dot-future':_pteHex(_pteBlend(dark,mid1,.18)),
+    } : {
+      '--bg':_pteHex(light2),'--bg2':_pteHex(_pteBlend(light2,light1,.65)),'--bg3':_pteHex(_pteBlend(light1,mid3,.28)),
+      '--text':_pteHex(dark),'--text2':_pteHex(_pteBlend(dark,mid1,.5)),'--text3':_pteHex(_pteBlend(mid2,mid3,.5)),
+      '--sep':_pteHex(_pteBlend(light1,mid3,.38)),'--accent':_pteHex(vivid),
+    };
+    _pteVars = vars;
+    _pteFillPreview(vars);
+    st.textContent = '✅ Цвета подобраны!';
+    document.getElementById('pteApply').classList.add('ready');
+  };
+  img.onerror = () => { st.textContent = '❌ Не удалось прочитать фото'; };
+  img.src = url;
+}
+
+function _pteFillPreview(vars) {
+  document.getElementById('pteSw0').style.background = vars['--bg'] || '#EEE7DA';
+  document.getElementById('pteSw1').style.background = vars['--bg2'] || '#CDAD97';
+  document.getElementById('pteSw2').style.background = vars['--accent'] || '#773D44';
+  document.getElementById('pteSw3').style.background = vars['--text'] || '#1a1a1a';
+}
+
+function _pteKmeans(px, k) {
+  const step = Math.floor(px.length / k);
+  let centers = Array.from({length:k}, (_,i) => [...px[i*step]]);
+  for (let it = 0; it < 12; it++) {
+    const cl = Array.from({length:k}, () => []);
+    px.forEach(p => { let bi=0,bd=Infinity; centers.forEach((c,i)=>{const d=_pteDist(p,c);if(d<bd){bd=d;bi=i;}}); cl[bi].push(p); });
+    centers = cl.map(c => c.length ? [Math.round(c.reduce((s,p)=>s+p[0],0)/c.length),Math.round(c.reduce((s,p)=>s+p[1],0)/c.length),Math.round(c.reduce((s,p)=>s+p[2],0)/c.length)] : [128,128,128]);
+  }
+  return centers;
+}
+function _pteDist(a,b){return Math.sqrt((a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2);}
+function _pteLum(p){return .299*p[0]+.587*p[1]+.114*p[2];}
+function _pteBlend(a,b,t){return[Math.round(a[0]*(1-t)+b[0]*t),Math.round(a[1]*(1-t)+b[1]*t),Math.round(a[2]*(1-t)+b[2]*t)];}
+function _pteHex(p){return'#'+p.map(v=>Math.max(0,Math.min(255,v)).toString(16).padStart(2,'0')).join('');}
+function _pteVivid(pal){let best=pal[0],bs=0;pal.forEach(p=>{const s=Math.max(...p)-Math.min(...p);if(s>bs&&_pteLum(p)>40&&_pteLum(p)<220){bs=s;best=p;}});return best;}
+
 // ── BOOT ──
 load();
 applyCfg();
@@ -2110,193 +2259,9 @@ function onCusCur(inp) {
 
 
 
-// ── THEMES ──
-const THEMES = {
-  linen:  { c:'t-linen',  bg:'#EEE7DA' },
-  forest: { c:'t-forest', bg:'#2A4035' },
-  slate:  { c:'t-slate',  bg:'#394A60' },
-  sand:   { c:'t-sand',   bg:'#CDAD97' },
-  wine:   { c:'t-wine',   bg:'#773D44' },
-  custom: { c:'t-mist',   bg:'#7E7E93' }, // overridden when photo applied
-};
-
-function setTheme(card) {
-  const t = card.dataset.t;
-  if (t === 'custom') { openPte(); return; }
-  _applyTheme(t, card.dataset.c, THEMES[t]?.bg || '#EEE7DA');
-  document.querySelectorAll('.tcrd').forEach(c => c.classList.remove('on'));
-  card.classList.add('on');
-  cfg.theme = t; cfg.thcls = card.dataset.c; saveC();
-}
-
-function _applyTheme(themeKey, cls, bg) {
-  // Remove old theme classes
-  const keep = [];
-  document.body.className.split(' ').forEach(cl => { if (!cl.startsWith('t-')) keep.push(cl); });
-  document.body.className = (keep.join(' ') + ' ' + cls).trim();
-  // Apply custom CSS vars if stored
-  const stored = (cfg.customVars && themeKey === 'custom') ? cfg.customVars : null;
-  if (stored) {
-    Object.entries(stored).forEach(([k,v]) => document.documentElement.style.setProperty(k, v));
-    bg = stored['--bg'] || bg;
-  } else {
-    ['--bg','--bg2','--bg3','--text','--text2','--text3','--sep',
-     '--dot-bg','--dot-past','--dot-today-bg','--dot-today','--dot-future']
-      .forEach(v => document.documentElement.style.removeProperty(v));
-  }
-  // Reapply accent
-  document.documentElement.style.setProperty('--accent', cfg.acc || '#D0391B');
-  // Update html bg + meta theme-color
-  document.documentElement.style.background = bg;
-  const mc = document.querySelector('meta[name=theme-color]');
-  if (mc) mc.content = bg;
-}
-
-// ── PHOTO THEME ──
-let _pteVars = null; // pending vars from photo
-
-function openPte() {
-  _pteVars = null;
-  document.getElementById('pteApply').classList.remove('ready');
-  document.getElementById('pteStatus').textContent = '';
-  // Show current custom preview if exists
-  if (cfg.customVars) _pteFillPreview(cfg.customVars);
-  document.getElementById('pteOver').classList.add('on');
-}
-
-function closePte(apply) {
-  document.getElementById('pteOver').classList.remove('on');
-  if (!apply || !_pteVars) return;
-  cfg.customVars = _pteVars;
-  cfg.theme = 'custom'; cfg.thcls = 't-mist'; saveC();
-  // Update custom card bg
-  const card = document.getElementById('customThemeCard');
-  if (card) card.style.background = _pteVars['--bg'] || '#7E7E93';
-  _applyTheme('custom', 't-mist', _pteVars['--bg'] || '#7E7E93');
-  document.querySelectorAll('.tcrd').forEach(c => c.classList.remove('on'));
-  if (card) card.classList.add('on');
-}
-
-// Swipe down to close pte sheet
-(function(){
-  let sy = 0, drag = false;
-  document.addEventListener('touchstart', e => {
-    if (!document.getElementById('pteOver').classList.contains('on')) return;
-    sy = e.touches[0].clientY; drag = false;
-  }, {passive:true});
-  document.addEventListener('touchmove', e => {
-    if (!document.getElementById('pteOver').classList.contains('on')) return;
-    const s = document.getElementById('pteSheet');
-    if (s.scrollTop > 0) return;
-    const dy = e.touches[0].clientY - sy;
-    if (dy > 10) { drag = true; s.style.transform = `translateY(${Math.min(dy,240)}px)`; s.style.transition = 'none'; }
-  }, {passive:true});
-  document.addEventListener('touchend', e => {
-    if (!document.getElementById('pteOver').classList.contains('on')) return;
-    const s = document.getElementById('pteSheet');
-    const dy = e.changedTouches[0].clientY - sy;
-    s.style.transition = '';
-    if (drag && dy > 90) closePte(false);
-    else s.style.transform = '';
-    drag = false;
-  }, {passive:true});
-})();
-
-function pteFromPhoto(e) {
-  const f = e.target.files[0]; if (!f) return;
-  e.target.value = '';
-  const st = document.getElementById('pteStatus');
-  st.textContent = '⏳ Анализирую фото...';
-  const img = new Image();
-  const url = URL.createObjectURL(f);
-  img.onload = () => {
-    const cv = document.createElement('canvas');
-    const S = 80; cv.width = S; cv.height = S;
-    cv.getContext('2d').drawImage(img, 0, 0, S, S);
-    URL.revokeObjectURL(url);
-    const data = cv.getContext('2d').getImageData(0,0,S,S).data;
-    const pixels = [];
-    for (let i = 0; i < data.length; i += 4) pixels.push([data[i],data[i+1],data[i+2]]);
-    const palette = _pteKmeans(pixels, 6);
-    palette.sort((a,b) => _pteLum(a) - _pteLum(b));
-    const avgLum = pixels.reduce((s,p) => s + _pteLum(p), 0) / pixels.length;
-    const isDark = avgLum < 110;
-    const vivid = _pteVivid(palette);
-    const [dark, mid1, mid2, mid3, light1, light2] = palette;
-    const vars = isDark ? {
-      '--bg':          _pteHex(dark),
-      '--bg2':         _pteHex(_pteBlend(dark, mid1, .42)),
-      '--bg3':         _pteHex(_pteBlend(dark, mid1, .25)),
-      '--text':        _pteHex(light2),
-      '--text2':       _pteHex(_pteBlend(light1, mid3, .4)),
-      '--text3':       _pteHex(_pteBlend(mid2, mid3, .5)),
-      '--sep':         _pteHex(_pteBlend(dark, mid1, .3)),
-      '--accent':      _pteHex(vivid),
-      '--dot-bg':      _pteHex(_pteBlend(dark, mid1, .35)),
-      '--dot-past':    _pteHex(_pteBlend(dark, mid2, .45)),
-      '--dot-today-bg':_pteHex(_pteBlend(dark, vivid, .28)),
-      '--dot-today':   _pteHex(vivid),
-      '--dot-future':  _pteHex(_pteBlend(dark, mid1, .18)),
-    } : {
-      '--bg':          _pteHex(light2),
-      '--bg2':         _pteHex(_pteBlend(light2, light1, .65)),
-      '--bg3':         _pteHex(_pteBlend(light1, mid3, .28)),
-      '--text':        _pteHex(dark),
-      '--text2':       _pteHex(_pteBlend(dark, mid1, .5)),
-      '--text3':       _pteHex(_pteBlend(mid2, mid3, .5)),
-      '--sep':         _pteHex(_pteBlend(light1, mid3, .38)),
-      '--accent':      _pteHex(vivid),
-    };
-    _pteVars = vars;
-    _pteFillPreview(vars);
-    // Override accent from photo but respect saved acc preference? Use photo vivid.
-    st.textContent = '✅ Цвета подобраны!';
-    document.getElementById('pteApply').classList.add('ready');
-  };
-  img.onerror = () => { st.textContent = '❌ Не удалось прочитать фото'; };
-  img.src = url;
-}
-
-function _pteFillPreview(vars) {
-  const bg = vars['--bg'] || '#EEE7DA';
-  const bg2 = vars['--bg2'] || '#CDAD97';
-  const acc = vars['--accent'] || '#773D44';
-  const txt = vars['--text'] || '#1a1a1a';
-  document.getElementById('pteSw0').style.background = bg;
-  document.getElementById('pteSw1').style.background = bg2;
-  document.getElementById('pteSw2').style.background = acc;
-  document.getElementById('pteSw3').style.background = txt;
-}
-
-function _pteKmeans(px, k) {
-  const step = Math.floor(px.length / k);
-  let centers = Array.from({length:k}, (_,i) => [...px[i*step]]);
-  for (let it = 0; it < 12; it++) {
-    const cl = Array.from({length:k}, () => []);
-    px.forEach(p => {
-      let bi = 0, bd = Infinity;
-      centers.forEach((c,i) => { const d = _pteDist(p,c); if(d<bd){bd=d;bi=i;} });
-      cl[bi].push(p);
-    });
-    centers = cl.map(c => c.length ? [
-      Math.round(c.reduce((s,p)=>s+p[0],0)/c.length),
-      Math.round(c.reduce((s,p)=>s+p[1],0)/c.length),
-      Math.round(c.reduce((s,p)=>s+p[2],0)/c.length),
-    ] : [128,128,128]);
-  }
-  return centers;
-}
-function _pteDist(a,b){return Math.sqrt((a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2);}
-function _pteLum(p){return .299*p[0]+.587*p[1]+.114*p[2];}
-function _pteBlend(a,b,t){return[Math.round(a[0]*(1-t)+b[0]*t),Math.round(a[1]*(1-t)+b[1]*t),Math.round(a[2]*(1-t)+b[2]*t)];}
-function _pteHex(p){return'#'+p.map(v=>Math.max(0,Math.min(255,v)).toString(16).padStart(2,'0')).join('');}
-function _pteVivid(palette){
-  let best=palette[0],bs=0;
-  palette.forEach(p=>{const mx=Math.max(...p),mn=Math.min(...p),s=mx-mn;if(s>bs&&_pteLum(p)>40&&_pteLum(p)<220){bs=s;best=p;}});
-  return best;
-}
 
 
+function setAcc(c, dot) {
   cfg.acc = c; saveC();
   document.documentElement.style.setProperty('--accent', c);
   document.querySelectorAll('#pCols .pc').forEach(d => d.classList.remove('on'));
