@@ -49,6 +49,9 @@
 .t-ocean { --bg:#E2E4D2; --bg2:rgba(220,224,210,.9); --bg3:rgba(26,42,40,.06); --text:#1a2826; --text2:#3d5654; --text3:#7BA7AF; --sep:rgba(0,0,0,.08); }
 .t-retro { --bg:#DCC9A9; --bg2:rgba(220,200,165,.9); --bg3:rgba(40,20,10,.06); --text:#2a1508; --text2:#7a4a20; --text3:#b08050; --sep:rgba(0,0,0,.08); }
 .t-night { --bg:#080808; --bg2:rgba(18,18,18,.95); --bg3:rgba(255,255,255,.05); --text:#ddd; --text2:#777; --text3:#404040; --sep:rgba(255,255,255,.06); --dot-bg:rgba(255,255,255,.09); --dot-past:rgba(255,255,255,.12); --dot-today-bg:rgba(255,255,255,.16); --dot-today:rgba(255,255,255,.5); --dot-future:rgba(255,255,255,.05); }
+/* Ensure theme vars propagate when class is on html element too */
+html.t-dark  { --bg:#151515; --bg2:rgba(30,30,30,.9); --bg3:rgba(255,255,255,.07); --text:#efefef; --text2:#999; --text3:#555; --sep:rgba(255,255,255,.08); --dot-bg:rgba(255,255,255,.10); --dot-past:rgba(255,255,255,.13); --dot-today-bg:rgba(255,255,255,.18); --dot-today:rgba(255,255,255,.6); --dot-future:rgba(255,255,255,.06); }
+html.t-night { --bg:#080808; --bg2:rgba(18,18,18,.95); --bg3:rgba(255,255,255,.05); --text:#ddd; --text2:#777; --text3:#404040; --sep:rgba(255,255,255,.06); --dot-bg:rgba(255,255,255,.09); --dot-past:rgba(255,255,255,.12); --dot-today-bg:rgba(255,255,255,.16); --dot-today:rgba(255,255,255,.5); --dot-future:rgba(255,255,255,.05); }
 
 /* ── RESET ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -2367,6 +2370,7 @@ function setTheme(card) {
   document.body.className.split(' ').forEach(cl => { if (!cl.startsWith('t-')) keep.push(cl); });
   document.body.className = (keep.join(' ') + ' ' + cfg.thcls).trim();
   applyTeCustom(cfg.theme);
+  applyThemeMeta(cfg.theme);
   document.querySelectorAll('.tcrd').forEach(c => c.classList.remove('on'));
   card.classList.add('on');
   updateCustomCard();
@@ -2389,12 +2393,40 @@ function hexLum(hex) {
   return 0.299*r + 0.587*g + 0.114*b;
 }
 
+const THEME_BG_MAP = {
+  'default':'#f5f0e8','dark':'#151515','warm':'#EFE8CB',
+  'ocean':'#E2E4D2','retro':'#DCC9A9','night':'#080808'
+};
+
+function applyThemeMeta(themeKey) {
+  // Determine the background color for this theme
+  let bg = THEME_BG_MAP[themeKey] || '#f5f0e8';
+  const custom = (cfg.teCustom || {})[themeKey];
+  if (custom && custom['--bg']) bg = custom['--bg'];
+
+  // Update html element background (covers safe-area / notch areas)
+  // Use the CSS variable so it stays in sync with the theme class
+  document.documentElement.style.background = bg;
+
+  // Update meta theme-color (browser chrome / status bar)
+  let mc = document.querySelector('meta[name=theme-color]');
+  if (!mc) { mc = document.createElement('meta'); mc.name = 'theme-color'; document.head.appendChild(mc); }
+  mc.content = bg;
+}
+
 function applyTeCustom(themeKey) {
   const custom = (cfg.teCustom || {})[themeKey];
   if (custom) {
     TE_VARS.forEach(v => {
       if (custom[v]) document.documentElement.style.setProperty(v, custom[v]);
     });
+    // Also update html background for custom theme
+    if (custom['--bg']) {
+      document.documentElement.style.background = custom['--bg'];
+      let mc = document.querySelector('meta[name=theme-color]');
+      if (!mc) { mc = document.createElement('meta'); mc.name = 'theme-color'; document.head.appendChild(mc); }
+      mc.content = custom['--bg'];
+    }
   } else {
     // Clear inline overrides so CSS class takes over
     TE_VARS.forEach(v => document.documentElement.style.removeProperty(v));
@@ -2442,6 +2474,8 @@ function applyCfg() {
   if (cfg.thcls) document.body.classList.add(cfg.thcls);
   // Custom theme colors
   applyTeCustom(cfg.theme || 'default');
+  // Update html bg + meta theme-color
+  applyThemeMeta(cfg.theme || 'default');
   // Accent
   document.documentElement.style.setProperty('--accent', cfg.acc || '#D0391B');
   // Custom card preview
