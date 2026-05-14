@@ -480,6 +480,65 @@ button { font-family: inherit; cursor: pointer; }
 .dot.drag-src  { opacity: .28; transform: scale(.84); transition: opacity .15s, transform .15s; }
 .dot.drag-over { box-shadow: 0 0 0 3px var(--accent) !important; transform: scale(1.14); transition: box-shadow .1s, transform .1s; }
 
+/* ── LAYER 2 BADGE ── */
+#l2Btn {
+  position: fixed;
+  top: calc(var(--st) + 14px);
+  right: 18px;
+  z-index: 200;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  font-size: 15px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 3px 12px rgba(0,0,0,.28);
+  touch-action: manipulation; cursor: pointer;
+  transition: opacity .25s, transform .25s;
+  opacity: 1;
+}
+#l2Btn.hidden { opacity: 0; pointer-events: none; transform: scale(.7); }
+
+/* ── LAYER 2 SHEET ── */
+#l2Over {
+  position: fixed; inset: 0; z-index: 350;
+  background: rgba(0,0,0,.55);
+  display: flex; align-items: flex-end; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity .3s;
+}
+#l2Over.on { opacity: 1; pointer-events: auto; }
+#l2Sheet {
+  width: 100%; max-width: 520px;
+  background: var(--bg); border-radius: 24px 24px 0 0;
+  padding: 14px 0 0;
+  height: 88vh;
+  display: flex; flex-direction: column;
+  transform: translateY(100%);
+  transition: transform .38s cubic-bezier(.32,.72,0,1);
+  will-change: transform;
+}
+#l2Over.on #l2Sheet { transform: translateY(0); }
+#l2Over.closing { opacity: 0 !important; pointer-events: none !important; transition: opacity .3s !important; }
+#l2Over.closing #l2Sheet { transform: translateY(100%) !important; transition: transform .3s cubic-bezier(.32,.72,0,1) !important; }
+.l2-handle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 18px 10px; flex-shrink: 0;
+}
+.l2-drag { width: 36px; height: 4px; border-radius: 2px; background: var(--sep); margin: 0 auto 12px; flex-shrink: 0; }
+.l2-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--text); flex:1; }
+.l2-close {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--bg3); border: none;
+  font-size: 17px; color: var(--text2);
+  display: flex; align-items: center; justify-content: center;
+  touch-action: manipulation; cursor: pointer; flex-shrink: 0;
+}
+#l2Body {
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 0 22px calc(var(--sb) + 20px);
+}
+
 /* ── CONTEXT MENU ── */
 #ctxMenu {
   position: fixed; z-index: 500;
@@ -524,6 +583,36 @@ button { font-family: inherit; cursor: pointer; }
   <button class="ctx-item paste" id="ctxPaste" onclick="ctxDoPaste()">
     Вставить
   </button>
+</div>
+
+<!-- LAYER 2 BADGE -->
+<button id="l2Btn" onclick="openL2()" aria-label="Второй слой">2</button>
+
+<!-- LAYER 2 SHEET -->
+<div id="l2Over" onclick="if(event.target===this)closeL2()">
+  <div id="l2Sheet">
+    <div class="l2-drag"></div>
+    <div class="l2-handle-row">
+      <div class="l2-title" id="l2Title">Слой 2 · <span id="l2MonLbl"></span></div>
+      <button class="l2-close" onclick="closeL2()">✕</button>
+    </div>
+    <div id="l2Body">
+      <!-- month nav -->
+      <div class="mnav" style="margin-bottom:10px;">
+        <button class="marr" onclick="l2ChM(-1)">‹</button>
+        <div class="mlbl" id="l2MnavLbl"></div>
+        <button class="marr" onclick="l2ChM(1)">›</button>
+      </div>
+      <!-- calendar header -->
+      <div class="chdr">
+        <span>П</span><span>В</span><span>С</span><span>Ч</span><span>П</span>
+        <span class="we">С</span><span class="we">В</span>
+      </div>
+      <div class="cgrid" id="l2Grid"></div>
+      <div id="l2EntWrap"></div>
+      <div id="l2TotWrap"></div>
+    </div>
+  </div>
 </div>
 
 <div id="app">
@@ -1675,6 +1764,12 @@ function clrD(dk) {
 
 // ── MODAL ──
 let eDk = null;
+let _l2ModalMode = false; // layer 2 modal flag
+// Layer 2 state (declared early so saveDay/closeModal can reference them)
+const SK2 = 'ftc_d2';
+let days2 = {};
+let l2vy = new Date().getFullYear(), l2vm = new Date().getMonth();
+let l2eDk = null, l2Tasks = [];
 const COLORS = ['#324E44','#D0391B','#FBC359','#7BA7AF','#9F4125','#73A642','#4E6851'];
 
 function _taskBlockHTML(t, idx, total) {
@@ -1834,6 +1929,7 @@ function openModal(dk) {
 }
 
 function closeModal() {
+  _l2ModalMode = false; l2eDk = null;
   document.getElementById('modal').classList.remove('on');
   eDk = null; _tasks = [];
   // Reset all touch state to prevent scroll lock
@@ -1850,6 +1946,21 @@ function pickCHex(c) {}
 function addX(amount='', comment='') {}
 
 function saveDay() {
+  if (_l2ModalMode) {
+    if (!l2eDk) return;
+    _saveTaskFields();
+    const valid = _tasks.filter(t=>t.label||t.timeStart||t.earned||(t.expenses&&t.expenses.length)||t.color);
+    const toSave = valid.length ? valid : [_tasks[0]];
+    days2[l2eDk] = toSave.length===1 ? toSave[0] : toSave;
+    saveL2();
+    _l2ModalMode=false; l2eDk=null;
+    document.getElementById('modal').classList.remove('on');
+    _tasks=[]; eDk=null;
+    clearTimeout(_lpt); clearTimeout(_dtTimer);
+    _mv=false; _longPressed=false; _longPressDk=null; _lastTap=0; _lastDk=null;
+    l2RenderCal(); l2RenderEnt();
+    return;
+  }
   if (!eDk) return;
   _saveTaskFields();
   const valid = _tasks.filter(t => t.label || t.timeStart || t.earned || (t.expenses && t.expenses.length) || t.color);
@@ -2020,6 +2131,9 @@ function goTab(tab, fromSwipe = false) {
   curTab_ref.v = tab;
   document.getElementById('tbM').classList.toggle('on', tab === 'main');
   document.getElementById('tbS').classList.toggle('on', tab === 'sett');
+  // Hide layer-2 badge on settings tab
+  const l2b = document.getElementById('l2Btn');
+  if (l2b) l2b.classList.toggle('hidden', tab === 'sett');
   if (fromSwipe) {
     // After swipe: panels are already in motion — just set final position with animation
     m.style.transition = EASE;
@@ -2205,7 +2319,232 @@ function applyBg() {
   }
 }
 
-function applyCfg() {
+
+// ── LAYER 2 ──
+
+function loadL2() {
+  try { days2 = JSON.parse(localStorage.getItem(SK2) || '{}'); } catch { days2 = {}; }
+}
+function saveL2() { localStorage.setItem(SK2, JSON.stringify(days2)); }
+
+loadL2();
+
+function openL2() {
+  l2vy = vy; l2vm = vm; // sync to current main month
+  l2RenderCal();
+  l2RenderEnt();
+  document.getElementById('l2Over').classList.add('on');
+}
+
+function closeL2() {
+  const over = document.getElementById('l2Over');
+  over.classList.add('closing');
+  setTimeout(() => { over.classList.remove('on','closing'); }, 320);
+}
+
+
+function l2ChM(d) {
+  l2vm += d;
+  if (l2vm < 0) { l2vm = 11; l2vy--; }
+  if (l2vm > 11) { l2vm = 0; l2vy++; }
+  l2RenderCal();
+  l2RenderEnt();
+}
+
+// Touch state for layer 2 calendar
+let _l2t0=0, _l2mv=false, _l2lpt=null, _l2lastTap=0, _l2lastDk=null, _l2dtTimer=null;
+let _l2tx0=0, _l2ty0=0;
+
+function l2RenderCal() {
+  const lbl = MON[l2vm] + ' ' + l2vy;
+  const el = document.getElementById('l2MnavLbl');
+  const tl = document.getElementById('l2MonLbl');
+  if (el) el.textContent = lbl;
+  if (tl) tl.textContent = lbl;
+  const t = new Date();
+  const tdk = dkey(t.getFullYear(), t.getMonth(), t.getDate());
+  const fd = (new Date(l2vy, l2vm, 1).getDay() + 6) % 7;
+  const dim = new Date(l2vy, l2vm+1, 0).getDate();
+  let h = '';
+  for (let i = 0; i < fd; i++) h += '<div class="dot empty"></div>';
+  for (let d = 1; d <= dim; d++) {
+    const dk = dkey(l2vy, l2vm, d);
+    const dd = days2[dk];
+    const dayColor = _dayColor(dd);
+    const dt = new Date(l2vy, l2vm, d);
+    const isT = dk === tdk;
+    const isP = dt < new Date(t.getFullYear(), t.getMonth(), t.getDate());
+    let cls = 'dot', sty = '';
+    if (dd && dayColor) {
+      sty = _pizzaStyle(dd); cls += ' work';
+      if (isT) cls += ' today-w';
+    } else if (isT) { cls += ' today'; }
+    else if (isP)   { cls += ' past'; }
+    else            { cls += ' future'; }
+    if (dd) cls += ' has';
+    h += `<div class="${cls}" style="${sty}"
+      ontouchstart="l2ts(event,'${dk}')"
+      ontouchmove="l2tm()"
+      ontouchend="l2te(event,'${dk}')">
+      <div class="pip"></div>
+      <div class="dnum">${d}</div>
+    </div>`;
+  }
+  const grid = document.getElementById('l2Grid');
+  if (grid) grid.innerHTML = h;
+}
+
+function l2ts(e, dk) {
+  _l2mv=false; _l2t0=Date.now();
+  if(e.touches&&e.touches.length){_l2tx0=e.touches[0].clientX;_l2ty0=e.touches[0].clientY;}
+  const el=e.currentTarget; el.classList.add('press');
+  _l2lpt=setTimeout(()=>{ el.classList.remove('press'); },500);
+}
+function l2tm() {
+  _l2mv=true; clearTimeout(_l2lpt);
+  document.querySelectorAll('#l2Grid .dot.press').forEach(d=>d.classList.remove('press'));
+}
+function l2te(e, dk) {
+  clearTimeout(_l2lpt);
+  if(e.currentTarget) e.currentTarget.classList.remove('press');
+  if(_l2mv) return;
+  if(Date.now()-_l2t0>=500) return;
+  if(e.changedTouches&&e.changedTouches.length){
+    const ct=e.changedTouches[0];
+    if(Math.abs(ct.clientX-_l2tx0)>12||Math.abs(ct.clientY-_l2ty0)>12) return;
+  }
+  const now=Date.now();
+  if(_l2lastDk===dk&&now-_l2lastTap<400){
+    clearTimeout(_l2dtTimer); _l2lastTap=0; _l2lastDk=null;
+    l2ClrD(dk); return;
+  }
+  _l2lastTap=now; _l2lastDk=dk;
+  clearTimeout(_l2dtTimer);
+  _l2dtTimer=setTimeout(()=>{ _l2lastTap=0; _l2lastDk=null; l2OpenModal(dk); },350);
+}
+
+function l2ClrD(dk) {
+  if(!days2[dk]) return;
+  navigator.vibrate&&navigator.vibrate([20,30,20]);
+  delete days2[dk]; saveL2();
+  requestAnimationFrame(()=>{ l2RenderCal(); l2RenderEnt(); });
+}
+
+// ── LAYER 2 MODAL (reuses main modal DOM, tagged with l2 mode) ──
+function l2OpenModal(dk) {
+  _l2ModalMode = true;
+  l2eDk = dk;
+  const [y,m,d] = dk.split('-').map(Number);
+  document.getElementById('mTit').textContent = `${d} ${MONG[m-1]} ·2`;
+  const raw = days2[dk];
+  if (!raw) {
+    l2Tasks = [{ color: cfg.acc||COLORS[0], label:'', timeStart:'', timeEnd:'', earned:0, expenses:[] }];
+  } else if (Array.isArray(raw)) {
+    l2Tasks = raw.map(t=>({color:COLORS[0],label:'',timeStart:'',timeEnd:'',earned:0,expenses:[],...t}));
+  } else {
+    l2Tasks = [{color:COLORS[0],label:'',timeStart:'',timeEnd:'',earned:0,expenses:[],...raw}];
+  }
+  _tasks = l2Tasks;
+  _renderTasks();
+  const sheet = document.getElementById('mSheet');
+  if (sheet) sheet.scrollTop = 0;
+  document.getElementById('modal').classList.add('on');
+}
+
+
+function l2RenderEnt() {
+  const items = [];
+  for (let d=1; d<=31; d++) {
+    const dk=dkey(l2vy,l2vm,d);
+    const dt=new Date(l2vy,l2vm,d);
+    if(dt.getMonth()!==l2vm) break;
+    if(days2[dk]) items.push({dk,d,dd:days2[dk]});
+  }
+  const ew=document.getElementById('l2EntWrap');
+  const tw=document.getElementById('l2TotWrap');
+  if(!items.length){if(ew)ew.innerHTML='';if(tw)tw.innerHTML='';return;}
+  const cur=cfg.cur;
+  let html=`<div class="slbl">${MON[l2vm]} ${l2vy}</div>`;
+  let te=0; const ax=[];
+  items.forEach((it,i)=>{
+    const tasks=_normDay(it.dd);
+    const firstColor=_dayColor(it.dd)||cfg.acc;
+    tasks.forEach(t=>{
+      te+=t.earned||0;
+      (t.expenses||[]).forEach(x=>ax.push({...x,day:it.d,lbl:t.label}));
+    });
+    let taskRows='';
+    tasks.forEach((t,ti)=>{
+      const ts=t.timeStart?(t.timeEnd?`${t.timeStart}–${t.timeEnd}`:t.timeStart):'';
+      const es=t.earned?`+${cur}${t.earned.toLocaleString()}`:'';
+      const xt=(t.expenses||[]).reduce((s,x)=>s+(x.amount||0),0);
+      const xs=xt?`−${cur}${xt.toLocaleString()}`:'';
+      const dotColor=t.color||cfg.acc;
+      taskRows+=`<div style="display:flex;align-items:flex-start;gap:10px;padding:${ti>0?'8px 0 0':'4px 0 0'};">
+        <div style="width:20px;height:20px;border-radius:50%;background:${dotColor};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px;">${ti+1}</div>
+        <div style="flex:1;">${t.label?`<div class="ename">${t.label}</div>`:''}
+          <div class="enums">
+            ${ts?`<span style="color:var(--text3);">🕐 ${ts}</span>`:''}
+            ${es?`<span style="color:var(--accent);font-weight:600;">${es}</span>`:''}
+            ${xs?`<span style="color:var(--text2);">${xs}</span>`:''}
+          </div>
+        </div>
+      </div>`;
+    });
+    html+=`<div class="ecard" onclick="l2OpenModal('${it.dk}')">
+      <div class="etop">
+        <div class="enum">${i+1}</div>
+        <div class="einfo"><div class="edate">${it.d} ${MONG[l2vm]}</div></div>
+        <div class="edot" style="background:${firstColor};"></div>
+      </div>${taskRows}</div>`;
+  });
+  if(ew) ew.innerHTML=html;
+  const tx=ax.reduce((s,x)=>s+(x.amount||0),0);
+  const net=te-tx;
+  let th='';
+  const grouped={};
+  ax.forEach(x=>{const key=(x.comment||'Затрата').trim();grouped[key]=(grouped[key]||0)+(x.amount||0);});
+  Object.entries(grouped).forEach(([name,total])=>{
+    th+=`<div class="xrow"><span>${name}</span><span style="color:var(--accent);">−${cur}${total.toLocaleString()}</span></div>`;
+  });
+  th+=`<div class="trow" style="align-items:flex-start;">
+    <div class="tlbl" style="padding-top:10px;">Итого · слой 2</div>
+    <div style="text-align:right;">
+      <div class="tamt" style="color:${net>=0?'var(--accent)':'#c0392b'};">${net>=0?'+':''}${cur}${Math.abs(net).toLocaleString()}</div>
+    </div>
+  </div>`;
+  if(tw) tw.innerHTML=`<div class="tcard">${th}</div>`;
+}
+
+// ── LAYER 2 SWIPE DOWN TO CLOSE ──
+(function(){
+  let sy=0, drag=false;
+  document.addEventListener('touchstart', e=>{
+    if(!document.getElementById('l2Over').classList.contains('on')) return;
+    const sheet=document.getElementById('l2Sheet');
+    const body=document.getElementById('l2Body');
+    if(!sheet.contains(e.target)) return;
+    sy=e.touches[0].clientY; drag=false;
+  },{passive:true});
+  document.addEventListener('touchmove', e=>{
+    if(!document.getElementById('l2Over').classList.contains('on')) return;
+    const sheet=document.getElementById('l2Sheet');
+    const body=document.getElementById('l2Body');
+    if(body&&body.scrollTop>0) return;
+    const dy=e.touches[0].clientY-sy;
+    if(dy>10){ drag=true; sheet.style.transform=`translateY(${Math.min(dy,300)}px)`; sheet.style.transition='none'; }
+  },{passive:true});
+  document.addEventListener('touchend', e=>{
+    if(!document.getElementById('l2Over').classList.contains('on')) return;
+    const sheet=document.getElementById('l2Sheet');
+    const dy=e.changedTouches[0].clientY-sy;
+    sheet.style.transition='';
+    if(drag&&dy>100){ sheet.style.transform=''; closeL2(); }
+    else { sheet.style.transform=''; }
+    drag=false;
+  },{passive:true});
+})();
+
   // Theme
   if (cfg.thcls) document.body.classList.add(cfg.thcls);
   // Custom theme colors
