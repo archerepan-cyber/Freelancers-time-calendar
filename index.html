@@ -580,47 +580,20 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
 .dot.drag-src  { opacity: .28; transform: scale(.84); transition: opacity .15s, transform .15s; }
 .dot.drag-over { box-shadow: 0 0 0 3px var(--accent) !important; transform: scale(1.14); transition: box-shadow .1s, transform .1s; }
 
-/* ── LAYER 2 BADGE ── */
-#l2Btn {
-  position: fixed;
-  top: calc(env(safe-area-inset-top) + 14px);
-  right: 18px; z-index: 250;
-  width: 34px; height: 34px; border-radius: 50%;
-  background: var(--accent); border: none; color: #fff;
-  font-size: 14px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 2px 10px rgba(0,0,0,.25);
-  touch-action: manipulation; cursor: pointer;
-  opacity: 1; transform: scale(1);
-  transition: opacity .22s, transform .22s;
-}
-#l2Btn.hide { opacity: 0; transform: scale(.7); pointer-events: none; }
-
-/* ── LAYER 2 SHEET ── */
-#l2Over {
-  position: fixed; inset: 0; z-index: 350;
-  background: rgba(0,0,0,.5);
-  display: flex; align-items: flex-end; justify-content: center;
-  opacity: 0; pointer-events: none; transition: opacity .28s;
-}
-#l2Over.on { opacity: 1; pointer-events: auto; }
-#l2Sheet {
-  width: 100%; max-width: 520px; background: var(--bg);
-  border-radius: 24px 24px 0 0;
-  display: flex; flex-direction: column; height: 88vh;
-  transform: translateY(100%);
-  transition: transform .36s cubic-bezier(.32,.72,0,1);
-}
-#l2Over.on #l2Sheet { transform: translateY(0); }
-#l2Drag { width: 36px; height: 4px; border-radius: 2px; background: var(--sep); margin: 10px auto 0; flex-shrink: 0; }
-#l2Head { flex-shrink: 0; padding: 10px 18px 8px; display: flex; align-items: center; justify-content: space-between; }
-#l2Title { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--text); }
-#l2CloseBtn { width: 30px; height: 30px; border-radius: 50%; background: var(--bg3); border: none; font-size: 16px; color: var(--text2); display: flex; align-items: center; justify-content: center; touch-action: manipulation; cursor: pointer; }
-#l2Body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 22px calc(env(safe-area-inset-bottom) + 24px); overscroll-behavior: contain; }
-
-/* ── L2 INDICATORS ON LAYER-1 DOTS ── */
-.dot .l2pip { position: absolute; top: -1px; right: -1px; width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--bg); pointer-events: none; display: none; }
-.dot.hasl2 .l2pip { display: block; }
+/* ── LAYER 2 ── */
+#l2Btn { position:fixed; top:calc(env(safe-area-inset-top)+14px); right:18px; z-index:250; width:34px; height:34px; border-radius:50%; background:var(--accent); border:none; color:#fff; font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 10px rgba(0,0,0,.25); touch-action:manipulation; cursor:pointer; opacity:1; transform:scale(1); transition:opacity .22s,transform .22s; }
+#l2Btn.hide { opacity:0; transform:scale(.7); pointer-events:none; }
+#l2Over { position:fixed; inset:0; z-index:350; background:rgba(0,0,0,.5); display:flex; align-items:flex-end; justify-content:center; opacity:0; pointer-events:none; transition:opacity .28s; }
+#l2Over.on { opacity:1; pointer-events:auto; }
+#l2Sheet { width:100%; max-width:520px; background:var(--bg); border-radius:24px 24px 0 0; display:flex; flex-direction:column; height:88vh; transform:translateY(100%); transition:transform .36s cubic-bezier(.32,.72,0,1); }
+#l2Over.on #l2Sheet { transform:translateY(0); }
+#l2Drag { width:36px; height:4px; border-radius:2px; background:var(--sep); margin:12px auto 0; flex-shrink:0; }
+#l2Head { flex-shrink:0; padding:10px 18px 8px; display:flex; align-items:center; justify-content:space-between; }
+#l2Title { font-family:'DM Serif Display',serif; font-size:20px; color:var(--text); }
+#l2CloseBtn { width:30px; height:30px; border-radius:50%; background:var(--bg3); border:none; font-size:16px; color:var(--text2); display:flex; align-items:center; justify-content:center; touch-action:manipulation; cursor:pointer; }
+#l2Body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:0 22px calc(env(safe-area-inset-bottom)+24px); overscroll-behavior:contain; }
+.dot .l2pip { position:absolute; top:-1px; right:-1px; width:8px; height:8px; border-radius:50%; border:1.5px solid var(--bg); pointer-events:none; display:none; }
+.dot.hasl2 .l2pip { display:block; }
 
 /* ── CONTEXT MENU ── */
 #ctxMenu {
@@ -796,10 +769,8 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
   </div>
 </div>
 
-<!-- LAYER 2 BADGE -->
-<button id="l2Btn" onclick="l2Open()" aria-label="Слой 2">2</button>
-
-<!-- LAYER 2 SHEET -->
+<!-- LAYER 2 -->
+<button id="l2Btn" onclick="l2Open()">2</button>
 <div id="l2Over" onclick="if(event.target===this)l2Close()">
   <div id="l2Sheet">
     <div id="l2Drag"></div>
@@ -808,18 +779,11 @@ input, textarea, select { font-family: inherit; user-select: text !important; -w
       <button id="l2CloseBtn" onclick="l2Close()">✕</button>
     </div>
     <div id="l2Body">
-      <div class="mnav">
-        <button class="marr" onclick="l2ChM(-1)">‹</button>
-        <div class="mlbl" id="l2Lbl"></div>
-        <button class="marr" onclick="l2ChM(1)">›</button>
-      </div>
-      <div class="chdr">
-        <span>П</span><span>В</span><span>С</span><span>Ч</span><span>П</span>
-        <span class="we">С</span><span class="we">В</span>
-      </div>
+      <div class="mnav"><button class="marr" onclick="l2ChM(-1)">‹</button><div class="mlbl" id="l2Lbl"></div><button class="marr" onclick="l2ChM(1)">›</button></div>
+      <div class="chdr"><span>П</span><span>В</span><span>С</span><span>Ч</span><span>П</span><span class="we">С</span><span class="we">В</span></div>
       <div class="cgrid" id="l2Grid"></div>
-      <div id="l2EntWrap"></div>
-      <div id="l2TotWrap"></div>
+      <div id="l2EW"></div>
+      <div id="l2TW"></div>
     </div>
   </div>
 </div>
@@ -1694,8 +1658,7 @@ function renderCal() {
     </div>`;
   }
   document.getElementById('grid').innerHTML = h;
-  // refresh layer-2 indicators
-  if (typeof l2RefreshIndicators === 'function') l2RefreshIndicators();
+  if(window.l2Sync)l2Sync();
 }
 
 // ── COPY / PASTE ──
@@ -2154,17 +2117,7 @@ function pickCHex(c) {}
 function addX(amount='', comment='') {}
 
 function saveDay() {
-  if (window._l2eDk) {
-    _saveTaskFields();
-    var valid2 = _tasks.filter(function(t){ return t.label||t.timeStart||t.earned||(t.expenses&&t.expenses.length)||t.color; });
-    var toSave2 = valid2.length ? valid2 : [_tasks[0]];
-    window._l2days[window._l2eDk] = toSave2.length===1 ? toSave2[0] : toSave2;
-    window._l2save();
-    window._l2eDk = null;
-    closeModal();
-    setTimeout(function(){ l2RenderCal(); l2RenderEnt(); }, 450);
-    return;
-  }
+  if(window.l2SaveDay&&window.l2SaveDay()){return;}
   if (!eDk) return;
   _saveTaskFields();
   const valid = _tasks.filter(t => t.label || t.timeStart || t.earned || (t.expenses && t.expenses.length) || t.color);
@@ -2335,7 +2288,7 @@ function goTab(tab, fromSwipe = false) {
   curTab_ref.v = tab;
   document.getElementById('tbM').classList.toggle('on', tab === 'main');
   document.getElementById('tbS').classList.toggle('on', tab === 'sett');
-  var _l2b = document.getElementById('l2Btn'); if (_l2b) _l2b.classList.toggle('hide', tab === 'sett');
+  var _b=document.getElementById('l2Btn');if(_b)_b.classList.toggle('hide',tab==='sett');
   if (fromSwipe) {
     // After swipe: panels are already in motion — just set final position with animation
     m.style.transition = EASE;
@@ -2521,209 +2474,7 @@ function applyBg() {
   }
 }
 
-
-// ══════════════ LAYER 2 ══════════════
-window._l2days = {};
-window._l2eDk  = null;
-var _L2SK = 'ftc_d2';
-var _l2vy = new Date().getFullYear();
-var _l2vm = new Date().getMonth();
-var _l2t0=0, _l2mv=false, _l2lpt=null;
-var _l2lastTap=0, _l2lastDk=null, _l2dtTimer=null;
-var _l2tx0=0, _l2ty0=0;
-
-window._l2save = function() { localStorage.setItem(_L2SK, JSON.stringify(window._l2days)); };
-(function(){ try{ window._l2days=JSON.parse(localStorage.getItem(_L2SK)||'{}'); }catch(e){ window._l2days={}; } })();
-
-function l2Open() {
-  _l2vy = vy; _l2vm = vm;
-  l2RenderCal(); l2RenderEnt();
-  document.getElementById('l2Over').classList.add('on');
-}
-function l2Close() {
-  document.getElementById('l2Over').classList.remove('on');
-}
-function l2ChM(d) {
-  _l2vm += d;
-  if (_l2vm < 0)  { _l2vm = 11; _l2vy--; }
-  if (_l2vm > 11) { _l2vm = 0;  _l2vy++; }
-  l2RenderCal(); l2RenderEnt();
-}
-
-function l2RefreshIndicators() {
-  document.querySelectorAll('#grid .dot').forEach(function(dot) {
-    dot.classList.remove('hasl2');
-    var p = dot.querySelector('.l2pip'); if (p) p.remove();
-  });
-  if (_l2vy !== vy || _l2vm !== vm) return;
-  document.querySelectorAll('#grid .dot:not(.empty)').forEach(function(dot) {
-    var attr = dot.getAttribute('ontouchstart') || '';
-    var m = attr.match(/'(\d{4}-\d{2}-\d{2})'/);
-    if (!m) return;
-    var dd = window._l2days[m[1]]; if (!dd) return;
-    var col = _dayColor(dd) || cfg.acc;
-    dot.classList.add('hasl2');
-    var pip = document.createElement('div');
-    pip.className = 'l2pip'; pip.style.background = col;
-    dot.appendChild(pip);
-  });
-}
-
-function l2RenderCal() {
-  document.getElementById('l2Lbl').textContent = MON[_l2vm] + ' ' + _l2vy;
-  var t = new Date();
-  var tdk = dkey(t.getFullYear(), t.getMonth(), t.getDate());
-  var fd  = (new Date(_l2vy, _l2vm, 1).getDay() + 6) % 7;
-  var dim = new Date(_l2vy, _l2vm+1, 0).getDate();
-  var h = '';
-  for (var i=0; i<fd; i++) h += '<div class="dot empty"></div>';
-  for (var d=1; d<=dim; d++) {
-    var dk  = dkey(_l2vy, _l2vm, d);
-    var dd  = window._l2days[dk];
-    var col = _dayColor(dd);
-    var dt  = new Date(_l2vy, _l2vm, d);
-    var isT = dk===tdk;
-    var isP = dt < new Date(t.getFullYear(), t.getMonth(), t.getDate());
-    var cls = 'dot', sty = '';
-    if (dd && col) { sty=_pizzaStyle(dd); cls+=' work'; if(isT) cls+=' today-w'; }
-    else if (isT) cls+=' today';
-    else if (isP) cls+=' past';
-    else          cls+=' future';
-    if (dd) cls+=' has';
-    h += '<div class="'+cls+'" style="'+sty+'"'+
-         ' ontouchstart="l2ts(event,\''+dk+'\')"'+
-         ' ontouchmove="l2tm()"'+
-         ' ontouchend="l2te(event,\''+dk+'\')">' +
-         '<div class="pip"></div><div class="dnum">'+d+'</div></div>';
-  }
-  document.getElementById('l2Grid').innerHTML = h;
-  l2RefreshIndicators();
-}
-
-function l2ts(e, dk) {
-  _l2mv=false; _l2t0=Date.now();
-  if(e.touches&&e.touches.length){ _l2tx0=e.touches[0].clientX; _l2ty0=e.touches[0].clientY; }
-  var el=e.currentTarget; el.classList.add('press');
-  _l2lpt=setTimeout(function(){ el.classList.remove('press'); },500);
-}
-function l2tm() {
-  _l2mv=true; clearTimeout(_l2lpt);
-  document.querySelectorAll('#l2Grid .dot.press').forEach(function(d){ d.classList.remove('press'); });
-}
-function l2te(e, dk) {
-  clearTimeout(_l2lpt);
-  if(e.currentTarget) e.currentTarget.classList.remove('press');
-  if(_l2mv) return;
-  if(Date.now()-_l2t0>=500) return;
-  if(e.changedTouches&&e.changedTouches.length){
-    var ct=e.changedTouches[0];
-    if(Math.abs(ct.clientX-_l2tx0)>12||Math.abs(ct.clientY-_l2ty0)>12) return;
-  }
-  var now=Date.now();
-  if(_l2lastDk===dk&&now-_l2lastTap<400){
-    clearTimeout(_l2dtTimer); _l2lastTap=0; _l2lastDk=null;
-    l2ClrD(dk); return;
-  }
-  _l2lastTap=now; _l2lastDk=dk;
-  clearTimeout(_l2dtTimer);
-  _l2dtTimer=setTimeout(function(){ _l2lastTap=0; _l2lastDk=null; l2OpenModal(dk); }, 350);
-}
-function l2ClrD(dk) {
-  if(!window._l2days[dk]) return;
-  navigator.vibrate&&navigator.vibrate([20,30,20]);
-  delete window._l2days[dk]; window._l2save();
-  requestAnimationFrame(function(){ l2RenderCal(); l2RenderEnt(); });
-}
-function l2OpenModal(dk) {
-  window._l2eDk = dk;
-  var parts = dk.split('-').map(Number);
-  document.getElementById('mTit').textContent = parts[2]+' '+MONG[parts[1]-1]+' ·2';
-  var raw = window._l2days[dk];
-  if (!raw) {
-    _tasks = [{color:cfg.acc||COLORS[0],label:'',timeStart:'',timeEnd:'',earned:0,expenses:[]}];
-  } else if (Array.isArray(raw)) {
-    _tasks = raw.map(function(t){ return Object.assign({color:COLORS[0],label:'',timeStart:'',timeEnd:'',earned:0,expenses:[]},t); });
-  } else {
-    _tasks = [Object.assign({color:COLORS[0],label:'',timeStart:'',timeEnd:'',earned:0,expenses:[]},raw)];
-  }
-  _renderTasks();
-  var sh=document.getElementById('mSheet'); if(sh) sh.scrollTop=0;
-  document.getElementById('modal').classList.add('on');
-}
-
-function l2RenderEnt() {
-  var ew=document.getElementById('l2EntWrap'), tw=document.getElementById('l2TotWrap');
-  var items=[];
-  for(var d=1;d<=31;d++){
-    var dk=dkey(_l2vy,_l2vm,d), dt=new Date(_l2vy,_l2vm,d);
-    if(dt.getMonth()!==_l2vm) break;
-    if(window._l2days[dk]) items.push({dk:dk,d:d,dd:window._l2days[dk]});
-  }
-  if(!items.length){ ew.innerHTML=''; tw.innerHTML=''; return; }
-  var cur=cfg.cur, html='<div class="slbl">'+MON[_l2vm]+' '+_l2vy+'</div>', te=0, ax=[];
-  items.forEach(function(it,i){
-    var tasks=_normDay(it.dd), fc=_dayColor(it.dd)||cfg.acc;
-    tasks.forEach(function(t){ te+=t.earned||0; (t.expenses||[]).forEach(function(x){ ax.push(Object.assign({},x)); }); });
-    var rows='';
-    tasks.forEach(function(t,ti){
-      var ts=t.timeStart?(t.timeEnd?t.timeStart+'–'+t.timeEnd:t.timeStart):'';
-      var es=t.earned?'+'+cur+t.earned.toLocaleString():'';
-      var xt=(t.expenses||[]).reduce(function(s,x){return s+(x.amount||0);},0);
-      var xs=xt?'−'+cur+xt.toLocaleString():'';
-      var dc=t.color||cfg.acc;
-      rows+='<div style="display:flex;align-items:flex-start;gap:10px;padding:'+(ti>0?'8px':'4px')+' 0 0;">'+
-        '<div style="width:20px;height:20px;border-radius:50%;background:'+dc+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px;">'+(ti+1)+'</div>'+
-        '<div style="flex:1;">'+(t.label?'<div class="ename">'+t.label+'</div>':'')+
-        '<div class="enums">'+(ts?'<span style="color:var(--text3);">🕐 '+ts+'</span>':'')+
-        (es?'<span style="color:var(--accent);font-weight:600;">'+es+'</span>':'')+
-        (xs?'<span style="color:var(--text2);">'+xs+'</span>':'')+
-        '</div></div></div>';
-    });
-    html+='<div class="ecard" onclick="l2OpenModal(\''+it.dk+'\')">'+
-      '<div class="etop"><div class="enum">'+(i+1)+'</div>'+
-      '<div class="einfo"><div class="edate">'+it.d+' '+MONG[_l2vm]+'</div></div>'+
-      '<div class="edot" style="background:'+fc+';"></div></div>'+rows+'</div>';
-  });
-  ew.innerHTML=html;
-  var tx=ax.reduce(function(s,x){return s+(x.amount||0);},0), net=te-tx;
-  var g={};
-  ax.forEach(function(x){ var k=(x.comment||'Затрата').trim(); g[k]=(g[k]||0)+(x.amount||0); });
-  var th='';
-  Object.keys(g).forEach(function(n){ th+='<div class="xrow"><span>'+n+'</span><span style="color:var(--accent);">−'+cur+g[n].toLocaleString()+'</span></div>'; });
-  th+='<div class="trow" style="align-items:flex-start;"><div class="tlbl" style="padding-top:10px;">Итого · слой 2</div>'+
-    '<div style="text-align:right;"><div class="tamt" style="color:'+(net>=0?'var(--accent)':'#c0392b')+';"> '+(net>=0?'+':'')+cur+Math.abs(net).toLocaleString()+'</div></div></div>';
-  tw.innerHTML='<div class="tcard">'+th+'</div>';
-}
-
-// Свайп вниз закрывает шторку слоя 2
-(function(){
-  var sy=0, drag=false;
-  document.addEventListener('touchstart',function(e){
-    if(!document.getElementById('l2Over').classList.contains('on')) return;
-    if(!document.getElementById('l2Sheet').contains(e.target)) return;
-    sy=e.touches[0].clientY; drag=false;
-  },{passive:true});
-  document.addEventListener('touchmove',function(e){
-    if(!document.getElementById('l2Over').classList.contains('on')) return;
-    var body=document.getElementById('l2Body');
-    if(body&&body.scrollTop>0) return;
-    var sh=document.getElementById('l2Sheet');
-    var dy=e.touches[0].clientY-sy;
-    if(dy>12){ drag=true; sh.style.transition='none'; sh.style.transform='translateY('+Math.min(dy,300)+'px)'; }
-  },{passive:true});
-  document.addEventListener('touchend',function(e){
-    if(!document.getElementById('l2Over').classList.contains('on')) return;
-    var sh=document.getElementById('l2Sheet');
-    var dy=e.changedTouches[0].clientY-sy;
-    sh.style.transition='';
-    if(drag&&dy>100){ sh.style.transform=''; l2Close(); }
-    else sh.style.transform='';
-    drag=false;
-  },{passive:true});
-})();
-// ═════════════════════════════════════════
-
-
+function applyCfg() {
   // Theme
   if (cfg.thcls) document.body.classList.add(cfg.thcls);
   // Custom theme colors
@@ -2756,5 +2507,179 @@ function l2RenderEnt() {
   if (cfg.xcurs && cfg.xcurs.length) setTimeout(xcRefreshRates, 500);
 }
 </script>
-</body>
-</html>
+<script>
+// ══ LAYER 2 ══
+var _L2={
+  SK:'ftc_d2', days:{}, eDk:null,
+  vy:new Date().getFullYear(), vm:new Date().getMonth(),
+  t0:0, mv:false, lpt:null, lastTap:0, lastDk:null, dtTimer:null, tx0:0, ty0:0
+};
+try{_L2.days=JSON.parse(localStorage.getItem(_L2.SK)||'{}');}catch(e){}
+function _l2save(){localStorage.setItem(_L2.SK,JSON.stringify(_L2.days));}
+
+// Хук: saveDay для слоя 2
+window.l2SaveDay=function(){
+  if(!_L2.eDk)return false;
+  _saveTaskFields();
+  var v=_tasks.filter(function(t){return t.label||t.timeStart||t.earned||(t.expenses&&t.expenses.length)||t.color;});
+  var s=v.length?v:[_tasks[0]];
+  _L2.days[_L2.eDk]=s.length===1?s[0]:s;
+  _l2save(); _L2.eDk=null;
+  closeModal();
+  setTimeout(function(){l2Cal();l2Ent();},450);
+  return true;
+};
+
+// Хук: обновить индикаторы после renderCal
+window.l2Sync=function(){
+  document.querySelectorAll('#grid .dot').forEach(function(d){
+    d.classList.remove('hasl2');
+    var p=d.querySelector('.l2pip');if(p)p.remove();
+  });
+  if(_L2.vy!==vy||_L2.vm!==vm)return;
+  document.querySelectorAll('#grid .dot:not(.empty)').forEach(function(d){
+    var a=d.getAttribute('ontouchstart')||'',m=a.match(/'(\d{4}-\d{2}-\d{2})'/);
+    if(!m)return;
+    var dd=_L2.days[m[1]];if(!dd)return;
+    var col=_dayColor(dd)||cfg.acc;
+    d.classList.add('hasl2');
+    var p=document.createElement('div');p.className='l2pip';p.style.background=col;d.appendChild(p);
+  });
+};
+
+function l2Open(){_L2.vy=vy;_L2.vm=vm;l2Cal();l2Ent();document.getElementById('l2Over').classList.add('on');}
+function l2Close(){document.getElementById('l2Over').classList.remove('on');}
+function l2ChM(d){_L2.vm+=d;if(_L2.vm<0){_L2.vm=11;_L2.vy--;}if(_L2.vm>11){_L2.vm=0;_L2.vy++;}l2Cal();l2Ent();}
+
+function l2Cal(){
+  document.getElementById('l2Lbl').textContent=MON[_L2.vm]+' '+_L2.vy;
+  var t=new Date(),tdk=dkey(t.getFullYear(),t.getMonth(),t.getDate());
+  var fd=(new Date(_L2.vy,_L2.vm,1).getDay()+6)%7,dim=new Date(_L2.vy,_L2.vm+1,0).getDate(),h='';
+  for(var i=0;i<fd;i++)h+='<div class="dot empty"></div>';
+  for(var d=1;d<=dim;d++){
+    var dk=dkey(_L2.vy,_L2.vm,d),dd=_L2.days[dk],col=_dayColor(dd);
+    var dt=new Date(_L2.vy,_L2.vm,d),isT=dk===tdk,isP=dt<new Date(t.getFullYear(),t.getMonth(),t.getDate());
+    var cls='dot',sty='';
+    if(dd&&col){sty=_pizzaStyle(dd);cls+=' work';if(isT)cls+=' today-w';}
+    else if(isT)cls+=' today';else if(isP)cls+=' past';else cls+=' future';
+    if(dd)cls+=' has';
+    h+='<div class="'+cls+'" style="'+sty+'"'+
+       ' ontouchstart="l2Ts(event,\''+dk+'\')" ontouchmove="l2Tm()" ontouchend="l2Te(event,\''+dk+'\')">'+
+       '<div class="pip"></div><div class="dnum">'+d+'</div></div>';
+  }
+  document.getElementById('l2Grid').innerHTML=h;
+  window.l2Sync();
+}
+
+function l2Ts(e,dk){
+  _L2.mv=false;_L2.t0=Date.now();
+  if(e.touches&&e.touches.length){_L2.tx0=e.touches[0].clientX;_L2.ty0=e.touches[0].clientY;}
+  var el=e.currentTarget;el.classList.add('press');
+  _L2.lpt=setTimeout(function(){el.classList.remove('press');},500);
+}
+function l2Tm(){
+  _L2.mv=true;clearTimeout(_L2.lpt);
+  document.querySelectorAll('#l2Grid .dot.press').forEach(function(d){d.classList.remove('press');});
+}
+function l2Te(e,dk){
+  clearTimeout(_L2.lpt);
+  if(e.currentTarget)e.currentTarget.classList.remove('press');
+  if(_L2.mv)return;
+  if(Date.now()-_L2.t0>=500)return;
+  if(e.changedTouches&&e.changedTouches.length){
+    var ct=e.changedTouches[0];
+    if(Math.abs(ct.clientX-_L2.tx0)>12||Math.abs(ct.clientY-_L2.ty0)>12)return;
+  }
+  var now=Date.now();
+  if(_L2.lastDk===dk&&now-_L2.lastTap<400){
+    clearTimeout(_L2.dtTimer);_L2.lastTap=0;_L2.lastDk=null;
+    l2ClrD(dk);return;
+  }
+  _L2.lastTap=now;_L2.lastDk=dk;
+  clearTimeout(_L2.dtTimer);
+  _L2.dtTimer=setTimeout(function(){_L2.lastTap=0;_L2.lastDk=null;l2Modal(dk);},350);
+}
+function l2ClrD(dk){
+  if(!_L2.days[dk])return;
+  navigator.vibrate&&navigator.vibrate([20,30,20]);
+  delete _L2.days[dk];_l2save();
+  requestAnimationFrame(function(){l2Cal();l2Ent();});
+}
+function l2Modal(dk){
+  _L2.eDk=dk;
+  var p=dk.split('-').map(Number);
+  document.getElementById('mTit').textContent=p[2]+' '+MONG[p[1]-1]+' ·2';
+  var raw=_L2.days[dk];
+  if(!raw)_tasks=[{color:cfg.acc||COLORS[0],label:'',timeStart:'',timeEnd:'',earned:0,expenses:[]}];
+  else if(Array.isArray(raw))_tasks=raw.map(function(t){return Object.assign({color:COLORS[0],label:'',timeStart:'',timeEnd:'',earned:0,expenses:[]},t);});
+  else _tasks=[Object.assign({color:COLORS[0],label:'',timeStart:'',timeEnd:'',earned:0,expenses:[]},raw)];
+  _renderTasks();
+  var sh=document.getElementById('mSheet');if(sh)sh.scrollTop=0;
+  document.getElementById('modal').classList.add('on');
+}
+
+function l2Ent(){
+  var ew=document.getElementById('l2EW'),tw=document.getElementById('l2TW'),items=[];
+  for(var d=1;d<=31;d++){
+    var dk=dkey(_L2.vy,_L2.vm,d),dt=new Date(_L2.vy,_L2.vm,d);
+    if(dt.getMonth()!==_L2.vm)break;
+    if(_L2.days[dk])items.push({dk:dk,d:d,dd:_L2.days[dk]});
+  }
+  if(!items.length){ew.innerHTML='';tw.innerHTML='';return;}
+  var cur=cfg.cur,html='<div class="slbl">'+MON[_L2.vm]+' '+_L2.vy+'</div>',te=0,ax=[];
+  items.forEach(function(it,i){
+    var tasks=_normDay(it.dd),fc=_dayColor(it.dd)||cfg.acc;
+    tasks.forEach(function(t){te+=t.earned||0;(t.expenses||[]).forEach(function(x){ax.push(Object.assign({},x));});});
+    var rows='';
+    tasks.forEach(function(t,ti){
+      var ts=t.timeStart?(t.timeEnd?t.timeStart+'–'+t.timeEnd:t.timeStart):'';
+      var es=t.earned?'+'+cur+t.earned.toLocaleString():'';
+      var xt=(t.expenses||[]).reduce(function(s,x){return s+(x.amount||0);},0),xs=xt?'−'+cur+xt.toLocaleString():'';
+      var dc=t.color||cfg.acc;
+      rows+='<div style="display:flex;align-items:flex-start;gap:10px;padding:'+(ti?'8':'4')+'px 0 0">'+
+        '<div style="width:20px;height:20px;border-radius:50%;background:'+dc+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px;">'+(ti+1)+'</div>'+
+        '<div style="flex:1">'+(t.label?'<div class="ename">'+t.label+'</div>':'')+
+        '<div class="enums">'+(ts?'<span style="color:var(--text3)">🕐 '+ts+'</span>':'')+
+        (es?'<span style="color:var(--accent);font-weight:600">'+es+'</span>':'')+
+        (xs?'<span style="color:var(--text2)">'+xs+'</span>':'')+
+        '</div></div></div>';
+    });
+    html+='<div class="ecard" onclick="l2Modal(\''+it.dk+'\')">'+
+      '<div class="etop"><div class="enum">'+(i+1)+'</div>'+
+      '<div class="einfo"><div class="edate">'+it.d+' '+MONG[_L2.vm]+'</div></div>'+
+      '<div class="edot" style="background:'+fc+'"></div></div>'+rows+'</div>';
+  });
+  ew.innerHTML=html;
+  var tx=ax.reduce(function(s,x){return s+(x.amount||0);},0),net=te-tx,g={};
+  ax.forEach(function(x){var k=(x.comment||'Затрата').trim();g[k]=(g[k]||0)+(x.amount||0);});
+  var th='';
+  Object.keys(g).forEach(function(n){th+='<div class="xrow"><span>'+n+'</span><span style="color:var(--accent)">−'+cur+g[n].toLocaleString()+'</span></div>';});
+  th+='<div class="trow" style="align-items:flex-start"><div class="tlbl" style="padding-top:10px">Итого · слой 2</div>'+
+    '<div style="text-align:right"><div class="tamt" style="color:'+(net>=0?'var(--accent)':'#c0392b')+'">'+(net>=0?'+':'')+cur+Math.abs(net).toLocaleString()+'</div></div></div>';
+  tw.innerHTML='<div class="tcard">'+th+'</div>';
+}
+
+// Свайп вниз для закрытия
+(function(){
+  var sy=0,drag=false;
+  document.addEventListener('touchstart',function(e){
+    if(!document.getElementById('l2Over').classList.contains('on'))return;
+    if(!document.getElementById('l2Sheet').contains(e.target))return;
+    sy=e.touches[0].clientY;drag=false;
+  },{passive:true});
+  document.addEventListener('touchmove',function(e){
+    if(!document.getElementById('l2Over').classList.contains('on'))return;
+    var body=document.getElementById('l2Body');
+    if(body&&body.scrollTop>0)return;
+    var sh=document.getElementById('l2Sheet'),dy=e.touches[0].clientY-sy;
+    if(dy>12){drag=true;sh.style.transition='none';sh.style.transform='translateY('+Math.min(dy,300)+'px)';}
+  },{passive:true});
+  document.addEventListener('touchend',function(e){
+    if(!document.getElementById('l2Over').classList.contains('on'))return;
+    var sh=document.getElementById('l2Sheet'),dy=e.changedTouches[0].clientY-sy;
+    sh.style.transition='';
+    if(drag&&dy>100){sh.style.transform='';l2Close();}else{sh.style.transform='';}
+    drag=false;
+  },{passive:true});
+})();
+</script>
