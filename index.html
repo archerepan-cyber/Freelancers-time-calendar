@@ -483,12 +483,13 @@ button { font-family: inherit; cursor: pointer; }
 /* ── LAYER 2 ── */
 #l2Btn { position:fixed; top:60px; right:18px; z-index:250; width:34px; height:34px; border-radius:50%; background:var(--accent); border:none; color:#fff; font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 10px rgba(0,0,0,.25); touch-action:manipulation; cursor:pointer; opacity:1; transition:opacity .22s; }
 #l2Btn.hide { opacity:0; pointer-events:none; }
-#l2Over { position:fixed; inset:0; z-index:250; background:var(--bg); opacity:0; pointer-events:none; transition:opacity .3s; display:flex; flex-direction:column; overflow:hidden; }
+#l2Over { position:fixed; inset:0; z-index:350; background:rgba(0,0,0,.5); opacity:0; pointer-events:none; transition:opacity .3s; display:flex; align-items:flex-end; justify-content:center; }
 #l2Over.on { opacity:1; pointer-events:auto; }
-#l2Sheet { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding: calc(env(safe-area-inset-top) + 20px) 22px calc(env(safe-area-inset-bottom) + 78px); }
-#l2Bar { flex-shrink:0; height:58px; display:flex; align-items:center; justify-content:center; background:var(--bg2); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border-top:.5px solid var(--sep); }
-#l2CloseBtn { background:none; border:none; font-size:34px; padding:6px 14px; opacity:.35; transition:opacity .2s; touch-action:manipulation; color:var(--text); }
-#l2CloseBtn.on { opacity:1; }
+#l2Sheet { position:relative; width:100%; max-width:520px; height:92vh; background:var(--bg); border-radius:20px 20px 0 0; display:flex; flex-direction:column; transform:translateY(100%); transition:transform .38s cubic-bezier(.32,.72,0,1); overflow:hidden; }
+#l2Over.on #l2Sheet { transform:translateY(0); }
+#l2Drag { width:36px; height:4px; border-radius:2px; background:var(--sep); margin:12px auto 0; flex-shrink:0; }
+#l2CloseBtn { position:absolute; top:14px; right:16px; width:30px; height:30px; border-radius:50%; background:var(--bg3); border:none; font-size:16px; color:var(--text2); display:flex; align-items:center; justify-content:center; touch-action:manipulation; cursor:pointer; z-index:1; }
+#l2Body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding:0 22px calc(env(safe-area-inset-bottom)+24px); }
 .dot .l2pip { position:absolute; top:-1px; right:-1px; width:8px; height:8px; border-radius:50%; border:1.5px solid var(--bg); pointer-events:none; display:none; }
 .dot.hasl2 .l2pip { display:block; }
 
@@ -655,31 +656,29 @@ button { font-family: inherit; cursor: pointer; }
 
 <!-- LAYER 2 -->
 <button id="l2Btn" onclick="l2Open()">2</button>
-<div id="l2Over">
+<div id="l2Over" onclick="if(event.target===this)l2Close()">
   <div id="l2Sheet">
-    <div class="big" id="l2bNum">15</div>
-    <div class="bigrow">
-      <div><span class="bigmon" id="l2bMon">МАЙ</span><span class="bigyr" id="l2bYr"> 2026</span></div>
-      <div class="bigdow" id="l2bDow">Пятница</div>
-    </div>
-
-    <div class="mnav">
-      <button class="marr" onclick="l2ChM(-1)">‹</button>
-      <div class="mlbl" id="l2Lbl"></div>
-      <button class="marr" onclick="l2ChM(1)">›</button>
-    </div>
-
-    <div class="chdr">
-      <span>П</span><span>В</span><span>С</span><span>Ч</span><span>П</span>
-      <span class="we">С</span><span class="we">В</span>
-    </div>
-    <div class="cgrid" id="l2Grid"></div>
-
-    <div id="l2EW"></div>
-    <div id="l2TW"></div>
-  </div>
-  <div id="l2Bar">
+    <div id="l2Drag"></div>
     <button id="l2CloseBtn" onclick="l2Close()">✕</button>
+    <div id="l2Body">
+      <div class="big" id="l2bNum">15</div>
+      <div class="bigrow">
+        <div><span class="bigmon" id="l2bMon">МАЙ</span><span class="bigyr" id="l2bYr"> 2026</span></div>
+        <div class="bigdow" id="l2bDow">Пятница</div>
+      </div>
+      <div class="mnav">
+        <button class="marr" onclick="l2ChM(-1)">‹</button>
+        <div class="mlbl" id="l2Lbl"></div>
+        <button class="marr" onclick="l2ChM(1)">›</button>
+      </div>
+      <div class="chdr">
+        <span>П</span><span>В</span><span>С</span><span>Ч</span><span>П</span>
+        <span class="we">С</span><span class="we">В</span>
+      </div>
+      <div class="cgrid" id="l2Grid"></div>
+      <div id="l2EW"></div>
+      <div id="l2TW"></div>
+    </div>
   </div>
 </div>
 
@@ -2465,14 +2464,16 @@ function l2Ent(){
     if(!document.getElementById('l2Over').classList.contains('on'))return;
     var sh=document.getElementById('l2Sheet');
     if(!sh.contains(e.target)){sy=null;return;}
-    if(sh.scrollTop>0){sy=null;return;}
+    var body=document.getElementById('l2Body');
+    if(body&&body.scrollTop>0){sy=null;return;}
     sy=e.touches[0].clientY;drag=false;
   },{passive:true});
   document.addEventListener('touchmove',function(e){
     if(!document.getElementById('l2Over').classList.contains('on'))return;
     if(sy===null)return;
+    var body=document.getElementById('l2Body');
+    if(body&&body.scrollTop>0){sy=null;return;}
     var sh=document.getElementById('l2Sheet');
-    if(sh.scrollTop>0){sy=null;return;}
     var dy=e.touches[0].clientY-sy;
     if(dy>12){drag=true;sh.style.transition='none';sh.style.transform='translateY('+Math.min(dy,300)+'px)';}
   },{passive:true});
