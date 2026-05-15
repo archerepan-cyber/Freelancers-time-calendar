@@ -2276,22 +2276,34 @@ function applyCfg() {
 }
 </script>
 <script>
-var _L2={SK:'ftc_d2',days:{},eDk:null,vy:new Date().getFullYear(),vm:new Date().getMonth(),t0:0,mv:false,lpt:null,lastTap:0,lastDk:null,dtTimer:null,tx0:0,ty0:0};
+// ══ LAYER 2 — полный аналог слоя 1 ══
+var _L2 = {
+  SK:'ftc_d2', days:{}, eDk:null,
+  vy:new Date().getFullYear(), vm:new Date().getMonth(),
+  // touch state
+  t0:0, mv:false, lpt:null,
+  lastTap:0, lastDk:null, dtTimer:null,
+  tx0:0, ty0:0,
+  longPressed:false, longPressDk:null,
+  blockClick:false, blockTimer:null
+};
 try{_L2.days=JSON.parse(localStorage.getItem(_L2.SK)||'{}');}catch(e){}
 function _l2save(){localStorage.setItem(_L2.SK,JSON.stringify(_L2.days));}
 
+// ── Перехват saveDay для слоя 2 ──
 window.l2SaveDay=function(){
   if(!_L2.eDk)return false;
   _saveTaskFields();
   var v=_tasks.filter(function(t){return t.label||t.timeStart||t.earned||(t.expenses&&t.expenses.length)||t.color;});
   var s=v.length?v:[_tasks[0]];
   _L2.days[_L2.eDk]=s.length===1?s[0]:s;
-  _l2save();_L2.eDk=null;
+  _l2save(); _L2.eDk=null;
   closeModal();
   setTimeout(function(){l2Cal();l2Ent();},450);
   return true;
 };
 
+// ── Индикаторы на кружках первого слоя ──
 window.l2Sync=function(){
   document.querySelectorAll('#grid .dot').forEach(function(d){
     d.classList.remove('hasl2');
@@ -2308,43 +2320,85 @@ window.l2Sync=function(){
   });
 };
 
+// ── Открыть / закрыть ──
 function l2Open(){_L2.vy=vy;_L2.vm=vm;l2Cal();l2Ent();document.getElementById('l2Over').classList.add('on');}
-function l2Close(){document.getElementById('l2Over').classList.remove('on');}
-function l2ChM(d){_L2.vm+=d;if(_L2.vm<0){_L2.vm=11;_L2.vy--;}if(_L2.vm>11){_L2.vm=0;_L2.vy++;}l2Cal();l2Ent();}
+function l2Close(){document.getElementById('l2Over').classList.remove('on');_L2.eDk=null;}
+function l2ChM(d){
+  clearTimeout(_L2.dtTimer);clearTimeout(_L2.lpt);
+  _L2.lastTap=0;_L2.lastDk=null;_L2.mv=false;_L2.longPressed=false;_L2.longPressDk=null;
+  document.querySelectorAll('#l2Grid .dot.press').forEach(function(el){el.classList.remove('press');});
+  _L2.vm+=d;
+  if(_L2.vm<0){_L2.vm=11;_L2.vy--;}
+  if(_L2.vm>11){_L2.vm=0;_L2.vy++;}
+  l2Cal();l2Ent();
+}
 
+// ── Рендер календаря ──
 function l2Cal(){
   document.getElementById('l2Lbl').textContent=MON[_L2.vm]+' '+_L2.vy;
   var t=new Date(),tdk=dkey(t.getFullYear(),t.getMonth(),t.getDate());
-  var fd=(new Date(_L2.vy,_L2.vm,1).getDay()+6)%7,dim=new Date(_L2.vy,_L2.vm+1,0).getDate(),h='';
+  var fd=(new Date(_L2.vy,_L2.vm,1).getDay()+6)%7;
+  var dim=new Date(_L2.vy,_L2.vm+1,0).getDate();
+  var h='';
   for(var i=0;i<fd;i++)h+='<div class="dot empty"></div>';
   for(var d=1;d<=dim;d++){
-    var dk=dkey(_L2.vy,_L2.vm,d),dd=_L2.days[dk],col=_dayColor(dd);
-    var dt=new Date(_L2.vy,_L2.vm,d),isT=dk===tdk,isP=dt<new Date(t.getFullYear(),t.getMonth(),t.getDate());
+    var dk=dkey(_L2.vy,_L2.vm,d);
+    var dd=_L2.days[dk],col=_dayColor(dd);
+    var dt=new Date(_L2.vy,_L2.vm,d);
+    var isT=dk===tdk;
+    var isP=dt<new Date(t.getFullYear(),t.getMonth(),t.getDate());
     var cls='dot',sty='';
     if(dd&&col){sty=_pizzaStyle(dd);cls+=' work';if(isT)cls+=' today-w';}
-    else if(isT)cls+=' today';else if(isP)cls+=' past';else cls+=' future';
+    else if(isT)cls+=' today';
+    else if(isP)cls+=' past';
+    else cls+=' future';
     if(dd)cls+=' has';
     h+='<div class="'+cls+'" style="'+sty+'"'+
-       ' ontouchstart="l2Ts(event,\''+dk+'\')" ontouchmove="l2Tm()" ontouchend="l2Te(event,\''+dk+'\')">'+
-       '<div class="pip"></div><div class="dnum">'+d+'</div></div>';
+       ' ontouchstart="l2ts(event,\''+dk+'\')"'+
+       ' ontouchmove="l2tm()"'+
+       ' ontouchend="l2te(event,\''+dk+'\')"'+
+       '><div class="pip"></div><div class="dnum">'+d+'</div></div>';
   }
   document.getElementById('l2Grid').innerHTML=h;
   window.l2Sync();
 }
 
-function l2Ts(e,dk){
+// ── Обработчики касаний — идентичны ts/tm/te первого слоя ──
+function _l2blockClick(){
+  _L2.blockClick=true;
+  clearTimeout(_L2.blockTimer);
+  _L2.blockTimer=setTimeout(function(){_L2.blockClick=false;},400);
+}
+
+function l2ts(e,dk){
   _L2.mv=false;_L2.t0=Date.now();
   if(e.touches&&e.touches.length){_L2.tx0=e.touches[0].clientX;_L2.ty0=e.touches[0].clientY;}
+  _L2.longPressed=false;_L2.longPressDk=null;
   var el=e.currentTarget;el.classList.add('press');
-  _L2.lpt=setTimeout(function(){el.classList.remove('press');},500);
+  _L2.lpt=setTimeout(function(){
+    el.classList.remove('press');
+    navigator.vibrate&&navigator.vibrate(32);
+    _L2.longPressed=true;_L2.longPressDk=dk;
+  },500);
 }
-function l2Tm(){
-  _L2.mv=true;clearTimeout(_L2.lpt);
-  document.querySelectorAll('#l2Grid .dot.press').forEach(function(d){d.classList.remove('press');});
+
+function l2tm(){
+  if(!_L2.longPressed){
+    _L2.mv=true;
+    clearTimeout(_L2.lpt);
+    document.querySelectorAll('#l2Grid .dot.press').forEach(function(d){d.classList.remove('press');});
+  }
 }
-function l2Te(e,dk){
+
+function l2te(e,dk){
   clearTimeout(_L2.lpt);
   if(e.currentTarget)e.currentTarget.classList.remove('press');
+  if(_L2.longPressed){
+    _L2.longPressed=false;_L2.longPressDk=null;
+    // long-press на заполненный день — удалить; на пустой — открыть
+    if(_L2.days[dk]){l2ClrD(dk);}else{l2Modal(dk);}
+    return;
+  }
   if(_L2.mv)return;
   if(Date.now()-_L2.t0>=500)return;
   if(e.changedTouches&&e.changedTouches.length){
@@ -2352,30 +2406,43 @@ function l2Te(e,dk){
     if(Math.abs(ct.clientX-_L2.tx0)>12||Math.abs(ct.clientY-_L2.ty0)>12)return;
   }
   var now=Date.now();
-  if(_L2.lastDk===dk&&now-_L2.lastTap<400){clearTimeout(_L2.dtTimer);_L2.lastTap=0;_L2.lastDk=null;l2ClrD(dk);return;}
+  if(_L2.lastDk===dk&&now-_L2.lastTap<400){
+    clearTimeout(_L2.dtTimer);_L2.lastTap=0;_L2.lastDk=null;
+    _l2blockClick();l2ClrD(dk);return;
+  }
   _L2.lastTap=now;_L2.lastDk=dk;
   clearTimeout(_L2.dtTimer);
-  _L2.dtTimer=setTimeout(function(){_L2.lastTap=0;_L2.lastDk=null;l2Modal(dk);},350);
+  _L2.dtTimer=setTimeout(function(){
+    _L2.lastTap=0;_L2.lastDk=null;
+    _l2blockClick();l2Modal(dk);
+  },350);
 }
+
 function l2ClrD(dk){
   if(!_L2.days[dk])return;
   navigator.vibrate&&navigator.vibrate([20,30,20]);
   delete _L2.days[dk];_l2save();
   requestAnimationFrame(function(){l2Cal();l2Ent();});
 }
+
 function l2Modal(dk){
   _L2.eDk=dk;
   var p=dk.split('-').map(Number);
-  document.getElementById('mTit').textContent=p[2]+' '+MONG[p[1]-1]+' ·2';
+  document.getElementById('mTit').textContent=p[2]+' '+MONG[p[1]-1];
   var raw=_L2.days[dk];
-  if(!raw)_tasks=[{color:cfg.acc||COLORS[0],label:'',timeStart:'',timeEnd:'',earned:0,expenses:[]}];
-  else if(Array.isArray(raw))_tasks=raw.map(function(t){return Object.assign({color:COLORS[0],label:'',timeStart:'',timeEnd:'',earned:0,expenses:[]},t);});
-  else _tasks=[Object.assign({color:COLORS[0],label:'',timeStart:'',timeEnd:'',earned:0,expenses:[]},raw)];
+  if(!raw){
+    _tasks=[{color:cfg.acc||COLORS[0],label:'',timeStart:'',timeEnd:'',earned:0,expenses:[]}];
+  }else if(Array.isArray(raw)){
+    _tasks=raw.map(function(t){return Object.assign({color:COLORS[0],label:'',timeStart:'',timeEnd:'',earned:0,expenses:[]},t);});
+  }else{
+    _tasks=[Object.assign({color:COLORS[0],label:'',timeStart:'',timeEnd:'',earned:0,expenses:[]},raw)];
+  }
   _renderTasks();
   var sh=document.getElementById('mSheet');if(sh)sh.scrollTop=0;
   document.getElementById('modal').classList.add('on');
 }
 
+// ── Рендер записей и итогов ──
 function l2Ent(){
   var ew=document.getElementById('l2EW'),tw=document.getElementById('l2TW'),items=[];
   for(var d=1;d<=31;d++){
@@ -2392,12 +2459,14 @@ function l2Ent(){
     tasks.forEach(function(t,ti){
       var ts=t.timeStart?(t.timeEnd?t.timeStart+'–'+t.timeEnd:t.timeStart):'';
       var es=t.earned?'+'+cur+t.earned.toLocaleString():'';
-      var xt=(t.expenses||[]).reduce(function(s,x){return s+(x.amount||0);},0),xs=xt?'−'+cur+xt.toLocaleString():'';
+      var xt=(t.expenses||[]).reduce(function(s,x){return s+(x.amount||0);},0);
+      var xs=xt?'−'+cur+xt.toLocaleString():'';
       var dc=t.color||cfg.acc;
       rows+='<div style="display:flex;align-items:flex-start;gap:10px;padding:'+(ti?'8':'4')+'px 0 0">'+
         '<div style="width:20px;height:20px;border-radius:50%;background:'+dc+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px;">'+(ti+1)+'</div>'+
         '<div style="flex:1">'+(t.label?'<div class="ename">'+t.label+'</div>':'')+
-        '<div class="enums">'+(ts?'<span style="color:var(--text3)">🕐 '+ts+'</span>':'')+
+        '<div class="enums">'+
+        (ts?'<span style="color:var(--text3)">🕐 '+ts+'</span>':'')+
         (es?'<span style="color:var(--accent);font-weight:600">'+es+'</span>':'')+
         (xs?'<span style="color:var(--text2)">'+xs+'</span>':'')+
         '</div></div></div>';
@@ -2411,12 +2480,16 @@ function l2Ent(){
   var tx=ax.reduce(function(s,x){return s+(x.amount||0);},0),net=te-tx,g={};
   ax.forEach(function(x){var k=(x.comment||'Затрата').trim();g[k]=(g[k]||0)+(x.amount||0);});
   var th='';
-  Object.keys(g).forEach(function(n){th+='<div class="xrow"><span>'+n+'</span><span style="color:var(--accent)">−'+cur+g[n].toLocaleString()+'</span></div>';});
-  th+='<div class="trow" style="align-items:flex-start"><div class="tlbl" style="padding-top:10px">Итого · слой 2</div>'+
+  Object.keys(g).forEach(function(n){
+    th+='<div class="xrow"><span>'+n+'</span><span style="color:var(--accent)">−'+cur+g[n].toLocaleString()+'</span></div>';
+  });
+  th+='<div class="trow" style="align-items:flex-start">'+
+    '<div class="tlbl" style="padding-top:10px">Итого · слой 2</div>'+
     '<div style="text-align:right"><div class="tamt" style="color:'+(net>=0?'var(--accent)':'#c0392b')+'">'+(net>=0?'+':'')+cur+Math.abs(net).toLocaleString()+'</div></div></div>';
   tw.innerHTML='<div class="tcard">'+th+'</div>';
 }
 
+// ── Свайп вниз для закрытия шторки ──
 (function(){
   var sy=0,drag=false;
   document.addEventListener('touchstart',function(e){
@@ -2435,7 +2508,8 @@ function l2Ent(){
     if(!document.getElementById('l2Over').classList.contains('on'))return;
     var sh=document.getElementById('l2Sheet'),dy=e.changedTouches[0].clientY-sy;
     sh.style.transition='';
-    if(drag&&dy>100){sh.style.transform='';l2Close();}else{sh.style.transform='';}
+    if(drag&&dy>100){sh.style.transform='';l2Close();}
+    else sh.style.transform='';
     drag=false;
   },{passive:true});
 })();
