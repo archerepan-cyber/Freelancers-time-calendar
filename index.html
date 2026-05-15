@@ -2361,7 +2361,8 @@ function l2te(e,dk){
   if(e.currentTarget)e.currentTarget.classList.remove('press');
   if(_L2.longPressed){
     _L2.longPressed=false;_L2.longPressDk=null;
-    if(_L2.days[dk]){l2ClrD(dk);}else{l2Modal(dk);}
+    // long-press → open modal (same as layer1: long-press on empty opens modal)
+    l2Modal(dk);
     return;
   }
   if(_L2.mv)return;
