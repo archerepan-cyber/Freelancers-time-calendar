@@ -2297,7 +2297,10 @@ window.l2SaveDay=function(){
   _L2.days[_L2.eDk]=s.length===1?s[0]:s;
   _l2save();_L2.eDk=null;
   closeModal();
-  setTimeout(function(){l2Cal();l2Ent();},450);
+  // Block entry list clicks to prevent phantom touch reopening a day modal
+  var ew=document.getElementById('l2EW');
+  if(ew){ew.style.pointerEvents='none';setTimeout(function(){ew.style.pointerEvents='';},800);}
+  setTimeout(function(){l2Cal();l2Ent();},350);
   return true;
 };
 
