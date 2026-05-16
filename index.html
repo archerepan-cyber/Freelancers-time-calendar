@@ -261,7 +261,7 @@ button { font-family: inherit; cursor: pointer; }
 
 /* ── MODAL ── */
 .mover {
-  position: fixed; inset: 0; z-index: 300;
+  position: fixed; inset: 0; z-index: 400;
   background: rgba(0,0,0,.55);
   display: flex; align-items: flex-end; justify-content: center;
   opacity: 0; pointer-events: none;
@@ -490,6 +490,8 @@ button { font-family: inherit; cursor: pointer; }
 #l2Drag { width:36px; height:4px; border-radius:2px; background:var(--sep); margin:12px auto 0; flex-shrink:0; }
 #l2CloseBtn { position:absolute; top:14px; right:16px; width:30px; height:30px; border-radius:50%; background:var(--bg3); border:none; font-size:16px; color:var(--text2); display:flex; align-items:center; justify-content:center; touch-action:manipulation; cursor:pointer; z-index:1; }
 #l2Body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding:0 22px calc(env(safe-area-inset-bottom)+24px); }
+#l2Body .big { font-size: clamp(56px,14vw,80px); letter-spacing:-2px; }
+#l2Body .bigrow { margin-bottom: 8px; }
 .dot .l2pip { position:absolute; top:-1px; right:-1px; width:8px; height:8px; border-radius:50%; border:1.5px solid var(--bg); pointer-events:none; display:none; }
 .dot.hasl2 .l2pip { display:block; }
 
@@ -2350,7 +2352,7 @@ function l2Cal(){
     if(dd)cls+=' has';
     h+='<div class="'+cls+'" style="'+sty+'"'+
        ' ontouchstart="l2ts(event,\''+dk+'\')"'+
-       ' ontouchmove="l2tm()"'+
+       ' ontouchmove="l2tm(event)"'+
        ' ontouchend="l2te(event,\''+dk+'\')"'+
        '><div class="pip"></div><div class="dnum">'+d+'</div></div>';
   }
@@ -2369,25 +2371,24 @@ function l2ts(e,dk){
     _L2.longPressed=true;_L2.longPressDk=dk;
   },500);
 }
-function l2tm(){
-  if(!_L2.longPressed){_L2.mv=true;clearTimeout(_L2.lpt);
-    document.querySelectorAll('#l2Grid .dot.press').forEach(function(d){d.classList.remove('press');});}
+function l2tm(e){
+  if(_L2.longPressed)return;
+  var dx=0,dy=0;
+  if(e&&e.touches&&e.touches.length){dx=Math.abs(e.touches[0].clientX-_L2.tx0);dy=Math.abs(e.touches[0].clientY-_L2.ty0);}
+  if(dx>6||dy>6){
+    _L2.mv=true;clearTimeout(_L2.lpt);
+    document.querySelectorAll('#l2Grid .dot.press').forEach(function(d){d.classList.remove('press');});
+  }
 }
 function l2te(e,dk){
   clearTimeout(_L2.lpt);
   if(e.currentTarget)e.currentTarget.classList.remove('press');
   if(_L2.longPressed){
     _L2.longPressed=false;_L2.longPressDk=null;
-    // long-press → open modal (same as layer1: long-press on empty opens modal)
-    l2Modal(dk);
-    return;
+    l2Modal(dk);return;
   }
   if(_L2.mv)return;
   if(Date.now()-_L2.t0>=500)return;
-  if(e.changedTouches&&e.changedTouches.length){
-    var ct=e.changedTouches[0];
-    if(Math.abs(ct.clientX-_L2.tx0)>12||Math.abs(ct.clientY-_L2.ty0)>12)return;
-  }
   var now=Date.now();
   if(_L2.lastDk===dk&&now-_L2.lastTap<400){
     clearTimeout(_L2.dtTimer);_L2.lastTap=0;_L2.lastDk=null;l2ClrD(dk);return;
