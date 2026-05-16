@@ -689,7 +689,6 @@ button { font-family: inherit; cursor: pointer; }
     <div class="mdrg"></div>
     <div class="mtit-row">
       <div class="mtit" id="mTit">3 мая</div>
-      <button class="task-add-btn" ontouchend="addTaskBlock(event)" onclick="addTaskBlock(event)">＋</button>
     </div>
     <div id="tasksContainer"></div>
     <div class="mact">
@@ -1743,7 +1742,10 @@ function _taskBlockHTML(t, idx, total) {
         <span class="task-block-dot" style="background:${col};"></span>
         Задача ${idx+1}
       </div>
-      ${delBtn}
+      <div style="display:flex;align-items:center;gap:6px;">
+        <button class="task-add-btn" ontouchend="addTaskBlock(event)" onclick="addTaskBlock(event)">＋</button>
+        ${delBtn}
+      </div>
     </div>
     <div class="fg">
       <label class="fl">Цвет задачи</label>
@@ -1824,9 +1826,24 @@ function _delTask(e, idx) {
 function addTaskBlock(e) {
   e.stopPropagation(); e.preventDefault();
   _saveTaskFields();
-  _tasks.push({ color: COLORS[_tasks.length % COLORS.length], label:'', timeStart:'', timeEnd:'', earned:0, expenses:[] });
-  _renderTasks();
-  // scroll to bottom to show new task
+  const newIdx = _tasks.length;
+  _tasks.push({ color: COLORS[newIdx % COLORS.length], label:'', timeStart:'', timeEnd:'', earned:0, expenses:[] });
+  // If going from 1→2 tasks, show delete button on first task (re-render needed)
+  // Otherwise just append new block to avoid flash
+  if (newIdx === 1) {
+    // Lock sheet height to prevent flash during re-render
+    const s = document.getElementById('mSheet');
+    if (s) { const h = s.offsetHeight; s.style.minHeight = h + 'px'; }
+    _renderTasks();
+    if (s) { requestAnimationFrame(() => { s.style.minHeight = ''; }); }
+  } else {
+    const c = document.getElementById('tasksContainer');
+    if (c) {
+      const div = document.createElement('div');
+      div.innerHTML = _taskBlockHTML(_tasks[newIdx], newIdx, _tasks.length);
+      c.appendChild(div.firstElementChild);
+    }
+  }
   setTimeout(() => {
     const s = document.getElementById('mSheet');
     if (s) s.scrollTop = s.scrollHeight;
