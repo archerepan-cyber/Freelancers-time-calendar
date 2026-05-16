@@ -489,8 +489,7 @@ button { font-family: inherit; cursor: pointer; }
 #l2Over.on #l2Sheet { transform:translateY(0); }
 #l2Drag { width:36px; height:4px; border-radius:2px; background:var(--sep); margin:12px auto 0; flex-shrink:0; }
 #l2CloseBtn { position:absolute; top:14px; right:16px; width:30px; height:30px; border-radius:50%; background:var(--bg3); border:none; font-size:16px; color:var(--text2); display:flex; align-items:center; justify-content:center; touch-action:manipulation; cursor:pointer; z-index:1; }
-#l2Body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding:0 22px calc(env(safe-area-inset-bottom)+24px); }
-#l2Body .big { font-size: clamp(56px,14vw,80px); letter-spacing:-2px; }
+#l2Body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding:calc(var(--st) + 20px) 22px 78px; }
 #l2Body .bigrow { margin-bottom: 8px; }
 .dot .l2pip { position:absolute; top:-1px; right:-1px; width:8px; height:8px; border-radius:50%; border:1.5px solid var(--bg); pointer-events:none; display:none; }
 .dot.hasl2 .l2pip { display:block; }
