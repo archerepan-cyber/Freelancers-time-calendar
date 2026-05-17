@@ -1733,9 +1733,7 @@ function _taskBlockHTML(t, idx, total) {
       <button class="xdel" ontouchend="_delX(event,this)" onclick="_delX(event,this)">✕</button>
     </div>`
   ).join('');
-  const delBtn = total > 1
-    ? `<button class="task-block-del" ontouchend="_delTask(event,${idx})" onclick="_delTask(event,${idx})">✕</button>`
-    : '';
+  // Delete button always rendered, visibility controlled by .tasks-single class on container
   return `<div class="task-block" data-idx="${idx}">
     <div class="task-block-header">
       <div class="task-block-num">
@@ -1744,7 +1742,7 @@ function _taskBlockHTML(t, idx, total) {
       </div>
       <div style="display:flex;align-items:center;gap:6px;">
         <button class="task-add-btn" ontouchend="addTaskBlock(event)" onclick="addTaskBlock(event)">＋</button>
-        ${delBtn}
+        <button class="task-block-del" ontouchend="_delTask(event,${idx})" onclick="_delTask(event,${idx})">✕</button>
       </div>
     </div>
     <div class="fg">
@@ -1780,6 +1778,16 @@ function _renderTasks() {
   const c = document.getElementById('tasksContainer');
   if (!c) return;
   c.innerHTML = _tasks.map((t,i) => _taskBlockHTML(t, i, _tasks.length)).join('');
+  _updateDelBtns(c);
+}
+
+function _updateDelBtns(c) {
+  // Show/hide delete buttons via opacity without touching block layout
+  const single = _tasks.length <= 1;
+  c.querySelectorAll('.task-block-del').forEach(btn => {
+    btn.style.visibility = single ? 'hidden' : 'visible';
+    btn.style.pointerEvents = single ? 'none' : '';
+  });
 }
 
 let _tasks = [];
@@ -1830,22 +1838,26 @@ function addTaskBlock(e) {
   _tasks.push({ color: COLORS[newIdx % COLORS.length], label:'', timeStart:'', timeEnd:'', earned:0, expenses:[] });
   const c = document.getElementById('tasksContainer');
   if (!c) return;
-  // Full re-render but with the new block hidden initially
-  c.innerHTML = _tasks.map((t,i) => _taskBlockHTML(t, i, _tasks.length)).join('');
-  // Find the last block and animate it in
-  const blocks = c.querySelectorAll('.task-block');
-  const last = blocks[blocks.length - 1];
-  if (last) {
-    last.style.opacity = '0';
-    last.style.transform = 'translateY(10px)';
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      last.style.transition = 'opacity 0.18s ease, transform 0.18s ease';
-      last.style.opacity = '1';
-      last.style.transform = 'translateY(0)';
-    }));
-  }
-  const s = document.getElementById('mSheet');
-  if (s) setTimeout(() => { s.scrollTop = s.scrollHeight; }, 80);
+
+  // Append only the new block — never re-render existing blocks
+  const div = document.createElement('div');
+  div.innerHTML = _taskBlockHTML(_tasks[newIdx], newIdx, _tasks.length);
+  const newBlock = div.firstElementChild;
+  newBlock.style.opacity = '0';
+  newBlock.style.transform = 'translateY(8px)';
+  c.appendChild(newBlock);
+
+  // Show ✕ on all blocks via visibility (no layout change, no reflow)
+  _updateDelBtns(c);
+
+  // Animate new block in
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    newBlock.style.transition = 'opacity 0.18s ease, transform 0.18s ease';
+    newBlock.style.opacity = '1';
+    newBlock.style.transform = 'translateY(0)';
+    const s = document.getElementById('mSheet');
+    if (s) s.scrollTop = s.scrollHeight;
+  }));
 }
 function _saveTaskFields() {
   // Read current DOM state into _tasks
@@ -2122,28 +2134,6 @@ function xcAdd() {
 function xcDel(i) { cfg.xcurs.splice(i,1); saveC(); renderEnt(); }
 function xcToggle(i) { cfg.xcurs[i].on = cfg.xcurs[i].on===false?true:false; saveC(); renderEnt(); }
 function xcSym(i,val) { cfg.xcurs[i].sym=val; cfg.xcurs[i].rate=''; saveC(); renderEnt(); if(val.length>=1) xcRefreshRates(); }
-
-// ── LAYER 2 CURRENCIES (separate from layer 1) ──
-function xc2Add() {
-  if (!cfg.xcurs2) cfg.xcurs2 = [];
-  if (cfg.xcurs2.length >= 2) return;
-  cfg.xcurs2.push({sym:'',rate:'',on:true});
-  saveC(); l2Ent(); xc2RefreshRates();
-}
-function xc2Del(i) { cfg.xcurs2.splice(i,1); saveC(); l2Ent(); }
-function xc2Toggle(i) { cfg.xcurs2[i].on = cfg.xcurs2[i].on===false?true:false; saveC(); l2Ent(); }
-function xc2Sym(i,val) { cfg.xcurs2[i].sym=val; cfg.xcurs2[i].rate=''; saveC(); l2Ent(); if(val.length>=1) xc2RefreshRates(); }
-async function xc2RefreshRates() {
-  if (!cfg.xcurs2 || !cfg.xcurs2.length) return;
-  const rates = await fetchRates(cfg.cur);
-  let changed = false;
-  cfg.xcurs2.forEach(x => {
-    if (!x.sym) return;
-    const code = CUR_CODE[x.sym] || x.sym.replace(/[^A-Za-z]/g,'').toUpperCase();
-    if (rates[code]) { x.rate = rates[code]; changed = true; }
-  });
-  if (changed) { saveC(); l2Ent(); }
-}
 
 // ── TABS ──
 function goTab(tab, fromSwipe = false) {
@@ -2559,26 +2549,26 @@ function l2Ent(){
 function l2renderXcurEdit(){
   var el=document.getElementById('l2xcurEdit');
   if(!el)return;
-  if(!cfg.xcurs2)cfg.xcurs2=[];
-  var canAdd=cfg.xcurs2.length<2;
+  if(!cfg.xcurs)cfg.xcurs=[];
+  var canAdd=cfg.xcurs.length<2;
   var net=window._l2LastNet||0;
   var cur=cfg.cur;
   var h='';
-  cfg.xcurs2.forEach(function(x,i){
+  cfg.xcurs.forEach(function(x,i){
     var conv=(x.rate&&x.sym)?net*parseFloat(x.rate):null;
     var amtStr=conv!==null
       ?'<span style="font-size:22px;font-family:\'DM Serif Display\',serif;font-weight:400;color:'+(conv>=0?'var(--accent)':'#c0392b')+'">'+(conv>=0?'+':'')+x.sym+Math.abs(conv).toLocaleString(undefined,{maximumFractionDigits:0})+'</span>'
       :'<span style="font-size:13px;color:var(--text3)">загрузка…</span>';
     var opacity=x.on===false?'0.35':'1';
     h+='<div style="display:flex;align-items:center;gap:8px;margin-top:10px;opacity:'+opacity+';">'+
-      '<button class="xcur-toggle '+(x.on===false?'':'on')+'" onclick="xc2Toggle('+i+')" style="flex-shrink:0;"></button>'+
+      '<button class="xcur-toggle '+(x.on===false?'':'on')+'" onclick="xcToggle('+i+')" style="flex-shrink:0;"></button>'+
       '<div style="background:var(--bg3);border-radius:10px;padding:4px 10px;font-size:15px;color:var(--text);min-width:44px;text-align:center;">'+
-      '<input maxlength="4" placeholder="$" value="'+(x.sym||'')+'" oninput="xc2Sym('+i+',this.value)"'+
+      '<input maxlength="4" placeholder="$" value="'+(x.sym||'')+'" oninput="xcSym('+i+',this.value)"'+
       ' style="width:40px;background:none;border:none;outline:none;font:inherit;color:inherit;text-align:center;"/></div>'+
       amtStr+
-      '<button class="xcur-del" onclick="xc2Del('+i+')" style="margin-left:auto;flex-shrink:0;">×</button></div>';
+      '<button class="xcur-del" onclick="xcDel('+i+')" style="margin-left:auto;flex-shrink:0;">×</button></div>';
   });
-  if(canAdd)h+='<div style="text-align:center;margin-top:12px;"><button class="xcur-add" onclick="xc2Add()">+ Добавить валюту</button></div>';
+  if(canAdd)h+='<div style="text-align:center;margin-top:12px;"><button class="xcur-add" onclick="xcAdd()">+ Добавить валюту</button></div>';
   el.innerHTML=h;
 }
 
