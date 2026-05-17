@@ -1832,28 +1832,24 @@ function addTaskBlock(e) {
   const c = document.getElementById('tasksContainer');
   if (!c) return;
 
-  // When going 1→2: add ✕ to the first block without re-rendering it
   if (newIdx === 1) {
-    const firstBlock = c.querySelector('.task-block[data-idx="0"]');
-    if (firstBlock) {
-      const hdr = firstBlock.querySelector('.task-block-header > div:last-child');
-      if (hdr && !hdr.querySelector('.task-block-del')) {
-        const del = document.createElement('button');
-        del.className = 'task-block-del';
-        del.setAttribute('ontouchend', '_delTask(event,0)');
-        del.setAttribute('onclick', '_delTask(event,0)');
-        del.textContent = '✕';
-        del.addEventListener('touchend', function(ev){ _delTask(ev, 0); });
-        del.addEventListener('click', function(ev){ _delTask(ev, 0); });
-        hdr.appendChild(del);
-      }
-    }
+    // Batch both changes (add ✕ to block 0 + add block 1) into one innerHTML write
+    // so iOS sees a single layout pass with no intermediate state
+    let html = _taskBlockHTML(_tasks[0], 0, 2);
+    html += _taskBlockHTML(_tasks[1], 1, 2);
+    c.innerHTML = html;
+  } else {
+    // 3rd task and beyond: simple append, no glitch
+    const div = document.createElement('div');
+    div.innerHTML = _taskBlockHTML(_tasks[newIdx], newIdx, _tasks.length);
+    const newBlock = div.firstElementChild;
+    newBlock.style.opacity = '0';
+    c.appendChild(newBlock);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      newBlock.style.transition = 'opacity 0.15s';
+      newBlock.style.opacity = '1';
+    }));
   }
-
-  // Append new block via DOM — no flash, no re-render
-  const div = document.createElement('div');
-  div.innerHTML = _taskBlockHTML(_tasks[newIdx], newIdx, _tasks.length);
-  c.appendChild(div.firstElementChild);
 
   setTimeout(() => {
     const s = document.getElementById('mSheet');
