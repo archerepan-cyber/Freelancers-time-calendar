@@ -1850,15 +1850,22 @@ function addTaskBlock(e) {
     }
   }
 
-  // Append new block via DOM — no flash, no re-render
+  // Add new block hidden first — iOS needs one frame to finish layout of previous changes
   const div = document.createElement('div');
   div.innerHTML = _taskBlockHTML(_tasks[newIdx], newIdx, _tasks.length);
-  c.appendChild(div.firstElementChild);
+  const newBlock = div.firstElementChild;
+  newBlock.style.opacity = '0';
+  c.appendChild(newBlock);
 
-  setTimeout(() => {
-    const s = document.getElementById('mSheet');
-    if (s) s.scrollTop = s.scrollHeight;
-  }, 50);
+  // After one frame layout is settled — show the new block without overlap
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      newBlock.style.transition = 'opacity 0.15s';
+      newBlock.style.opacity = '1';
+      const s = document.getElementById('mSheet');
+      if (s) s.scrollTop = s.scrollHeight;
+    });
+  });
 }
 function _saveTaskFields() {
   // Read current DOM state into _tasks
