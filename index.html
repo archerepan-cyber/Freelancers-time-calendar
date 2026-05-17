@@ -1832,40 +1832,41 @@ function addTaskBlock(e) {
   const c = document.getElementById('tasksContainer');
   if (!c) return;
 
-  // When going 1→2: add ✕ to the first block without re-rendering it
+  const doAppend = () => {
+    const div = document.createElement('div');
+    div.innerHTML = _taskBlockHTML(_tasks[newIdx], newIdx, _tasks.length);
+    const newBlock = div.firstElementChild;
+    newBlock.style.opacity = '0';
+    c.appendChild(newBlock);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        newBlock.style.transition = 'opacity 0.15s';
+        newBlock.style.opacity = '1';
+        const s = document.getElementById('mSheet');
+        if (s) s.scrollTop = s.scrollHeight;
+      });
+    });
+  };
+
   if (newIdx === 1) {
+    // Add ✕ to first block first, wait for paint, then append second block
     const firstBlock = c.querySelector('.task-block[data-idx="0"]');
     if (firstBlock) {
       const hdr = firstBlock.querySelector('.task-block-header > div:last-child');
       if (hdr && !hdr.querySelector('.task-block-del')) {
         const del = document.createElement('button');
         del.className = 'task-block-del';
-        del.setAttribute('ontouchend', '_delTask(event,0)');
-        del.setAttribute('onclick', '_delTask(event,0)');
         del.textContent = '✕';
         del.addEventListener('touchend', function(ev){ _delTask(ev, 0); });
         del.addEventListener('click', function(ev){ _delTask(ev, 0); });
         hdr.appendChild(del);
       }
     }
+    // Wait for browser to paint the ✕ addition before appending second block
+    requestAnimationFrame(() => { requestAnimationFrame(doAppend); });
+  } else {
+    doAppend();
   }
-
-  // Add new block hidden first — iOS needs one frame to finish layout of previous changes
-  const div = document.createElement('div');
-  div.innerHTML = _taskBlockHTML(_tasks[newIdx], newIdx, _tasks.length);
-  const newBlock = div.firstElementChild;
-  newBlock.style.opacity = '0';
-  c.appendChild(newBlock);
-
-  // After one frame layout is settled — show the new block without overlap
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      newBlock.style.transition = 'opacity 0.15s';
-      newBlock.style.opacity = '1';
-      const s = document.getElementById('mSheet');
-      if (s) s.scrollTop = s.scrollHeight;
-    });
-  });
 }
 function _saveTaskFields() {
   // Read current DOM state into _tasks
