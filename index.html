@@ -1733,7 +1733,8 @@ function _taskBlockHTML(t, idx, total) {
       <button class="xdel" ontouchend="_delX(event,this)" onclick="_delX(event,this)">✕</button>
     </div>`
   ).join('');
-  // Delete button always rendered, visibility controlled by .tasks-single class on container
+  // ✕ always in DOM, visibility controlled separately — prevents layout shift on 1→2
+  const delVis = total > 1 ? '' : 'visibility:hidden;pointer-events:none;';
   return `<div class="task-block" data-idx="${idx}">
     <div class="task-block-header">
       <div class="task-block-num">
@@ -1742,7 +1743,7 @@ function _taskBlockHTML(t, idx, total) {
       </div>
       <div style="display:flex;align-items:center;gap:6px;">
         <button class="task-add-btn" ontouchend="addTaskBlock(event)" onclick="addTaskBlock(event)">＋</button>
-        <button class="task-block-del" ontouchend="_delTask(event,${idx})" onclick="_delTask(event,${idx})">✕</button>
+        <button class="task-block-del" style="${delVis}" ontouchend="_delTask(event,${idx})" onclick="_delTask(event,${idx})">✕</button>
       </div>
     </div>
     <div class="fg">
@@ -1778,15 +1779,13 @@ function _renderTasks() {
   const c = document.getElementById('tasksContainer');
   if (!c) return;
   c.innerHTML = _tasks.map((t,i) => _taskBlockHTML(t, i, _tasks.length)).join('');
-  _updateDelBtns(c);
 }
 
-function _updateDelBtns(c) {
-  // Show/hide delete buttons via opacity without touching block layout
-  const single = _tasks.length <= 1;
-  c.querySelectorAll('.task-block-del').forEach(btn => {
-    btn.style.visibility = single ? 'hidden' : 'visible';
-    btn.style.pointerEvents = single ? 'none' : '';
+function _showDelBtns(c) {
+  // Just change visibility — zero layout impact
+  c.querySelectorAll('.task-block-del').forEach(b => {
+    b.style.visibility = '';
+    b.style.pointerEvents = '';
   });
 }
 
@@ -1839,25 +1838,16 @@ function addTaskBlock(e) {
   const c = document.getElementById('tasksContainer');
   if (!c) return;
 
-  // Append only the new block — never re-render existing blocks
+  // Append new block only — existing blocks untouched = no reflow on them
   const div = document.createElement('div');
   div.innerHTML = _taskBlockHTML(_tasks[newIdx], newIdx, _tasks.length);
-  const newBlock = div.firstElementChild;
-  newBlock.style.opacity = '0';
-  newBlock.style.transform = 'translateY(8px)';
-  c.appendChild(newBlock);
+  c.appendChild(div.firstElementChild);
 
-  // Show ✕ on all blocks via visibility (no layout change, no reflow)
-  _updateDelBtns(c);
+  // Make ✕ visible on ALL blocks (visibility change = no layout reflow)
+  if (newIdx === 1) _showDelBtns(c);
 
-  // Animate new block in
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    newBlock.style.transition = 'opacity 0.18s ease, transform 0.18s ease';
-    newBlock.style.opacity = '1';
-    newBlock.style.transform = 'translateY(0)';
-    const s = document.getElementById('mSheet');
-    if (s) s.scrollTop = s.scrollHeight;
-  }));
+  const s = document.getElementById('mSheet');
+  if (s) s.scrollTop = s.scrollHeight;
 }
 function _saveTaskFields() {
   // Read current DOM state into _tasks
@@ -2014,64 +2004,9 @@ function renderEnt() {
       <div class="tamt" style="color:${net >= 0 ? 'var(--accent)' : '#c0392b'};">${net >= 0 ? '+' : ''}${cur}${Math.abs(net).toLocaleString()}</div>
       <div class="xcur-wrap" id="xcurEdit"></div>
     </div>
-  </div>
-  <div style="margin-top:14px;">
-    <button onclick="toggleL2Sum()" id="l2SumBtn" style="width:100%;padding:12px;border-radius:14px;background:var(--bg3);border:none;font-size:14px;font-weight:600;color:var(--text2);touch-action:manipulation;cursor:pointer;">⊕ Суммировать со слоем 2</button>
-    <div id="l2SumResult" style="display:none;margin-top:10px;padding:14px;border-radius:14px;background:var(--bg3);">
-    </div>
   </div>`;
   tw.innerHTML = `<div class="tcard">${th}</div>`;
   renderXcurEdit();
-}
-
-// ── SUM WITH LAYER 2 ──
-var _l2SumOpen = false;
-function toggleL2Sum() {
-  _l2SumOpen = !_l2SumOpen;
-  var btn = document.getElementById('l2SumBtn');
-  var res = document.getElementById('l2SumResult');
-  if (!res) return;
-  if (_l2SumOpen) {
-    renderL2Sum();
-    res.style.display = 'block';
-    if (btn) btn.style.color = 'var(--accent)';
-  } else {
-    res.style.display = 'none';
-    if (btn) btn.style.color = '';
-  }
-}
-function renderL2Sum() {
-  var res = document.getElementById('l2SumResult');
-  if (!res) return;
-  var cur = cfg.cur;
-  // Collect layer1 totals for current month
-  var l1net = window._lastNet || 0;
-  // Collect layer2 totals for same month
-  var l2te = 0, l2tx = 0;
-  var l2d = window._L2 ? window._L2.days : {};
-  for (var d = 1; d <= 31; d++) {
-    var dk = dkey(vy, vm, d);
-    var dt = new Date(vy, vm, d);
-    if (dt.getMonth() !== vm) break;
-    if (!l2d[dk]) continue;
-    var tasks = _normDay(l2d[dk]);
-    tasks.forEach(function(t) {
-      l2te += t.earned || 0;
-      (t.expenses || []).forEach(function(x) { l2tx += x.amount || 0; });
-    });
-  }
-  var l2net = l2te - l2tx;
-  var total = l1net + l2net;
-  var l1sign = l1net >= 0 ? '+' : '';
-  var l2sign = l2net >= 0 ? '+' : '';
-  var tsign  = total >= 0 ? '+' : '';
-  res.innerHTML =
-    '<div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:600;letter-spacing:1px;text-transform:uppercase;">Сумма слоёв</div>'+
-    '<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:var(--text2)">Слой 1</span><span style="color:var(--accent)">'+(l1sign)+cur+Math.abs(l1net).toLocaleString()+'</span></div>'+
-    '<div style="display:flex;justify-content:space-between;margin-bottom:10px;"><span style="color:var(--text2)">Слой 2</span><span style="color:var(--accent)">'+(l2sign)+cur+Math.abs(l2net).toLocaleString()+'</span></div>'+
-    '<div style="display:flex;justify-content:space-between;border-top:1px solid var(--sep);padding-top:10px;">'+
-    '<span style="font-weight:700;color:var(--text)">Итого</span>'+
-    '<span style="font-size:22px;font-family:\'DM Serif Display\',serif;color:'+(total>=0?'var(--accent)':'#c0392b')+'">'+(tsign)+cur+Math.abs(total).toLocaleString()+'</span></div>';
 }
 
 // ── EXTRA CURRENCIES ──
@@ -2535,41 +2470,12 @@ function l2Ent(){
   });
   ew.innerHTML=html;
   var tx=ax.reduce(function(s,x){return s+(x.amount||0);},0),net=te-tx,g={};
-  window._l2LastNet=net;
   ax.forEach(function(x){var k=(x.comment||'Затрата').trim();g[k]=(g[k]||0)+(x.amount||0);});
   var th='';
   Object.keys(g).forEach(function(n){th+='<div class="xrow"><span>'+n+'</span><span style="color:var(--accent)">−'+cur+g[n].toLocaleString()+'</span></div>';});
   th+='<div class="trow" style="align-items:flex-start"><div class="tlbl" style="padding-top:10px">Итого · слой 2</div>'+
-    '<div style="text-align:right"><div class="tamt" style="color:'+(net>=0?'var(--accent)':'#c0392b')+'">'+(net>=0?'+':'')+cur+Math.abs(net).toLocaleString()+'</div>'+
-    '<div class="xcur-wrap" id="l2xcurEdit"></div></div></div>';
+    '<div style="text-align:right"><div class="tamt" style="color:'+(net>=0?'var(--accent)':'#c0392b')+'">'+(net>=0?'+':'')+cur+Math.abs(net).toLocaleString()+'</div></div></div>';
   tw.innerHTML='<div class="tcard">'+th+'</div>';
-  l2renderXcurEdit();
-}
-
-function l2renderXcurEdit(){
-  var el=document.getElementById('l2xcurEdit');
-  if(!el)return;
-  if(!cfg.xcurs)cfg.xcurs=[];
-  var canAdd=cfg.xcurs.length<2;
-  var net=window._l2LastNet||0;
-  var cur=cfg.cur;
-  var h='';
-  cfg.xcurs.forEach(function(x,i){
-    var conv=(x.rate&&x.sym)?net*parseFloat(x.rate):null;
-    var amtStr=conv!==null
-      ?'<span style="font-size:22px;font-family:\'DM Serif Display\',serif;font-weight:400;color:'+(conv>=0?'var(--accent)':'#c0392b')+'">'+(conv>=0?'+':'')+x.sym+Math.abs(conv).toLocaleString(undefined,{maximumFractionDigits:0})+'</span>'
-      :'<span style="font-size:13px;color:var(--text3)">загрузка…</span>';
-    var opacity=x.on===false?'0.35':'1';
-    h+='<div style="display:flex;align-items:center;gap:8px;margin-top:10px;opacity:'+opacity+';">'+
-      '<button class="xcur-toggle '+(x.on===false?'':'on')+'" onclick="xcToggle('+i+')" style="flex-shrink:0;"></button>'+
-      '<div style="background:var(--bg3);border-radius:10px;padding:4px 10px;font-size:15px;color:var(--text);min-width:44px;text-align:center;">'+
-      '<input maxlength="4" placeholder="$" value="'+(x.sym||'')+'" oninput="xcSym('+i+',this.value)"'+
-      ' style="width:40px;background:none;border:none;outline:none;font:inherit;color:inherit;text-align:center;"/></div>'+
-      amtStr+
-      '<button class="xcur-del" onclick="xcDel('+i+')" style="margin-left:auto;flex-shrink:0;">×</button></div>';
-  });
-  if(canAdd)h+='<div style="text-align:center;margin-top:12px;"><button class="xcur-add" onclick="xcAdd()">+ Добавить валюту</button></div>';
-  el.innerHTML=h;
 }
 
 (function(){
