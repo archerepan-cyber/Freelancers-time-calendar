@@ -50,7 +50,7 @@
 
 /* ── RESET ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; overflow: hidden; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: pan-x pan-y; }
+html, body { height: 100%; overflow: hidden; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); }
 input, textarea, select { font-family: inherit; user-select: text; -webkit-user-select: text; }
 button { font-family: inherit; cursor: pointer; }
@@ -825,38 +825,33 @@ button { font-family: inherit; cursor: pointer; }
 
 <script>
 // ── iOS ORIENTATION FIX ──
+// iOS keeps a stale visual zoom after rotation even with maximum-scale=1.
+// The only reliable fix is: momentarily allow scaling (removes iOS zoom lock),
+// force a reflow, then immediately re-lock. Must run AFTER the browser has
+// finished resizing (hence the 300 ms / 600 ms delayed passes).
 (function () {
-  var _orientTimer = null;
-  function _fixViewport() {
-    var mv = document.querySelector('meta[name=viewport]');
+  const LOCKED   = 'width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover';
+  const UNLOCKED = 'width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover';
+
+  function resetZoom() {
+    const mv = document.querySelector('meta[name=viewport]');
     if (!mv) return;
-    // Reset to 1 then back to force iOS to recalculate layout at new size
-    mv.content = 'width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover';
+    // Step 1: briefly allow user scaling so iOS drops its internal zoom state
+    mv.content = 'width=device-width,initial-scale=1.0,user-scalable=yes,viewport-fit=cover';
+    // Step 2: force reflow so the browser actually processes the change
+    void document.documentElement.offsetHeight;
+    // Step 3: re-lock
+    mv.content = LOCKED;
     window.scrollTo(0, 0);
-    document.documentElement.style.height = '100%';
-    document.body.style.height = '100%';
-    // Force reflow
-    void document.body.offsetHeight;
-    // Re-lock to prevent pinch-zoom
-    mv.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
   }
-  function _onOrientChange() {
-    clearTimeout(_orientTimer);
-    // Immediate pass
-    _fixViewport();
-    // Delayed pass — iOS fires orientationchange before the viewport settles
-    _orientTimer = setTimeout(_fixViewport, 300);
-    _orientTimer = setTimeout(_fixViewport, 600);
-  }
-  window.addEventListener('orientationchange', _onOrientChange);
-  // Also handle resize (Chrome on Android)
-  var _lastW = window.innerWidth;
-  window.addEventListener('resize', function () {
-    if (window.innerWidth !== _lastW) {
-      _lastW = window.innerWidth;
-      clearTimeout(_orientTimer);
-      _orientTimer = setTimeout(_fixViewport, 200);
-    }
+
+  let _t1, _t2;
+  window.addEventListener('orientationchange', function () {
+    clearTimeout(_t1); clearTimeout(_t2);
+    // iOS fires orientationchange before the viewport has settled;
+    // run resets at 300 ms and 600 ms to catch both fast and slow devices.
+    _t1 = setTimeout(resetZoom, 300);
+    _t2 = setTimeout(resetZoom, 600);
   });
 })();
 
