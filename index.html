@@ -825,22 +825,40 @@ button { font-family: inherit; cursor: pointer; }
 
 <script>
 // ── iOS ORIENTATION FIX ──
-window.addEventListener('orientationchange', () => {
-  const mv = document.querySelector('meta[name=viewport]');
-  if (!mv) return;
-  mv.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
-  setTimeout(() => {
-    mv.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+(function () {
+  var _orientTimer = null;
+  function _fixViewport() {
+    var mv = document.querySelector('meta[name=viewport]');
+    if (!mv) return;
+    // Reset to 1 then back to force iOS to recalculate layout at new size
+    mv.content = 'width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover';
     window.scrollTo(0, 0);
-  }, 300);
-});
-
-// Backup: on resize reset any accidental zoom via viewport meta cycle
-window.addEventListener('resize', () => {
-  const mv = document.querySelector('meta[name=viewport]');
-  if (!mv) return;
-  mv.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
-});
+    document.documentElement.style.height = '100%';
+    document.body.style.height = '100%';
+    // Force reflow
+    void document.body.offsetHeight;
+    // Re-lock to prevent pinch-zoom
+    mv.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+  }
+  function _onOrientChange() {
+    clearTimeout(_orientTimer);
+    // Immediate pass
+    _fixViewport();
+    // Delayed pass — iOS fires orientationchange before the viewport settles
+    _orientTimer = setTimeout(_fixViewport, 300);
+    _orientTimer = setTimeout(_fixViewport, 600);
+  }
+  window.addEventListener('orientationchange', _onOrientChange);
+  // Also handle resize (Chrome on Android)
+  var _lastW = window.innerWidth;
+  window.addEventListener('resize', function () {
+    if (window.innerWidth !== _lastW) {
+      _lastW = window.innerWidth;
+      clearTimeout(_orientTimer);
+      _orientTimer = setTimeout(_fixViewport, 200);
+    }
+  });
+})();
 
 
 const TE_VARS = ['--bg','--bg2','--bg3','--text','--text2','--text3','--accent','--dot-today','--dot-past','--dot-future'];
