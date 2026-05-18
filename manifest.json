@@ -4,8 +4,8 @@
   "description": "Учёт рабочих дней и доходов фрилансера",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#080808",
-  "theme_color": "#080808",
+  "background_color": "#f5f0e8",
+  "theme_color": "#f5f0e8",
   "orientation": "portrait",
   "lang": "ru",
   "icons": [
