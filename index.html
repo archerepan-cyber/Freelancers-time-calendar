@@ -9,6 +9,8 @@
 <title>MZC Calendar</title>
 <link rel="manifest" href="manifest.json"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link rel="preload" href="https://fonts.gstatic.com/s/dmseriffdisplay/v15/2sDcZGJLip7W2J7v7wQZZuhp5pCcpQ.woff2" as="font" type="font/woff2" crossorigin/>
+<style id="fontHide">#app{opacity:0;}</style>
 <style>
 /* ── VARIABLES ── */
 :root {
@@ -1386,6 +1388,11 @@ applyCfg();
 renderBig();
 renderCal();
 renderEnt();
+// Remove font-hiding style once fonts are ready (prevents layout shift from font swap)
+document.fonts.ready.then(function() {
+  var s = document.getElementById('fontHide');
+  if (s) s.remove();
+});
 
 // ── BIG DATE ──
 function renderBig() {
