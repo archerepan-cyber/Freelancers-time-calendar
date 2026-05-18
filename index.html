@@ -824,34 +824,51 @@ button { font-family: inherit; cursor: pointer; }
 </div>
 
 <script>
-// ── iOS ORIENTATION FIX ──
-// iOS keeps a stale visual zoom after rotation even with maximum-scale=1.
-// The only reliable fix is: momentarily allow scaling (removes iOS zoom lock),
-// force a reflow, then immediately re-lock. Must run AFTER the browser has
-// finished resizing (hence the 300 ms / 600 ms delayed passes).
+// ── iOS ORIENTATION / ZOOM FIX ──
+// Root cause: iOS Safari (standalone PWA) applies a visual zoom when the
+// screen rotates and NEVER resets it on rotation back, even with
+// maximum-scale=1 in the viewport meta. The fix requires a genuine
+// async gap between "unlock" and "relock" so the browser actually
+// commits the scale=1 paint before we re-apply the lock.
 (function () {
-  const LOCKED   = 'width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover';
-  const UNLOCKED = 'width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover';
+  var _ort = null;
 
-  function resetZoom() {
-    const mv = document.querySelector('meta[name=viewport]');
+  function _unlock() {
+    var mv = document.querySelector('meta[name=viewport]');
     if (!mv) return;
-    // Step 1: briefly allow user scaling so iOS drops its internal zoom state
-    mv.content = 'width=device-width,initial-scale=1.0,user-scalable=yes,viewport-fit=cover';
-    // Step 2: force reflow so the browser actually processes the change
-    void document.documentElement.offsetHeight;
-    // Step 3: re-lock
-    mv.content = LOCKED;
+    // Remove maximum-scale so iOS is free to reset to its natural scale
+    mv.content = 'width=device-width,initial-scale=1.0,viewport-fit=cover';
+  }
+
+  function _lock() {
+    var mv = document.querySelector('meta[name=viewport]');
+    if (!mv) return;
+    // Re-apply the lock; iOS will honour initial-scale=1 now that it
+    // has already painted at the natural scale
+    mv.content = 'width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover';
     window.scrollTo(0, 0);
   }
 
-  let _t1, _t2;
-  window.addEventListener('orientationchange', function () {
-    clearTimeout(_t1); clearTimeout(_t2);
-    // iOS fires orientationchange before the viewport has settled;
-    // run resets at 300 ms and 600 ms to catch both fast and slow devices.
-    _t1 = setTimeout(resetZoom, 300);
-    _t2 = setTimeout(resetZoom, 600);
+  function _reset() {
+    clearTimeout(_ort);
+    // 1) Unlock immediately so iOS can start resetting to natural scale
+    _unlock();
+    // 2) After 300ms (viewport fully settled) lock via two rAFs
+    //    so the lock lands on the frame AFTER iOS has painted at scale=1
+    _ort = setTimeout(function () {
+      requestAnimationFrame(function () {
+        requestAnimationFrame(_lock);
+      });
+    }, 300);
+  }
+
+  window.addEventListener('orientationchange', _reset);
+
+  // Fallback for Android / desktop resize
+  var _prevW = window.innerWidth;
+  window.addEventListener('resize', function () {
+    var w = window.innerWidth;
+    if (w !== _prevW) { _prevW = w; _reset(); }
   });
 })();
 
