@@ -9,23 +9,6 @@
 <title>MZC Calendar</title>
 <link rel="manifest" href="manifest.json"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
-<link rel="preload" href="https://fonts.gstatic.com/s/dmseriffdisplay/v15/2sDcZGJLip7W2J7v7wQZZuhp5pCcpQ.woff2" as="font" type="font/woff2" crossorigin/>
-<style>
-/* ── SPLASH ── */
-#splash {
-  position: fixed; inset: 0; z-index: 9999;
-  background: #080808;
-  display: flex; align-items: center; justify-content: center;
-  transition: opacity 0.45s ease;
-}
-#splash.out { opacity: 0; pointer-events: none; }
-#splash-icon {
-  width: 120px; height: 120px; border-radius: 28px;
-  opacity: 0; transform: scale(0.82);
-  transition: opacity 0.35s ease, transform 0.4s cubic-bezier(.34,1.56,.64,1);
-}
-#splash-icon.show { opacity: 1; transform: scale(1); }
-</style>
 <style>
 /* ── VARIABLES ── */
 :root {
@@ -557,21 +540,6 @@ button { font-family: inherit; cursor: pointer; }
   </button>
 </div>
 
-<!-- SPLASH -->
-<div id="splash">
-  <img id="splash-icon" src="icons/icon-512.png" alt=""/>
-</div>
-<script>
-(function(){
-  try {
-    var s = JSON.parse(localStorage.getItem('ftc_s1') || '{}');
-    var bg = {'t-dark':'#151515','t-night':'#080808','t-warm':'#EFE8CB','t-ocean':'#E2E4D2','t-retro':'#DCC9A9'}[s.thcls] || '#f5f0e8';
-    document.getElementById('splash').style.background = bg;
-    document.documentElement.style.background = bg;
-  } catch(e) {}
-})();
-</script>
-
 <div id="app">
   <div id="wrap">
 
@@ -824,53 +792,14 @@ button { font-family: inherit; cursor: pointer; }
 </div>
 
 <script>
-// ── iOS ORIENTATION / ZOOM FIX ──
-// Root cause: iOS Safari (standalone PWA) applies a visual zoom when the
-// screen rotates and NEVER resets it on rotation back, even with
-// maximum-scale=1 in the viewport meta. The fix requires a genuine
-// async gap between "unlock" and "relock" so the browser actually
-// commits the scale=1 paint before we re-apply the lock.
-(function () {
-  var _ort = null;
-
-  function _unlock() {
-    var mv = document.querySelector('meta[name=viewport]');
-    if (!mv) return;
-    // Remove maximum-scale so iOS is free to reset to its natural scale
-    mv.content = 'width=device-width,initial-scale=1.0,viewport-fit=cover';
+// ── iOS ORIENTATION FIX ──
+window.addEventListener('orientationchange', () => {
+  const mv = document.querySelector('meta[name=viewport]');
+  if (mv) {
+    mv.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
   }
-
-  function _lock() {
-    var mv = document.querySelector('meta[name=viewport]');
-    if (!mv) return;
-    // Re-apply the lock; iOS will honour initial-scale=1 now that it
-    // has already painted at the natural scale
-    mv.content = 'width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover';
-    window.scrollTo(0, 0);
-  }
-
-  function _reset() {
-    clearTimeout(_ort);
-    // 1) Unlock immediately so iOS can start resetting to natural scale
-    _unlock();
-    // 2) After 300ms (viewport fully settled) lock via two rAFs
-    //    so the lock lands on the frame AFTER iOS has painted at scale=1
-    _ort = setTimeout(function () {
-      requestAnimationFrame(function () {
-        requestAnimationFrame(_lock);
-      });
-    }, 300);
-  }
-
-  window.addEventListener('orientationchange', _reset);
-
-  // Fallback for Android / desktop resize
-  var _prevW = window.innerWidth;
-  window.addEventListener('resize', function () {
-    var w = window.innerWidth;
-    if (w !== _prevW) { _prevW = w; _reset(); }
-  });
-})();
+  setTimeout(() => { window.scrollTo(0, 0); }, 100);
+});
 
 
 const TE_VARS = ['--bg','--bg2','--bg3','--text','--text2','--text3','--accent','--dot-today','--dot-past','--dot-future'];
@@ -1457,31 +1386,6 @@ applyCfg();
 renderBig();
 renderCal();
 renderEnt();
-// ── SPLASH ANIMATION ──
-(function() {
-  var icon = document.getElementById('splash-icon');
-  var splash = document.getElementById('splash');
-  // Show icon with spring animation
-  requestAnimationFrame(function() {
-    requestAnimationFrame(function() {
-      if (icon) icon.classList.add('show');
-    });
-  });
-  // Fade out splash after icon shown + brief pause
-  var hideSplash = function() {
-    if (!splash) return;
-    splash.classList.add('out');
-    setTimeout(function() {
-      if (splash && splash.parentNode) splash.parentNode.removeChild(splash);
-    }, 460);
-  };
-  // Wait for fonts + minimum display time
-  var fontsReady = false, timerDone = false;
-  var tryHide = function() { if (fontsReady && timerDone) hideSplash(); };
-  document.fonts.ready.then(function() { fontsReady = true; tryHide(); });
-  setTimeout(function() { fontsReady = true; tryHide(); }, 600); // max wait 600ms
-  setTimeout(function() { timerDone = true; tryHide(); }, 800); // min display 800ms
-})();
 
 // ── BIG DATE ──
 function renderBig() {
@@ -2079,7 +1983,7 @@ function renderEnt() {
   ew.innerHTML = html;
 
   const tx = ax.reduce((s, x) => s + (x.amount || 0), 0);
-  const net = te - tx; window._lastNet = net; window._lastTe = te; window._lastTx = tx;
+  const net = te - tx; window._lastNet = net;
   let th = '';
   // Группируем одинаковые траты по названию
   const grouped = {};
@@ -2100,12 +2004,6 @@ function renderEnt() {
       <div class="tamt" style="color:${net >= 0 ? 'var(--accent)' : '#c0392b'};">${net >= 0 ? '+' : ''}${cur}${Math.abs(net).toLocaleString()}</div>
       <div class="xcur-wrap" id="xcurEdit"></div>
     </div>
-  </div>
-  <div style="margin-top:14px;border-top:1px solid var(--sep);padding-top:14px;" id="l2SumWrap">
-    <button onclick="toggleL2Sum()" style="width:100%;padding:11px;border-radius:12px;background:var(--bg3);border:none;font-size:13px;font-weight:600;color:var(--text2);touch-action:manipulation;cursor:pointer;letter-spacing:.3px;">
-      ⊕ Суммировать со слоем 2
-    </button>
-    <div id="l2SumResult" style="display:none;margin-top:12px;"></div>
   </div>`;
   tw.innerHTML = `<div class="tcard">${th}</div>`;
   renderXcurEdit();
@@ -2171,94 +2069,6 @@ function xcAdd() {
 function xcDel(i) { cfg.xcurs.splice(i,1); saveC(); renderEnt(); }
 function xcToggle(i) { cfg.xcurs[i].on = cfg.xcurs[i].on===false?true:false; saveC(); renderEnt(); }
 function xcSym(i,val) { cfg.xcurs[i].sym=val; cfg.xcurs[i].rate=''; saveC(); renderEnt(); if(val.length>=1) xcRefreshRates(); }
-
-// ── LAYER 2 EXTRA CURRENCIES (independent) ──
-async function xc2RefreshRates() {
-  if (!cfg.xcurs2 || !cfg.xcurs2.length) return;
-  const rates = await fetchRates(cfg.cur);
-  let changed = false;
-  cfg.xcurs2.forEach(x => {
-    if (!x.sym) return;
-    const code = CUR_CODE[x.sym] || x.sym.replace(/[^A-Za-z]/g,'').toUpperCase();
-    if (rates[code]) { x.rate = rates[code]; changed = true; }
-  });
-  if (changed) { saveC(); l2Ent(); }
-}
-function xc2Add() {
-  if (!cfg.xcurs2) cfg.xcurs2 = [];
-  if (cfg.xcurs2.length >= 2) return;
-  cfg.xcurs2.push({sym:'',rate:'',on:true});
-  saveC(); l2Ent(); xc2RefreshRates();
-}
-function xc2Del(i) { cfg.xcurs2.splice(i,1); saveC(); l2Ent(); }
-function xc2Toggle(i) { cfg.xcurs2[i].on = cfg.xcurs2[i].on===false?true:false; saveC(); l2Ent(); }
-function xc2Sym(i,val) { cfg.xcurs2[i].sym=val; cfg.xcurs2[i].rate=''; saveC(); l2Ent(); if(val.length>=1) xc2RefreshRates(); }
-function renderXcur2Edit(net) {
-  const el = document.getElementById('xcur2Edit');
-  if (!el) return;
-  if (!cfg.xcurs2) cfg.xcurs2 = [];
-  const canAdd = cfg.xcurs2.length < 2;
-  const cur = cfg.cur;
-  let h = '';
-  cfg.xcurs2.forEach((x, i) => {
-    const conv = (x.rate && x.sym) ? net * parseFloat(x.rate) : null;
-    const amtStr = conv !== null
-      ? `<span style="font-size:22px;font-family:'DM Serif Display',serif;font-weight:400;color:${conv>=0?'var(--accent)':'#c0392b'};">${conv>=0?'+':''}${x.sym}${Math.abs(conv).toLocaleString(undefined,{maximumFractionDigits:0})}</span>`
-      : `<span style="font-size:13px;color:var(--text3);">загрузка…</span>`;
-    const opacity = x.on === false ? '0.35' : '1';
-    h += `<div style="display:flex;align-items:center;gap:8px;margin-top:10px;opacity:${opacity};">
-      <button class="xcur-toggle ${x.on===false?'':'on'}" onclick="xc2Toggle(${i})" style="flex-shrink:0;"></button>
-      <div style="background:var(--bg3);border-radius:10px;padding:4px 10px;font-size:15px;color:var(--text);min-width:44px;text-align:center;">
-        <input maxlength="4" placeholder="$" value="${x.sym||''}" oninput="xc2Sym(${i},this.value)"
-          style="width:40px;background:none;border:none;outline:none;font:inherit;color:inherit;text-align:center;"/>
-      </div>
-      ${amtStr}
-      <button class="xcur-del" onclick="xc2Del(${i})" style="margin-left:auto;flex-shrink:0;">×</button>
-    </div>`;
-  });
-  if (canAdd) h += `<div style="text-align:center;margin-top:12px;"><button class="xcur-add" onclick="xc2Add()">+ Добавить валюту</button></div>`;
-  el.innerHTML = h;
-}
-
-// ── SUM LAYERS ──
-var _l2SumOpen = false;
-function toggleL2Sum() {
-  _l2SumOpen = !_l2SumOpen;
-  var res = document.getElementById('l2SumResult');
-  if (!res) return;
-  if (!_l2SumOpen) { res.style.display = 'none'; return; }
-  // Collect layer2 totals for current month
-  var l2te = 0, l2tx = 0;
-  var l2d = window._L2 ? window._L2.days : {};
-  for (var d = 1; d <= 31; d++) {
-    var dk = dkey(vy, vm, d);
-    if (new Date(vy, vm, d).getMonth() !== vm) break;
-    if (!l2d[dk]) continue;
-    _normDay(l2d[dk]).forEach(function(t) {
-      l2te += t.earned || 0;
-      (t.expenses || []).forEach(function(x) { l2tx += x.amount || 0; });
-    });
-  }
-  var l1net = window._lastNet || 0;
-  var l2net = l2te - l2tx;
-  var total = l1net + l2net;
-  var totalExp = (window._lastTx || 0) + l2tx;
-  var totalEarned = (window._lastTe || 0) + l2te;
-  var cur = cfg.cur;
-  function fmt(n) { return (n >= 0 ? '+' : '') + cur + Math.abs(n).toLocaleString(); }
-  res.innerHTML =
-    '<div style="background:var(--bg3);border-radius:14px;padding:14px;">' +
-    '<div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:12px;">Сумма слоёв · ' + MON[vm] + '</div>' +
-    '<div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:var(--text2);font-size:14px;">Слой 1</span><span style="color:var(--accent);font-weight:600;">' + fmt(l1net) + '</span></div>' +
-    '<div style="display:flex;justify-content:space-between;margin-bottom:12px;"><span style="color:var(--text2);font-size:14px;">Слой 2</span><span style="color:var(--accent);font-weight:600;">' + fmt(l2net) + '</span></div>' +
-    '<div style="display:flex;justify-content:space-between;border-top:1px solid var(--sep);padding-top:12px;align-items:center;">' +
-    '<span style="font-weight:700;color:var(--text);">Итого</span>' +
-    '<div style="text-align:right;">' +
-    '<div style="font-family:\'DM Serif Display\',serif;font-size:28px;color:' + (total >= 0 ? 'var(--accent)' : '#c0392b') + ';">' + fmt(total) + '</div>' +
-    '<div style="font-size:11px;color:var(--text3);margin-top:2px;">доход ' + cur + totalEarned.toLocaleString() + ' · затраты ' + cur + totalExp.toLocaleString() + '</div>' +
-    '</div></div></div>';
-  res.style.display = 'block';
-}
 
 // ── TABS ──
 function goTab(tab, fromSwipe = false) {
@@ -2664,10 +2474,8 @@ function l2Ent(){
   var th='';
   Object.keys(g).forEach(function(n){th+='<div class="xrow"><span>'+n+'</span><span style="color:var(--accent)">−'+cur+g[n].toLocaleString()+'</span></div>';});
   th+='<div class="trow" style="align-items:flex-start"><div class="tlbl" style="padding-top:10px">Итого · слой 2</div>'+
-    '<div style="text-align:right"><div class="tamt" style="color:'+(net>=0?'var(--accent)':'#c0392b')+'">'+(net>=0?'+':'')+cur+Math.abs(net).toLocaleString()+'</div>'+
-    '<div class="xcur-wrap" id="xcur2Edit"></div></div></div>';
+    '<div style="text-align:right"><div class="tamt" style="color:'+(net>=0?'var(--accent)':'#c0392b')+'">'+(net>=0?'+':'')+cur+Math.abs(net).toLocaleString()+'</div></div></div>';
   tw.innerHTML='<div class="tcard">'+th+'</div>';
-  renderXcur2Edit(net);
 }
 
 (function(){
