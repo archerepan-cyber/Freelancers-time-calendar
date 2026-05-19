@@ -2590,6 +2590,116 @@ function l2Cal(){
   window.l2Sync();
 }
 
+// ── LAYER 2 DRAG STATE ──
+var _l2DragActive=false,_l2DragSrcDk=null,_l2DragSrcEl=null,_l2DragOverEl=null,_l2DragOverDk=null;
+var _l2CopiedDay=null;
+
+function _l2DotElFromPoint(x,y){
+  _ghost.style.display='none';
+  var el=document.elementFromPoint(x,y);
+  _ghost.style.display='';
+  if(!el)return null;
+  var dot=el.closest('#l2Grid .dot');
+  return(dot&&!dot.classList.contains('empty'))?dot:null;
+}
+function _l2DkOfDot(el){
+  var a=el.getAttribute('ontouchstart')||'',m=a.match(/'([^']+)'\)/);
+  return m?m[1]:null;
+}
+function _l2StartDrag(touch,dk,srcEl){
+  _l2DragActive=true;_l2DragSrcDk=dk;_l2DragSrcEl=srcEl;
+  var dd=_L2.days[dk],col=_dayColor(dd)||cfg.acc||'#324E44';
+  var ps=_pizzaStyle(dd);
+  if(ps){var m=ps.match(/background:\s*(.+);/);if(m)_ghost.style.background=m[1];}
+  else _ghost.style.background=col;
+  _ghost.style.left=touch.clientX+'px';_ghost.style.top=touch.clientY+'px';
+  _ghost.classList.add('on');srcEl.classList.add('drag-src');
+}
+function _l2EndDrag(dropped){
+  _ghost.classList.remove('on');
+  if(_l2DragSrcEl)_l2DragSrcEl.classList.remove('drag-src');
+  if(_l2DragOverEl)_l2DragOverEl.classList.remove('drag-over');
+  if(dropped&&_l2DragOverDk&&_l2DragOverDk!==_l2DragSrcDk){
+    _L2.days[_l2DragOverDk]=JSON.parse(JSON.stringify(_L2.days[_l2DragSrcDk]));
+    delete _L2.days[_l2DragSrcDk];
+    _l2save();l2Cal();l2Ent();
+    navigator.vibrate&&navigator.vibrate([18,24,18]);
+  }
+  _l2DragActive=false;_l2DragSrcDk=_l2DragSrcEl=_l2DragOverEl=_l2DragOverDk=null;
+}
+
+// Extend global touchmove/touchend/touchcancel to handle layer 2 drag
+(function(){
+  var _origMove=null,_origEnd=null,_origCancel=null;
+  // Patch into the document listeners that already exist for layer 1
+  // by adding a parallel listener at capture phase so we don't fight layer 1
+  document.addEventListener('touchmove',function(e){
+    // Layer 2 drag start from long-press
+    if(_L2.longPressed&&!_l2DragActive&&_L2.longPressDk&&_L2.days[_L2.longPressDk]){
+      var t=e.touches[0];
+      var srcEl=document.querySelector('#l2Grid .dot.press')||_l2DragSrcEl||e.target.closest('#l2Grid .dot');
+      _l2StartDrag(t,_L2.longPressDk,srcEl||e.target.closest('.dot'));
+      _L2.longPressed=false;
+    }
+    if(!_l2DragActive)return;
+    e.preventDefault();
+    var t=e.touches[0];
+    _ghost.style.left=t.clientX+'px';_ghost.style.top=t.clientY+'px';
+    var target=_l2DotElFromPoint(t.clientX,t.clientY);
+    if(target!==_l2DragOverEl){
+      if(_l2DragOverEl)_l2DragOverEl.classList.remove('drag-over');
+      _l2DragOverEl=target;
+      _l2DragOverDk=target?_l2DkOfDot(target):null;
+      if(_l2DragOverEl&&_l2DragOverDk!==_l2DragSrcDk)_l2DragOverEl.classList.add('drag-over');
+    }
+  },{passive:false});
+
+  document.addEventListener('touchend',function(e){
+    if(_l2DragActive){_l2EndDrag(true);return;}
+    if(_L2.longPressed){
+      _L2.longPressed=false;
+      var dk=_L2.longPressDk;_L2.longPressDk=null;
+      var hasDayData=!!_L2.days[dk],hasCopied=!!_l2CopiedDay;
+      if(hasDayData||hasCopied){_l2ShowCtxMenu(e,dk,hasDayData,hasCopied);}
+      else{l2Modal(dk);}
+    }
+  },{passive:true});
+
+  document.addEventListener('touchcancel',function(){
+    if(_l2DragActive){_l2EndDrag(false);}
+    _L2.longPressed=false;_L2.longPressDk=null;
+  },{passive:true});
+})();
+
+function _l2ShowCtxMenu(e,dk,showCopy,showPaste){
+  // Reuse the existing ctxMenu but wire l2 copy/paste actions
+  var menu=document.getElementById('ctxMenu');
+  var copyBtn=document.getElementById('ctxCopy');
+  var pasteBtn=document.getElementById('ctxPaste');
+  copyBtn.style.display=showCopy?'':'none';
+  pasteBtn.style.display=showPaste?'':'none';
+  // Override onclick for this invocation
+  copyBtn.onclick=function(){
+    _l2CopiedDay=_L2.days[dk]?JSON.parse(JSON.stringify(_L2.days[dk])):null;
+    menu.classList.remove('on');
+  };
+  pasteBtn.onclick=function(){
+    if(!_l2CopiedDay)return;
+    _L2.days[dk]=JSON.parse(JSON.stringify(_l2CopiedDay));
+    _l2save();l2Cal();l2Ent();
+    menu.classList.remove('on');
+    navigator.vibrate&&navigator.vibrate([12,16,12]);
+  };
+  // Position menu
+  var x=0,y=0;
+  if(e.changedTouches&&e.changedTouches.length){x=e.changedTouches[0].clientX;y=e.changedTouches[0].clientY;}
+  else if(e.touches&&e.touches.length){x=e.touches[0].clientX;y=e.touches[0].clientY;}
+  var mw=170,mh=showCopy&&showPaste?100:58;
+  x=Math.min(x,window.innerWidth-mw-8);y=Math.max(y-mh-12,8);
+  menu.style.left=x+'px';menu.style.top=y+'px';
+  menu.classList.add('on');
+}
+
 function l2ts(e,dk){
   _L2.mv=false;_L2.t0=Date.now();
   if(e.touches&&e.touches.length){_L2.tx0=e.touches[0].clientX;_L2.ty0=e.touches[0].clientY;}
@@ -2598,11 +2708,12 @@ function l2ts(e,dk){
   _L2.lpt=setTimeout(function(){
     el.classList.remove('press');
     navigator.vibrate&&navigator.vibrate(32);
-    _L2.longPressed=true;_L2.longPressDk=dk;
+    _L2.longPressed=true;_L2.longPressDk=dk;_L2.longPressE=e;
+    _l2DragSrcEl=el;
   },500);
 }
 function l2tm(e){
-  if(_L2.longPressed)return;
+  if(_L2.longPressed||_l2DragActive)return;
   var dx=0,dy=0;
   if(e&&e.touches&&e.touches.length){dx=Math.abs(e.touches[0].clientX-_L2.tx0);dy=Math.abs(e.touches[0].clientY-_L2.ty0);}
   if(dx>6||dy>6){
@@ -2613,12 +2724,15 @@ function l2tm(e){
 function l2te(e,dk){
   clearTimeout(_L2.lpt);
   if(e.currentTarget)e.currentTarget.classList.remove('press');
-  if(_L2.longPressed){
-    _L2.longPressed=false;_L2.longPressDk=null;
-    l2Modal(dk);return;
-  }
+  if(_l2DragActive)return;
+  if(_L2.longPressed)return; // handled by global touchend
   if(_L2.mv)return;
   if(Date.now()-_L2.t0>=500)return;
+  if(document.getElementById('ctxMenu').classList.contains('on'))return;
+  if(e.changedTouches&&e.changedTouches.length){
+    var ct=e.changedTouches[0];
+    if(Math.abs(ct.clientX-_L2.tx0)>12||Math.abs(ct.clientY-_L2.ty0)>12)return;
+  }
   var now=Date.now();
   if(_L2.lastDk===dk&&now-_L2.lastTap<400){
     clearTimeout(_L2.dtTimer);_L2.lastTap=0;_L2.lastDk=null;l2ClrD(dk);return;
