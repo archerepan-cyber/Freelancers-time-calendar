@@ -355,6 +355,18 @@ button { font-family: inherit; cursor: pointer; }
 .xlist .xrow2 input { flex: 1; min-width: 0; }
 .xlist .xrow2 .xdel { background: none; border: none; font-size: 20px; color: var(--text3); touch-action: manipulation; flex-shrink: 0; padding: 4px; }
 .addx { width: 100%; padding: 10px; border-radius: 10px; border: 1.5px dashed var(--text3); background: none; font-size: 13px; color: var(--text3); touch-action: manipulation; margin-bottom: 14px; }
+.addnote { width: 100%; padding: 10px; border-radius: 10px; border: 1.5px dashed var(--text3); background: none; font-size: 13px; color: var(--text3); touch-action: manipulation; margin-bottom: 6px; }
+.task-note { width: 100%; min-height: 72px; resize: none; border-radius: 10px; border: 1px solid var(--sep); background: var(--bg3); color: var(--text); font-size: 14px; font-family: inherit; padding: 10px 12px; box-sizing: border-box; outline: none; margin-top: 6px; margin-bottom: 6px; line-height: 1.5; }
+.enote { font-size: 13px; color: var(--text2); margin-top: 6px; line-height: 1.5; white-space: pre-wrap; padding: 6px 10px; border-left: 2px solid var(--sep); }
+.notes-panel { margin-top: 14px; border-top: 1px solid var(--sep); padding-top: 14px; }
+.notes-toggle { width: 100%; padding: 11px; border-radius: 12px; background: var(--bg3); border: none; font-size: 13px; font-weight: 600; color: var(--text2); touch-action: manipulation; cursor: pointer; letter-spacing: .3px; text-align: left; display: flex; justify-content: space-between; align-items: center; }
+.notes-toggle .ntarr { transition: transform .25s; display: inline-block; }
+.notes-toggle.open .ntarr { transform: rotate(180deg); }
+.notes-list { margin-top: 10px; display: flex; flex-direction: column; gap: 10px; }
+.note-item { background: var(--bg3); border-radius: 12px; padding: 10px 14px; }
+.note-item-date { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text3); margin-bottom: 4px; }
+.note-item-label { font-size: 12px; color: var(--text3); margin-bottom: 4px; }
+.note-item-text { font-size: 14px; color: var(--text); line-height: 1.5; white-space: pre-wrap; }
 .mact { display: flex; gap: 10px; margin-top: 16px; position: sticky; bottom: 0; background: var(--bg); padding-bottom: calc(var(--sb) + 8px); margin-left: -20px; margin-right: -20px; padding-left: 20px; padding-right: 20px; padding-top: 10px; }
 .btnc { flex: 1; padding: 14px; border-radius: 14px; background: var(--bg3); border: none; font-size: 15px; font-weight: 600; color: var(--text2); touch-action: manipulation; }
 .btno { flex: 2; padding: 14px; border-radius: 14px; background: var(--accent); border: none; font-size: 15px; font-weight: 600; color: #fff; touch-action: manipulation; }
@@ -506,7 +518,7 @@ button { font-family: inherit; cursor: pointer; }
 #l2Over.on #l2Sheet { transform:translateY(0); }
 #l2Drag { width:36px; height:4px; border-radius:2px; background:var(--sep); margin:12px auto 0; flex-shrink:0; }
 #l2CloseBtn { position:absolute; top:14px; right:16px; width:30px; height:30px; border-radius:50%; background:var(--bg3); border:none; font-size:16px; color:var(--text2); display:flex; align-items:center; justify-content:center; touch-action:manipulation; cursor:pointer; z-index:1; }
-#l2Body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding:calc(var(--st) + 20px) 22px 220px; }
+#l2Body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding:calc(var(--st) + 20px) 22px 78px; }
 #l2Body .bigrow { margin-bottom: 8px; }
 .dot .l2pip { position:absolute; top:-1px; right:-1px; width:8px; height:8px; border-radius:50%; border:1.5px solid var(--bg); pointer-events:none; display:none; }
 .dot.hasl2 .l2pip { display:block; }
@@ -1889,7 +1901,27 @@ function _taskBlockHTML(t, idx, total) {
       <div class="xlist task-xlist">${xRows}</div>
       <button class="addx" ontouchend="_addX(event,${idx})" onclick="_addX(event,${idx})">+ Добавить затрату</button>
     </div>
+    <div class="fg">
+      ${t.note != null
+        ? `<label class="fl">Заметка</label><textarea class="task-note" placeholder="Заметка…">${(t.note||'').replace(/</g,'&lt;')}</textarea>`
+        : `<button class="addnote" ontouchend="_addNote(event,${idx})" onclick="_addNote(event,${idx})">+ Добавить заметку</button>`
+      }
+    </div>
   </div>`;
+}
+
+function _addNote(e, idx) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+  _saveTaskFields();
+  if (!_tasks[idx]) return;
+  _tasks[idx].note = '';
+  const block = document.querySelector(`.task-block[data-idx="${idx}"]`);
+  if (!block) return;
+  const fgs = block.querySelectorAll('.fg');
+  const lastFg = fgs[fgs.length - 1];
+  lastFg.innerHTML = `<label class="fl">Заметка</label><textarea class="task-note" placeholder="Заметка…"></textarea>`;
+  const ta = lastFg.querySelector('.task-note');
+  if (ta) setTimeout(() => ta.focus(), 50);
 }
 
 function _renderTasks() {
@@ -1988,6 +2020,9 @@ function _saveTaskFields() {
       if (a > 0 || c) xs.push({ amount: a, comment: c });
     });
     t.expenses = xs;
+    const noteEl = block.querySelector('.task-note');
+    if (noteEl) t.note = noteEl.value;
+    else if (t.note === undefined) t.note = null;
   });
 }
 
@@ -2030,7 +2065,7 @@ function saveDay() {
   if(window.l2SaveDay&&window.l2SaveDay())return;
   if (!eDk) return;
   _saveTaskFields();
-  const valid = _tasks.filter(t => t.label || t.timeStart || t.earned || (t.expenses && t.expenses.length) || t.color);
+  const valid = _tasks.filter(t => t.label || t.timeStart || t.earned || (t.expenses && t.expenses.length) || t.color || t.note);
   const toSave = valid.length ? valid : [_tasks[0]];
   days[eDk] = toSave.length === 1 ? toSave[0] : toSave;
   saveD(); closeModal(); renderCal(); renderEnt();
@@ -2051,7 +2086,7 @@ function renderEnt() {
 
   const cur = cfg.cur;
   let html = `<div class="slbl">${MON[vm]} ${vy}</div>`;
-  let te = 0; const ax = [];
+  let te = 0; const ax = []; const allNotes = [];
 
   items.forEach((it, i) => {
     const tasks = _normDay(it.dd);
@@ -2061,6 +2096,7 @@ function renderEnt() {
     tasks.forEach(t => {
       te += t.earned || 0;
       (t.expenses || []).forEach(x => ax.push({ ...x, day: it.d, lbl: t.label }));
+      if (t.note) allNotes.push({ d: it.d, dk: it.dk, label: t.label, note: t.note });
     });
 
     // Build task rows
@@ -2082,6 +2118,7 @@ function renderEnt() {
             ${es ? `<span style="color:var(--accent);font-weight:600;">${es}</span>` : ''}
             ${xs ? `<span style="color:var(--text2);">${xs}</span>` : ''}
           </div>
+          ${t.note ? `<div class="enote">${t.note.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>` : ''}
         </div>
       </div>`;
     });
@@ -2127,7 +2164,20 @@ function renderEnt() {
       ⊕ Суммировать со слоем 2
     </button>
     <div id="l2SumResult" style="display:none;margin-top:12px;"></div>
-  </div>`;
+  </div>
+  ${allNotes.length ? `<div class="notes-panel">
+    <button class="notes-toggle" id="notesToggleBtn" onclick="toggleNotesPanel()" ontouchend="toggleNotesPanel()">
+      <span>Заметки</span>
+      <span class="ntarr">˅</span>
+    </button>
+    <div class="notes-list" id="notesList" style="display:none;">${
+      allNotes.map(n => `<div class="note-item" onclick="openModal('${n.dk}')">
+        <div class="note-item-date">${n.d} ${MONG[vm]}</div>
+        ${n.label ? `<div class="note-item-label">${n.label}</div>` : ''}
+        <div class="note-item-text">${n.note.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>
+      </div>`).join('')
+    }</div>
+  </div>` : ''}`;
   tw.innerHTML = `<div class="tcard">${th}</div>`;
   renderXcurEdit();
 }
@@ -2231,7 +2281,6 @@ function renderXcur2Edit(net) {
       <button class="xcur-toggle ${x.on===false?'':'on'}" onclick="xc2Toggle(${i})" style="flex-shrink:0;"></button>
       <div style="background:var(--bg3);border-radius:10px;padding:4px 10px;font-size:15px;color:var(--text);min-width:44px;text-align:center;">
         <input maxlength="4" placeholder="$" value="${x.sym||''}" oninput="xc2Sym(${i},this.value)"
-          onfocus="setTimeout(function(){var el=document.getElementById('xcur2Edit');if(el)el.scrollIntoView({block:'center',behavior:'smooth'});},350)"
           style="width:40px;background:none;border:none;outline:none;font:inherit;color:inherit;text-align:center;"/>
       </div>
       ${amtStr}
@@ -2242,39 +2291,17 @@ function renderXcur2Edit(net) {
   el.innerHTML = h;
 }
 
-// ── LAYER 2 KEYBOARD SCROLL FIX ──
-// When the keyboard opens over the currency input in l2Body,
-// scroll l2Body so the input is visible above the keyboard.
-(function(){
-  function _l2KeyboardScroll(){
-    var l2Over = document.getElementById('l2Over');
-    if(!l2Over||!l2Over.classList.contains('on'))return;
-    var ae=document.activeElement;
-    if(!ae||ae.tagName!=='INPUT')return;
-    var l2Body=document.getElementById('l2Body');
-    if(!l2Body||!l2Body.contains(ae))return;
-    // Use visualViewport height to detect how much keyboard covers
-    var vp=window.visualViewport;
-    var kbHeight=vp?(window.innerHeight-vp.height):0;
-    if(kbHeight<100)return; // keyboard not open
-    // Scroll so the focused element is above the keyboard
-    var rect=ae.getBoundingClientRect();
-    var visible=window.innerHeight-kbHeight;
-    if(rect.bottom>visible-20){
-      var extra=rect.bottom-(visible-20);
-      l2Body.scrollTop+=extra;
-    }
-  }
-
-  if(window.visualViewport){
-    window.visualViewport.addEventListener('resize',function(){
-      setTimeout(_l2KeyboardScroll,100);
-    });
-  }
-})();
-
-
+// ── SUM LAYERS ──
 var _l2SumOpen = false;
+function toggleNotesPanel() {
+  const btn  = document.getElementById('notesToggleBtn');
+  const list = document.getElementById('notesList');
+  if (!btn || !list) return;
+  const open = list.style.display !== 'none';
+  list.style.display = open ? 'none' : '';
+  btn.classList.toggle('open', !open);
+}
+
 function toggleL2Sum() {
   _l2SumOpen = !_l2SumOpen;
   var res = document.getElementById('l2SumResult');
@@ -2552,7 +2579,7 @@ function _l2save(){localStorage.setItem(_L2.SK,JSON.stringify(_L2.days));}
 window.l2SaveDay=function(){
   if(!_L2.eDk)return false;
   _saveTaskFields();
-  var v=_tasks.filter(function(t){return t.label||t.timeStart||t.earned||(t.expenses&&t.expenses.length)||t.color;});
+  var v=_tasks.filter(function(t){return t.label||t.timeStart||t.earned||(t.expenses&&t.expenses.length)||t.color||t.note;});
   var s=v.length?v:[_tasks[0]];
   _L2.days[_L2.eDk]=s.length===1?s[0]:s;
   _l2save();_L2.eDk=null;
@@ -2818,7 +2845,8 @@ function l2Ent(){
         '<div class="enums">'+(ts?'<span style="color:var(--text3)">🕐 '+ts+'</span>':'')+
         (es?'<span style="color:var(--accent);font-weight:600">'+es+'</span>':'')+
         (xs?'<span style="color:var(--text2)">'+xs+'</span>':'')+
-        '</div></div></div>';
+        '</div>'+(t.note?'<div class="enote">'+t.note.replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</div>':'')+
+        '</div></div>';
     });
     html+='<div class="ecard" onclick="l2Modal(\''+it.dk+'\')">'+
       '<div class="etop"><div class="enum">'+(i+1)+'</div>'+
