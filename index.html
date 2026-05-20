@@ -2086,7 +2086,7 @@ function renderEnt() {
 
   const cur = cfg.cur;
   let html = `<div class="slbl">${MON[vm]} ${vy}</div>`;
-  let te = 0; const ax = []; const allNotes = [];
+  let te = 0; const ax = [];
 
   items.forEach((it, i) => {
     const tasks = _normDay(it.dd);
@@ -2096,7 +2096,7 @@ function renderEnt() {
     tasks.forEach(t => {
       te += t.earned || 0;
       (t.expenses || []).forEach(x => ax.push({ ...x, day: it.d, lbl: t.label }));
-      if (t.note) allNotes.push({ d: it.d, dk: it.dk, label: t.label, note: t.note });
+
     });
 
     // Build task rows
@@ -2165,21 +2165,27 @@ function renderEnt() {
     </button>
     <div id="l2SumResult" style="display:none;margin-top:12px;"></div>
   </div>
-  ${allNotes.length ? `<div class="notes-panel">
+  <div class="notes-panel">
     <button class="notes-toggle" id="notesToggleBtn" onclick="toggleNotesPanel()" ontouchend="toggleNotesPanel()">
       <span>Заметки</span>
       <span class="ntarr">˅</span>
     </button>
-    <div class="notes-list" id="notesList" style="display:none;">${
-      allNotes.map(n => `<div class="note-item" onclick="openModal('${n.dk}')">
-        <div class="note-item-date">${n.d} ${MONG[vm]}</div>
-        ${n.label ? `<div class="note-item-label">${n.label}</div>` : ''}
-        <div class="note-item-text">${n.note.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>
-      </div>`).join('')
-    }</div>
-  </div>` : ''}`;
+    <div id="notesList" style="display:none;margin-top:10px;">
+      <textarea id="monthNoteTA" class="task-note" placeholder="Заметки за месяц…" style="min-height:100px;" oninput="saveMonthNote(this.value)"></textarea>
+    </div>
+  </div>`;
   tw.innerHTML = `<div class="tcard">${th}</div>`;
   renderXcurEdit();
+  // Restore independent month note
+  const _mnKey = vy + '-' + vm;
+  const _mnTA = document.getElementById('monthNoteTA');
+  if (_mnTA) _mnTA.value = (cfg.mNotes || {})[_mnKey] || '';
+  if (_notesOpen) {
+    const nl = document.getElementById('notesList');
+    const nb = document.getElementById('notesToggleBtn');
+    if (nl) nl.style.display = '';
+    if (nb) nb.classList.add('open');
+  }
 }
 
 // ── EXTRA CURRENCIES ──
@@ -2293,13 +2299,29 @@ function renderXcur2Edit(net) {
 
 // ── SUM LAYERS ──
 var _l2SumOpen = false;
+let _notesOpen = false;
+
 function toggleNotesPanel() {
   const btn  = document.getElementById('notesToggleBtn');
   const list = document.getElementById('notesList');
   if (!btn || !list) return;
-  const open = list.style.display !== 'none';
-  list.style.display = open ? 'none' : '';
-  btn.classList.toggle('open', !open);
+  _notesOpen = (list.style.display === 'none' || list.style.display === '');
+  // edge: on first open display is 'none' (set inline), after that we toggle
+  _notesOpen = list.style.display === 'none';
+  list.style.display = _notesOpen ? '' : 'none';
+  btn.classList.toggle('open', _notesOpen);
+  if (_notesOpen) {
+    const ta = document.getElementById('monthNoteTA');
+    if (ta) { ta.value = (cfg.mNotes || {})[vy + '-' + vm] || ''; ta.focus(); }
+  }
+}
+
+function saveMonthNote(val) {
+  if (!cfg.mNotes) cfg.mNotes = {};
+  const key = vy + '-' + vm;
+  if (val.trim()) cfg.mNotes[key] = val;
+  else delete cfg.mNotes[key];
+  saveC();
 }
 
 function toggleL2Sum() {
@@ -2307,7 +2329,8 @@ function toggleL2Sum() {
   var res = document.getElementById('l2SumResult');
   if (!res) return;
   if (!_l2SumOpen) { res.style.display = 'none'; return; }
-  // Collect layer2 totals for current month
+
+  // Collect layer 2 totals
   var l2te = 0, l2tx = 0;
   var l2d = window._L2 ? window._L2.days : {};
   for (var d = 1; d <= 31; d++) {
@@ -2326,16 +2349,54 @@ function toggleL2Sum() {
   var totalEarned = (window._lastTe || 0) + l2te;
   var cur = cfg.cur;
   function fmt(n) { return (n >= 0 ? '+' : '') + cur + Math.abs(n).toLocaleString(); }
+
+  // Collect unique extra currencies from BOTH layers
+  var allXcurs = [];
+  var seen = {};
+  (cfg.xcurs || []).forEach(function(x) {
+    if (x.sym && x.on !== false && !seen[x.sym]) { seen[x.sym] = true; allXcurs.push({sym:x.sym, rate:x.rate}); }
+  });
+  (cfg.xcurs2 || []).forEach(function(x) {
+    if (x.sym && x.on !== false && !seen[x.sym]) { seen[x.sym] = true; allXcurs.push({sym:x.sym, rate:x.rate}); }
+  });
+
+  var xcurHTML = '';
+  if (allXcurs.length) {
+    xcurHTML = '<div style="margin-top:6px;">';
+    allXcurs.forEach(function(x) {
+      if (x.rate && x.sym) {
+        var conv = total * parseFloat(x.rate);
+        xcurHTML += '<div style="font-size:14px;color:var(--text3);text-align:right;">' +
+          (conv >= 0 ? '+' : '') + x.sym + Math.abs(conv).toLocaleString(undefined,{maximumFractionDigits:0}) + '</div>';
+      } else {
+        xcurHTML += '<div style="font-size:12px;color:var(--text3);text-align:right;">загрузка ' + (x.sym||'') + '…</div>';
+        // Trigger fetch
+        fetchRates(cur).then(function(rates) {
+          var code = CUR_CODE[x.sym] || x.sym.replace(/[^A-Za-z]/g,'').toUpperCase();
+          var rate = rates[code];
+          if (!rate) return;
+          var rStr = String(1/rate);
+          (cfg.xcurs||[]).forEach(function(c){if(c.sym===x.sym)c.rate=rStr;});
+          (cfg.xcurs2||[]).forEach(function(c){if(c.sym===x.sym)c.rate=rStr;});
+          saveC();
+          if (_l2SumOpen) { _l2SumOpen = false; toggleL2Sum(); }
+        });
+      }
+    });
+    xcurHTML += '</div>';
+  }
+
   res.innerHTML =
     '<div style="background:var(--bg3);border-radius:14px;padding:14px;">' +
     '<div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:12px;">Сумма слоёв · ' + MON[vm] + '</div>' +
     '<div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:var(--text2);font-size:14px;">Слой 1</span><span style="color:var(--accent);font-weight:600;">' + fmt(l1net) + '</span></div>' +
     '<div style="display:flex;justify-content:space-between;margin-bottom:12px;"><span style="color:var(--text2);font-size:14px;">Слой 2</span><span style="color:var(--accent);font-weight:600;">' + fmt(l2net) + '</span></div>' +
-    '<div style="display:flex;justify-content:space-between;border-top:1px solid var(--sep);padding-top:12px;align-items:center;">' +
-    '<span style="font-weight:700;color:var(--text);">Итого</span>' +
+    '<div style="display:flex;justify-content:space-between;border-top:1px solid var(--sep);padding-top:12px;align-items:flex-start;">' +
+    '<span style="font-weight:700;color:var(--text);padding-top:4px;">Итого</span>' +
     '<div style="text-align:right;">' +
     '<div style="font-family:\'DM Serif Display\',serif;font-size:28px;color:' + (total >= 0 ? 'var(--accent)' : '#c0392b') + ';">' + fmt(total) + '</div>' +
-    '<div style="font-size:11px;color:var(--text3);margin-top:2px;">доход ' + cur + totalEarned.toLocaleString() + ' · затраты ' + cur + totalExp.toLocaleString() + '</div>' +
+    xcurHTML +
+    '<div style="font-size:11px;color:var(--text3);margin-top:6px;">доход ' + cur + totalEarned.toLocaleString() + ' · затраты ' + cur + totalExp.toLocaleString() + '</div>' +
     '</div></div></div>';
   res.style.display = 'block';
 }
