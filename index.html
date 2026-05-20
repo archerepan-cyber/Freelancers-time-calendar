@@ -506,7 +506,7 @@ button { font-family: inherit; cursor: pointer; }
 #l2Over.on #l2Sheet { transform:translateY(0); }
 #l2Drag { width:36px; height:4px; border-radius:2px; background:var(--sep); margin:12px auto 0; flex-shrink:0; }
 #l2CloseBtn { position:absolute; top:14px; right:16px; width:30px; height:30px; border-radius:50%; background:var(--bg3); border:none; font-size:16px; color:var(--text2); display:flex; align-items:center; justify-content:center; touch-action:manipulation; cursor:pointer; z-index:1; }
-#l2Body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding:calc(var(--st) + 20px) 22px 78px; }
+#l2Body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding:calc(var(--st) + 20px) 22px 220px; }
 #l2Body .bigrow { margin-bottom: 8px; }
 .dot .l2pip { position:absolute; top:-1px; right:-1px; width:8px; height:8px; border-radius:50%; border:1.5px solid var(--bg); pointer-events:none; display:none; }
 .dot.hasl2 .l2pip { display:block; }
@@ -2231,6 +2231,7 @@ function renderXcur2Edit(net) {
       <button class="xcur-toggle ${x.on===false?'':'on'}" onclick="xc2Toggle(${i})" style="flex-shrink:0;"></button>
       <div style="background:var(--bg3);border-radius:10px;padding:4px 10px;font-size:15px;color:var(--text);min-width:44px;text-align:center;">
         <input maxlength="4" placeholder="$" value="${x.sym||''}" oninput="xc2Sym(${i},this.value)"
+          onfocus="setTimeout(function(){var el=document.getElementById('xcur2Edit');if(el)el.scrollIntoView({block:'center',behavior:'smooth'});},350)"
           style="width:40px;background:none;border:none;outline:none;font:inherit;color:inherit;text-align:center;"/>
       </div>
       ${amtStr}
@@ -2241,7 +2242,38 @@ function renderXcur2Edit(net) {
   el.innerHTML = h;
 }
 
-// ── SUM LAYERS ──
+// ── LAYER 2 KEYBOARD SCROLL FIX ──
+// When the keyboard opens over the currency input in l2Body,
+// scroll l2Body so the input is visible above the keyboard.
+(function(){
+  function _l2KeyboardScroll(){
+    var l2Over = document.getElementById('l2Over');
+    if(!l2Over||!l2Over.classList.contains('on'))return;
+    var ae=document.activeElement;
+    if(!ae||ae.tagName!=='INPUT')return;
+    var l2Body=document.getElementById('l2Body');
+    if(!l2Body||!l2Body.contains(ae))return;
+    // Use visualViewport height to detect how much keyboard covers
+    var vp=window.visualViewport;
+    var kbHeight=vp?(window.innerHeight-vp.height):0;
+    if(kbHeight<100)return; // keyboard not open
+    // Scroll so the focused element is above the keyboard
+    var rect=ae.getBoundingClientRect();
+    var visible=window.innerHeight-kbHeight;
+    if(rect.bottom>visible-20){
+      var extra=rect.bottom-(visible-20);
+      l2Body.scrollTop+=extra;
+    }
+  }
+
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize',function(){
+      setTimeout(_l2KeyboardScroll,100);
+    });
+  }
+})();
+
+
 var _l2SumOpen = false;
 function toggleL2Sum() {
   _l2SumOpen = !_l2SumOpen;
