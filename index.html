@@ -2876,8 +2876,8 @@ function l2Ent(){
 
   document.addEventListener('touchstart',function(e){
     if(!document.getElementById('l2Over').classList.contains('on'))return;
-    // Don't start sheet swipe if a dot drag/longpress is in progress
-    if(_l2DragActive||(_L2&&_L2.longPressed)||(_L2&&_L2.lpt))return;
+    // Block sheet swipe only if dot drag or long-press is actively happening
+    if(_l2DragActive||(_L2&&_L2.longPressed))return;
     var sh=document.getElementById('l2Sheet');
     if(!sh.contains(e.target)){sy=null;return;}
     var body=document.getElementById('l2Body');
